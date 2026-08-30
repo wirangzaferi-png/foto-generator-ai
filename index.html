@@ -1,0 +1,1531 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Foto Generator AI</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<meta name="theme-color" content="#0c0c12">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --bg:#0c0c12;
+    --bg-panel:#16171f;
+    --bg-panel-2:#1d1e29;
+    --bg-input:#0e0f16;
+    --line:#282a36;
+    --ink:#f4f4f7;
+    --ink-dim:#8a8c99;
+    --accent1:#fe2c55;
+    --accent2:#7c4dff;
+    --accent3:#25f4ee;
+    --grad: linear-gradient(120deg, var(--accent1), var(--accent2) 55%, var(--accent3));
+    --ok:#3ddc97;
+    --warn:#ffb454;
+  }
+  *{box-sizing:border-box;}
+  html, body{ overflow-x:hidden; max-width:100%; }
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 15% 0%, rgba(124,77,255,.12), transparent 40%),
+      radial-gradient(circle at 90% 10%, rgba(37,244,238,.08), transparent 35%),
+      var(--bg);
+    color:var(--ink);
+    font-family:'Space Grotesk',sans-serif;
+    min-height:100vh;
+  }
+  .wrap{max-width:1000px; margin:0 auto; padding:0 16px 100px;}
+
+  .topbar{
+    position:sticky; top:0; z-index:60;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:11px 16px;
+    background:rgba(12,12,18,.9);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .brand-mini{display:flex; align-items:center; gap:7px; font-weight:800; font-size:12.5px; letter-spacing:-0.01em;}
+  .brand-mini .logo{width:20px;height:20px;border-radius:6px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:10px;}
+  .provider-badge{
+    display:flex; align-items:center; gap:6px;
+    font-family:'JetBrains Mono',monospace; font-size:10.5px;
+    background:var(--bg-panel); border:1px solid var(--line);
+    border-radius:999px; padding:6px 10px; cursor:pointer; transition:.15s;
+  }
+  .provider-badge{
+    display:flex; align-items:center; gap:6px;
+    font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700;
+    background:var(--bg-panel); border:1px solid var(--line);
+    border-radius:999px; padding:7px 13px; cursor:pointer; transition:.15s; color:var(--ink);
+  }
+  .provider-badge:hover{border-color:var(--accent2);}
+  .provider-badge.connected{color:var(--ok); border-color:rgba(61,220,151,.35);}
+
+  /* ---------- modal Sambungkan AI ---------- */
+  .ai-modal-overlay{position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:150; display:none;}
+  .ai-modal-overlay.open{display:block;}
+  .ai-modal{
+    position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+    z-index:160; width:calc(100% - 32px); max-width:400px; max-height:85vh;
+    background:var(--bg-panel-2); border:1px solid var(--line); border-radius:18px;
+    display:none; flex-direction:column; box-shadow:0 24px 60px rgba(0,0,0,.6);
+  }
+  .ai-modal.open{display:flex;}
+  .ai-modal-head{display:flex; align-items:center; justify-content:space-between; padding:16px 18px; flex-shrink:0; border-bottom:1px solid var(--line);}
+  .ai-modal-title{font-size:14.5px; font-weight:800;}
+  .ai-modal-close{background:var(--bg-input); border:1px solid var(--line); color:var(--ink); width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:14px; flex-shrink:0;}
+  .ai-modal-body{overflow-y:auto; padding:16px 18px 20px;}
+
+  .provider-status-row{display:flex; align-items:center; gap:8px; margin:2px 0 14px;}
+  .provider-status-row .pname{font-size:14px; font-weight:700;}
+  .provider-status-row .pstatus{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-dim); margin-left:auto;}
+  .provider-status-row .pstatus.on{color:var(--ok);}
+
+  .step-list{margin:0 0 14px; padding:0; list-style:none; display:flex; flex-direction:column; gap:8px;}
+  .step-list li{display:flex; gap:8px; font-size:12px; color:var(--ink-dim); line-height:1.5;}
+  .step-list .step-num{flex-shrink:0; width:20px;height:20px; border-radius:50%; background:var(--bg-input); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:var(--ink);}
+
+  .link-actions{display:flex; gap:6px; margin-bottom:14px;}
+  .link-actions button{flex:1; font-family:'Space Grotesk',sans-serif; font-size:11.5px; font-weight:700; background:var(--bg-input); border:1px solid var(--line); color:var(--ink); border-radius:8px; padding:9px 6px; cursor:pointer;}
+  .link-actions button:hover{border-color:var(--accent2);}
+
+  .key-row{display:flex; gap:6px;}
+  .key-row input{flex:1; padding-right:8px;}
+  .key-eye{flex-shrink:0; background:var(--bg-input); border:1px solid var(--line); color:var(--ink-dim); border-radius:8px; padding:0 12px; cursor:pointer; font-size:14px;}
+  .key-warn{font-size:11px; color:var(--warn); margin-top:7px; min-height:14px;}
+
+  .connected-box{background:rgba(61,220,151,.07); border:1px solid rgba(61,220,151,.25); border-radius:12px; padding:14px; margin-bottom:6px;}
+  .connected-box .row-actions{display:flex; gap:8px; margin-top:12px;}
+  .connected-box .row-actions button{flex:1; font-family:'Space Grotesk',sans-serif; font-size:12px; font-weight:700; border-radius:8px; padding:9px 0; cursor:pointer;}
+  .btn-replace{background:var(--bg-input); border:1px solid var(--line); color:var(--ink);}
+  .btn-remove{background:var(--bg-input); border:1px solid rgba(255,180,84,.4); color:var(--warn);}
+
+  .ai-key-warning{font-size:10.5px; color:var(--ink-dim); margin-top:10px; line-height:1.5;}
+
+  /* hook video */
+  .hook-card{
+    border:1.3px solid var(--line); background:var(--bg-input); border-radius:11px;
+    padding:11px 12px; margin-bottom:8px; transition:.15s;
+  }
+  .hook-card.selected{border-color:transparent; box-shadow:0 0 0 1.5px var(--accent2) inset; background:linear-gradient(rgba(124,77,255,.08),rgba(124,77,255,.08)), var(--bg-input);}
+  .hook-card .htype{
+    font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:.05em; text-transform:uppercase;
+    color:var(--accent3); margin-bottom:4px; display:flex; align-items:center; justify-content:space-between; gap:6px;
+  }
+  .hook-card .score{background:var(--grad); color:#fff; padding:2px 7px; border-radius:999px; font-weight:700;}
+  .hook-card .htext{font-size:13px; font-weight:600; line-height:1.45; margin-bottom:6px;}
+  .hook-card details{font-size:11px; color:var(--ink-dim); line-height:1.5;}
+  .hook-card summary{cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--ink-dim); margin-bottom:4px;}
+  .hook-card summary:hover{color:var(--accent3);}
+  .hook-card .detail-line{margin-top:4px;}
+  .hook-card .detail-line b{color:var(--ink);}
+  .hook-card .use-btn{
+    margin-top:8px; width:100%; background:var(--bg-panel-2); border:1px solid var(--line); color:var(--ink);
+    border-radius:8px; padding:7px 0; font-size:11px; font-weight:700; cursor:pointer; font-family:'Space Grotesk',sans-serif;
+  }
+  .hook-card.selected .use-btn{background:var(--grad); color:#fff; border-color:transparent;}
+  .hook-card .use-btn:hover{border-color:var(--accent2);}
+  .hook-gen-btn{
+    width:100%; background:var(--grad); color:#fff; border:none; border-radius:9px;
+    padding:11px 0; font-weight:700; font-size:12.5px; cursor:pointer; font-family:'Space Grotesk',sans-serif; margin-top:4px;
+  }
+  .hook-gen-btn:disabled{opacity:.4; cursor:not-allowed;}
+  .hook-loading{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-dim); text-align:center; padding:14px 0;}
+
+  .main-tab-nav{
+    position:sticky; top:45px; z-index:55;
+    display:flex; gap:6px; padding:8px 16px;
+    background:rgba(12,12,18,.92); backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .main-tab{
+    flex:1; text-align:center; padding:9px 4px; border-radius:10px;
+    font-family:'Space Grotesk',sans-serif; font-size:12px; font-weight:700;
+    background:var(--bg-panel); border:1px solid var(--line); color:var(--ink-dim); cursor:pointer;
+  }
+  .main-tab.active{background:var(--grad); color:#fff; border-color:transparent;}
+
+  .hero{ padding:34px 0 22px; text-align:center; }
+  .hero .kicker{font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:12px;}
+  .hero h1{font-size:clamp(26px,7vw,42px); font-weight:800; letter-spacing:-0.02em; margin:0 0 6px; background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; line-height:1.05;}
+  .hero .subtitle{font-size:13px; color:var(--ink-dim); font-weight:500; letter-spacing:.02em; margin:0 0 18px;}
+  .cta-btn{display:inline-flex; align-items:center; gap:8px; background:var(--grad); color:#fff; border:none; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:13.5px; padding:12px 26px; border-radius:999px; cursor:pointer; box-shadow:0 10px 26px rgba(124,77,255,.3);}
+
+  header.tool-header{margin:20px 0 14px;}
+  .eyebrow{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent3);margin-bottom:5px;font-weight:700;}
+  h2.tool-title{font-size:18px;line-height:1.1;margin:0 0 4px;font-weight:700;}
+  header.tool-header p{color:var(--ink-dim); font-size:12.5px; margin:0; line-height:1.45;}
+
+  .layout{display:grid; grid-template-columns:1fr; gap:10px;}
+  @media(min-width:840px){.layout{grid-template-columns:1fr 380px;}}
+
+  .acc{background:var(--bg-panel); border:1px solid var(--line); border-radius:13px; overflow:hidden;}
+  .acc + .acc{margin-top:8px;}
+  .acc-head{ display:flex; align-items:center; gap:9px; padding:12px 14px; cursor:pointer; user-select:none; }
+  .acc-head .num{ width:19px;height:19px;border-radius:6px;background:var(--grad); display:flex;align-items:center;justify-content:center; font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;color:#fff;flex-shrink:0; }
+  .acc-head .ttl{font-size:12.5px; font-weight:700; flex-shrink:0;}
+  .acc-head .summary{ font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--accent3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; text-align:right; margin-right:4px; }
+  .acc-head .chev{color:var(--ink-dim); font-size:11px; transition:.2s; flex-shrink:0;}
+  .acc.open .chev{transform:rotate(180deg);}
+  .acc-body{max-height:0; overflow:hidden; transition:max-height .25s ease;}
+  .acc.open .acc-body{max-height:6000px;}
+  .acc-body-inner{padding:0 14px 14px;}
+
+  .g3{display:grid; grid-template-columns:repeat(3,1fr); gap:6px;}
+  .g2{display:grid; grid-template-columns:repeat(2,1fr); gap:6px;}
+  @media(min-width:520px){ .g3{grid-template-columns:repeat(3,1fr);} .g2{grid-template-columns:repeat(3,1fr);} }
+  @media(max-width:340px){ .pill{padding:7px 4px; font-size:10.5px;} .pill .ic{font-size:14px;} }
+
+  .pill{
+    position:relative;
+    border:1.3px solid var(--line); background:var(--bg-input); color:var(--ink-dim);
+    border-radius:9px; padding:9px 6px; text-align:center; cursor:pointer;
+    font-size:11.5px; font-weight:600; transition:.13s; line-height:1.3;
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+  }
+  .pill .ic{font-size:16px; line-height:1;}
+  .pill:hover{border-color:var(--accent2);}
+  .pill.selected{border-color:transparent; background:linear-gradient(var(--bg-input),var(--bg-input)) padding-box, var(--grad) border-box; border:1.5px solid transparent; color:#fff;}
+  .pill .star{position:absolute; top:3px; right:5px; font-size:8px;}
+
+  .segmented{display:flex; background:var(--bg-input); border:1px solid var(--line); border-radius:10px; padding:3px; gap:3px;}
+  .seg-btn{flex:1; text-align:center; padding:9px 4px; border-radius:8px; font-size:11.5px; font-weight:600; color:var(--ink-dim); cursor:pointer; transition:.13s;}
+  .seg-btn.selected{background:var(--grad); color:#fff;}
+
+  .chip-wrap{display:flex; flex-wrap:wrap; gap:6px;}
+  .chip{ position:relative; font-size:11.5px; font-weight:600; padding:8px 12px; border-radius:999px; border:1.3px solid var(--line); background:var(--bg-input); color:var(--ink-dim); cursor:pointer; transition:.13s; }
+  .chip.selected{background:var(--grad); color:#fff; border-color:transparent;}
+  .chip .star{font-size:8.5px; margin-right:3px;}
+  .chip-toolbar{display:flex; gap:6px; margin-bottom:8px;}
+  .btn-mini{font-family:'JetBrains Mono',monospace;font-size:10.5px;background:var(--bg-input);border:1px solid var(--line);color:var(--ink-dim);border-radius:7px;padding:6px 10px;cursor:pointer;}
+  .btn-mini.primary{background:var(--grad); color:#fff; border:none; font-weight:600;}
+
+  select, textarea, input[type=text]{width:100%;background:var(--bg-input);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:9px 11px;font-family:'Space Grotesk',sans-serif;font-size:13px;}
+  select:focus, textarea:focus, input:focus{outline:none; border-color:var(--accent2);}
+  textarea{resize:vertical; min-height:44px; line-height:1.5;}
+  label.field-label{display:block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:6px;}
+  .field{margin-bottom:12px;}
+  .field:last-child{margin-bottom:0;}
+  .hint{font-size:10.5px; color:var(--ink-dim); margin-top:6px; line-height:1.45;}
+  .badge-info{font-size:10.5px;color:var(--accent3);background:rgba(37,244,238,.08);border:1px solid rgba(37,244,238,.2);border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.45;}
+
+  .upload-box{border:1.3px dashed var(--line);border-radius:11px;padding:14px;text-align:center;cursor:pointer;position:relative;background:var(--bg-input);overflow:hidden;}
+  .upload-box.has-image{padding:0; border-style:solid;}
+  .upload-box input[type=file]{position:absolute; inset:0; opacity:0; cursor:pointer;}
+  .upload-placeholder{color:var(--ink-dim); font-size:12px;}
+  .upload-placeholder .icon{width:32px;height:32px;border-radius:10px;background:var(--grad);display:flex;align-items:center;justify-content:center;margin:0 auto 7px;font-size:15px;color:#fff;}
+  #previewImg, #modelPreviewImg, #bgPreviewImg, #gvPhotoPreview, #gvBgPreview, #modelLocBgPreview{display:none; width:100%; max-width:100%; max-height:220px; height:auto; object-fit:contain; border-radius:10px; background:var(--bg-input); cursor:zoom-in;}
+  #gvVideoPreview{display:none; width:100%; max-width:100%; max-height:220px; height:auto; object-fit:contain; border-radius:10px; background:#000;}
+  @media(min-width:840px){
+    #previewImg, #modelPreviewImg, #bgPreviewImg, #gvPhotoPreview, #gvBgPreview, #gvVideoPreview, #modelLocBgPreview{max-height:320px;}
+  }
+  .photo-actions{display:none; gap:6px; margin-top:8px;}
+  .photo-actions.show{display:flex;}
+  .photo-actions button{flex:1; font-size:10.5px; font-family:'JetBrains Mono',monospace; background:var(--bg-input); border:1px solid var(--line); color:var(--ink-dim); border-radius:7px; padding:7px 0; cursor:pointer;}
+  .photo-actions button:hover{border-color:var(--accent2); color:var(--ink);}
+  .lightbox{position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.9); display:none; align-items:center; justify-content:center; padding:24px;}
+  .lightbox.open{display:flex;}
+  .lightbox img{max-width:100%; max-height:100%; object-fit:contain; border-radius:8px;}
+  .lightbox-close{position:absolute; top:16px; right:16px; background:var(--bg-panel); border:1px solid var(--line); color:#fff; width:36px; height:36px; border-radius:50%; font-size:16px; cursor:pointer;}
+  button.detect{font-family:'Space Grotesk',sans-serif;font-size:12.5px;font-weight:700;background:var(--grad);color:#fff;border:none;border-radius:9px;padding:10px 12px;cursor:pointer;width:100%;margin-top:9px;}
+  button.detect:disabled{opacity:.4; cursor:not-allowed;}
+  .detect-status{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-dim);min-height:14px;margin-top:8px;line-height:1.5;white-space:pre-wrap;}
+  .detect-status.ok{color:var(--ok);}
+  .detect-status.err{color:var(--warn);}
+  .err-actions{display:flex; gap:6px; margin-top:6px;}
+
+  .ai-tabs{display:flex; background:var(--bg-input); border-radius:9px; padding:3px; margin-bottom:10px; gap:3px;}
+  .ai-tab{flex:1;text-align:center;padding:8px 0;font-family:'JetBrains Mono',monospace;font-size:11px;border-radius:7px;border:none;background:transparent;color:var(--ink-dim);cursor:pointer;font-weight:600;}
+  .ai-tab.active{background:var(--grad); color:#fff;}
+  .ai-save-btn{width:100%;margin-top:6px;background:var(--grad);color:#fff;border:none;border-radius:9px;padding:10px 0;font-weight:700;font-size:12.5px;cursor:pointer;}
+  .ai-save-btn.secondary{background:var(--bg-input); border:1px solid var(--line); color:var(--ink);}
+  .ai-key-warning{font-size:10px; color:var(--warn); margin-top:8px; line-height:1.45;}
+
+  .range-row{display:flex; align-items:center; gap:10px;}
+  .range-val{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent3);min-width:78px;text-align:right;font-weight:600;}
+  input[type=range]{width:100%; accent-color:var(--accent2); height:4px;}
+
+  .output-panel{background:var(--bg-panel); border:1px solid var(--line); border-radius:13px; padding:14px;}
+  @media(min-width:840px){.output-panel{position:sticky; top:60px;}}
+  .output-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px;}
+  .output-head h2{font-size:11px; font-family:'JetBrains Mono',monospace; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-dim); margin:0;}
+  select.platform-select{margin-bottom:10px; font-size:12px;}
+  .prompt-box{background:var(--bg-input); border:1px solid var(--line); border-radius:10px; padding:12px; font-size:12.5px; line-height:1.6; color:var(--ink); min-height:100px; resize:vertical; width:100%; font-family:'Space Grotesk',sans-serif;}
+  .prompt-box[readonly]{color:#d8d9e0;}
+  .prompt-actions{display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;}
+  .btn-outline{font-family:'Space Grotesk',sans-serif; font-size:11.5px; font-weight:700; background:var(--bg-input); border:1px solid var(--line); color:var(--ink); border-radius:8px; padding:8px 10px; cursor:pointer; flex:1; min-width:96px;}
+  .btn-outline:hover{border-color:var(--accent2);}
+  .json-toggle{font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--ink-dim); cursor:pointer; margin:14px 0 8px; display:flex; align-items:center; gap:6px;}
+  pre{background:var(--bg-input);border:1px solid var(--line);border-radius:10px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.55;color:#d5f5ef;overflow-x:auto;white-space:pre-wrap;word-break:break-word;margin:0;max-height:340px;overflow-y:auto;display:none;}
+  pre.show{display:block;}
+  .key{color:#8fb8ff;}
+  .str{color:#ffcf86;}
+  button.copy{font-family:'Space Grotesk',sans-serif;font-size:11.5px;font-weight:700;background:var(--grad);color:#fff;border:none;border-radius:8px;padding:8px 12px;cursor:pointer;}
+
+  .toast{position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--grad); color:#fff; font-family:'Space Grotesk',sans-serif; font-size:12.5px; font-weight:700; padding:10px 18px; border-radius:999px; opacity:0; pointer-events:none; transition:.25s; z-index:80;}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  .sticky-bar{
+    position:fixed; left:0; right:0; bottom:0; z-index:70;
+    padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+    background:rgba(12,12,18,.92);
+    backdrop-filter:blur(12px);
+    border-top:1px solid var(--line);
+    display:flex; gap:8px; justify-content:center;
+  }
+  .sticky-bar .wrap-inner{max-width:1000px; width:100%; display:flex; gap:8px;}
+  .gen-btn{ flex:1; background:var(--grad); color:#fff; border:none; font-weight:700; font-size:13px; padding:13px 0; border-radius:11px; cursor:pointer; font-family:'Space Grotesk',sans-serif; }
+  .sticky-bar .btn-outline{padding:12px 8px; font-size:11.5px;}
+
+  footer.brand-footer{text-align:center; padding:20px 0 4px; color:var(--ink-dim); font-size:10px; font-family:'JetBrains Mono',monospace;}
+
+  /* mode toggle & drawer trigger di halaman utama */
+  .mode-toggle-card{background:var(--bg-panel); border:1px solid var(--line); border-radius:13px; padding:14px; margin-top:8px;}
+  .drawer-trigger{
+    width:100%; margin-top:8px; background:var(--bg-panel); border:1px solid var(--line); border-radius:13px;
+    padding:13px 14px; text-align:left; cursor:pointer; display:flex; flex-direction:column; gap:2px;
+  }
+  .drawer-trigger:hover{border-color:var(--accent2);}
+  .drawer-trigger span:first-child{font-size:13px; font-weight:700; color:var(--ink);}
+  .drawer-trigger-sub{font-size:10.5px; color:var(--ink-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+
+  /* drawer (bottom sheet) */
+  .drawer-overlay{position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:120; display:none;}
+  .drawer-overlay.open{display:block;}
+  .drawer{
+    position:fixed; left:0; right:0; bottom:0; z-index:130;
+    background:var(--bg); border-top:1px solid var(--line); border-radius:20px 20px 0 0;
+    max-height:88vh; display:flex; flex-direction:column;
+    transform:translateY(100%); transition:transform .25s ease;
+    box-shadow:0 -16px 40px rgba(0,0,0,.5);
+  }
+  .drawer.open{transform:translateY(0);}
+  .drawer-head{display:flex; align-items:center; justify-content:space-between; padding:14px 16px 10px; flex-shrink:0;}
+  .drawer-title{font-size:14px; font-weight:800;}
+  .drawer-close{background:var(--bg-panel); border:1px solid var(--line); color:var(--ink); width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:14px;}
+  .drawer-tabs{display:flex; gap:4px; padding:0 16px 10px; flex-shrink:0;}
+  .drawer-tab{flex:1; text-align:center; padding:9px 4px; border-radius:9px; font-size:12px; font-weight:700; background:var(--bg-panel); border:1px solid var(--line); color:var(--ink-dim); cursor:pointer;}
+  .drawer-tab.active{background:var(--grad); color:#fff; border-color:transparent;}
+  .drawer-tab:disabled{opacity:.35; cursor:not-allowed;}
+  .drawer-body{overflow-y:auto; -webkit-overflow-scrolling:touch; padding:0 16px 24px; flex:1;}
+  .drawer-body .acc{display:none;}
+  .drawer-body .acc.tab-visible{display:block;}
+
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="brand-mini"><span class="logo">✨</span> VERRY WIRANZA AI</div>
+    <button class="provider-badge" id="providerBadgeBtn" onclick="openAiModal()">
+      <span id="aiMenuLabel">🔑 AI</span>
+    </button>
+  </div>
+
+  <div class="ai-modal-overlay" id="aiModalOverlay" onclick="closeAiModal()"></div>
+  <div class="ai-modal" id="aiModal" role="dialog" aria-modal="true">
+    <div class="ai-modal-head">
+      <span class="ai-modal-title">🔑 Sambungkan AI</span>
+      <button class="ai-modal-close" onclick="closeAiModal()">✕</button>
+    </div>
+    <div class="ai-modal-body">
+      <div class="ai-tabs">
+        <button class="ai-tab active" data-provider="gemini" onclick="switchProviderTab(this)">Gemini</button>
+        <button class="ai-tab" data-provider="claude" onclick="switchProviderTab(this)">Claude</button>
+      </div>
+      <div id="aiProviderContent"></div>
+    </div>
+  </div>
+
+<div class="main-tab-nav">
+  <button class="main-tab active" data-tab="foto" onclick="switchMainTab('foto')">📷 Foto</button>
+  <button class="main-tab" data-tab="panduan" onclick="switchMainTab('panduan')">📖 Panduan</button>
+</div>
+
+<div class="wrap">
+
+<div id="tabContent-foto">
+
+  <section class="hero">
+    <div class="kicker">AI Product Video Prompt Generator</div>
+    <h1>VERRY WIRANZA AI</h1>
+    <p class="subtitle">AI Product Video Creator</p>
+    <button class="cta-btn" onclick="jumpToSection('sec-foto')">Mulai Buat Video →</button>
+  </section>
+
+  <header class="tool-header" id="step-1">
+    <div class="eyebrow">Product Video Prompt Tool</div>
+    <h2 class="tool-title">Buat Prompt Video Produk</h2>
+    <p>Ketuk tiap bagian untuk buka pilihannya. Produk selalu dijaga identik dengan foto aslinya.</p>
+  </header>
+
+  <div class="layout">
+    <div>
+
+      <div class="acc open" id="sec-foto">
+        <div class="acc-head" onclick="toggleSection('sec-foto')">
+          <span class="num">①</span><span class="ttl">Referensi</span>
+          <span class="summary" id="sum-foto"></span><span class="chev">▾</span>
+        </div>
+        <div class="acc-body"><div class="acc-body-inner">
+          <div class="upload-box" id="uploadBox">
+            <input type="file" id="fileInput" accept="image/*">
+            <div class="upload-placeholder" id="uploadPlaceholder">
+              <span class="icon">＋</span>Klik atau seret foto ke sini
+            </div>
+            <img id="previewImg" alt="preview">
+          </div>
+          <div class="photo-actions" id="photoActions-produk">
+            <button onclick="event.stopPropagation(); document.getElementById('fileInput').click()">🔄 Ganti</button>
+            <button onclick="event.stopPropagation(); openLightbox('previewImg')">🔍 Lihat</button>
+            <button onclick="event.stopPropagation(); removePhoto('produk')">🗑️ Hapus</button>
+          </div>
+          <button class="detect" id="detectBtn" disabled onclick="detectProduct()">Deteksi Otomatis dengan AI</button>
+          <div class="detect-status" id="detectStatus"></div>
+          <div class="badge-info">Foto ini jadi acuan utama. Bentuk, warna, motif, logo, & detail dikunci otomatis — tidak berubah di hasil akhir.</div>
+        </div></div>
+      </div>
+
+      <div class="acc" id="sec-subjek">
+        <div class="acc-head" onclick="toggleSection('sec-subjek')">
+          <span class="num">②</span><span class="ttl">Subjek</span>
+          <span class="summary" id="sum-subjek"></span><span class="chev">▾</span>
+        </div>
+        <div class="acc-body"><div class="acc-body-inner">
+          <div class="g2" id="subjekGrid"></div>
+
+          <div id="modelPhotoSection" style="display:none; margin-top:12px;">
+            <label class="field-label">Foto Model</label>
+            <div class="segmented" id="modelSourceSeg"></div>
+            <div class="field" id="modelUploadWrap" style="margin-top:8px;">
+              <div class="upload-box" id="modelUploadBox">
+                <input type="file" id="modelFileInput" accept="image/*">
+                <div class="upload-placeholder" id="modelUploadPlaceholder"><span class="icon">👤</span>Upload foto model (opsional)</div>
+                <img id="modelPreviewImg" alt="preview model">
+              </div>
+              <div class="photo-actions" id="photoActions-model">
+                <button onclick="event.stopPropagation(); document.getElementById('modelFileInput').click()">🔄 Ganti</button>
+                <button onclick="event.stopPropagation(); openLightbox('modelPreviewImg')">🔍 Lihat</button>
+                <button onclick="event.stopPropagation(); removePhoto('model')">🗑️ Hapus</button>
+              </div>
+              <div class="hint">Karakter model (wajah, rambut, proporsi tubuh) dijaga konsisten sepanjang hasil.</div>
+            </div>
+            <div class="field" id="modelGenAiWrap" style="display:none; margin-top:8px;">
+              <label class="field-label">Gender Model</label>
+              <div class="segmented" id="modelGenderSeg"></div>
+              <label class="field-label" style="margin-top:8px;">Gaya Model</label>
+              <div class="chip-wrap" id="modelStyleChips"></div>
+            </div>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="acc" id="sec-jenisproduk" style="display:none;">
+        <div class="acc-head" onclick="toggleSection('sec-jenisproduk')">
+          <span class="num">③</span><span class="ttl">Jenis Produk</span>
+          <span class="summary" id="sum-jenisproduk"></span><span class="chev">▾</span>
+        </div>
+        <div class="acc-body"><div class="acc-body-inner">
+          <div class="g3" id="categoryGrid"></div>
+          <div class="field" id="categoryCustomWrap" style="display:none; margin-top:8px;">
+            <input type="text" id="categoryCustomText" placeholder="Jelaskan jenis produk sendiri">
+          </div>
+        </div></div>
+      </div>
+
+      <div class="acc" id="sec-gerakan">
+        <div class="acc-head" onclick="toggleSection('sec-gerakan')">
+          <span class="num">④</span><span class="ttl">Gerakan</span>
+          <span class="summary" id="sum-gerakan"></span><span class="chev">▾</span>
+        </div>
+        <div class="acc-body"><div class="acc-body-inner">
+          <div class="hint" style="margin-bottom:8px;">Pilih satu gerakan utama untuk hasil paling natural.</div>
+          <div class="chip-wrap" id="gerakanChips"></div>
+          <div class="field" id="gerakanCustomWrap" style="display:none; margin-top:8px;">
+            <textarea id="gerakanCustomText" placeholder="Jelaskan gerakan sendiri..."></textarea>
+          </div>
+
+          <div id="reviewProdukWrap" style="display:none; margin-top:12px;">
+            <label class="field-label">🎬 Review Produk</label>
+            <div class="segmented" id="reviewProdukTabSeg"></div>
+            <div id="reviewLuarWrap" style="margin-top:8px;">
+              <div class="chip-wrap" id="reviewLuarChips"></div>
+              <div class="field" id="reviewLuarCustomWrap" style="display:none; margin-top:8px;">
+                <textarea id="reviewLuarCustomText" placeholder="Tulis sendiri bagaimana review bagian luar produk..."></textarea>
+              </div>
+              <div class="field" id="putaranWrap" style="display:none; margin-top:8px;">
+                <label class="field-label">Sudut Putaran</label>
+                <div class="segmented" id="putaranSeg"></div>
+                <div class="field" id="putaranCustomWrap" style="display:none; margin-top:8px;"><input type="text" id="putaranCustomText" placeholder="mis. 60 derajat"></div>
+                <div class="hint">Default 90° — putaran penuh 360° dihindari agar bentuk produk tetap konsisten.</div>
+              </div>
+            </div>
+            <div id="reviewDalamWrap" style="display:none; margin-top:8px;">
+              <div class="badge-info" id="reviewDalamHint" style="display:none;">Kategori produk ini biasanya tidak punya bagian dalam untuk direview — pilih hanya jika memang relevan, atau pakai Custom.</div>
+              <div class="chip-wrap" id="reviewDalamChips"></div>
+              <div class="field" id="reviewDalamCustomWrap" style="display:none; margin-top:8px;">
+                <textarea id="reviewDalamCustomText" placeholder="Tulis sendiri bagaimana review bagian dalam produk..."></textarea>
+              </div>
+            </div>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="acc" id="sec-lokasi">
+        <div class="acc-head" onclick="toggleSection('sec-lokasi')">
+          <span class="num">⑤</span><span class="ttl">Lokasi</span>
+          <span class="summary" id="sum-lokasi"></span><span class="chev">▾</span>
+        </div>
+        <div class="acc-body"><div class="acc-body-inner">
+          <div class="segmented" id="lokasiModeSeg"></div>
+          <div id="lokasiIndoorWrap" style="margin-top:10px;">
+            <select id="indoorSelect"></select>
+            <div class="field" id="indoorCustomWrap" style="display:none; margin-top:8px;"><input type="text" id="indoorCustomText" placeholder="Jelaskan lokasi indoor sendiri"></div>
+          </div>
+          <div id="lokasiOutdoorWrap" style="display:none; margin-top:10px;">
+            <select id="outdoorSelect"></select>
+            <div class="field" id="outdoorCustomWrap" style="display:none; margin-top:8px;"><input type="text" id="outdoorCustomText" placeholder="Jelaskan lokasi outdoor sendiri"></div>
+          </div>
+          <div id="lokasiUploadWrap" style="display:none; margin-top:10px;">
+            <div class="upload-box" id="locBgUploadBox">
+              <input type="file" id="locBgFileInput" accept="image/*">
+              <div class="upload-placeholder" id="locBgUploadPlaceholder"><span class="icon">🖼️</span>Upload foto lokasi</div>
+              <img id="locBgPreview" alt="preview lokasi">
+            </div>
+            <div class="photo-actions" id="photoActions-locBg">
+              <button onclick="event.stopPropagation(); document.getElementById('locBgFileInput').click()">🔄 Ganti</button>
+              <button onclick="event.stopPropagation(); openLightbox('locBgPreview')">🔍 Lihat</button>
+              <button onclick="event.stopPropagation(); removePhoto('locBg')">🗑️ Hapus</button>
+            </div>
+            <div class="hint">Foto ini jadi acuan lokasi utama — tidak diganti lokasi lain.</div>
+          </div>
+          <div id="lokasiCustomWrap" style="display:none; margin-top:10px;">
+            <textarea id="lokasiCustomText" placeholder="Jelaskan lokasi atau suasana yang Anda inginkan..."></textarea>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="acc" id="sec-kamera">
+        <div class="acc-head" onclick="toggleSection('sec-kamera')">
+          <span class="num">⑥</span><span class="ttl">Posisi Kamera</span>
+          <span class="summary" id="sum-kamera"></span><span class="chev">▾</span>
+        </div>
+        <div class="acc-body"><div class="acc-body-inner">
+          <div class="chip-wrap" id="camPosChips"></div>
+          <div class="field" id="camPosCustomWrap" style="display:none; margin-top:8px;">
+            <textarea id="camPosCustomText" placeholder="Jelaskan posisi/gerakan kamera sendiri..."></textarea>
+          </div>
+          <div class="hint">Kamera dijaga natural dan stabil — tanpa orbit ekstrem atau zoom cepat.</div>
+        </div></div>
+      </div>
+
+      <div class="acc" id="sec-cahaya">
+        <div class="acc-head" onclick="toggleSection('sec-cahaya')">
+          <span class="num">⑦</span><span class="ttl">Pencahayaan</span>
+          <span class="summary" id="sum-cahaya"></span><span class="chev">▾</span>
+        </div>
+        <div class="acc-body"><div class="acc-body-inner">
+          <select id="lightingSelect"></select>
+          <div class="field" id="lightingCustomWrap" style="display:none; margin-top:8px;">
+            <input type="text" id="lightingCustomText" placeholder="Jelaskan pencahayaan sendiri">
+          </div>
+        </div></div>
+      </div>
+
+      <div class="acc" id="sec-lain">
+        <div class="acc-head" onclick="toggleSection('sec-lain')">
+          <span class="num">⑧</span><span class="ttl">Instruksi Tambahan</span>
+          <span class="chev">▾</span>
+        </div>
+        <div class="acc-body"><div class="acc-body-inner">
+          <div class="field">
+            <label class="field-label">Durasi (detik)</label>
+            <input type="text" id="duration" value="8">
+          </div>
+          <div class="field">
+            <label class="field-label">Catatan Tambahan</label>
+            <textarea id="notes" placeholder="opsional"></textarea>
+          </div>
+        </div></div>
+      </div>
+
+    </div>
+
+
+    <div class="output-panel" id="sec-output">
+      <div class="output-head"><h2>Hasil Prompt</h2></div>
+      <select class="platform-select" id="platformSelect">
+        <option value="Kling AI" selected>Kling AI</option>
+        <option value="Runway Gen-3">Runway Gen-3</option>
+        <option value="Pika">Pika</option>
+        <option value="Luma Dream Machine">Luma Dream Machine</option>
+        <option value="Generic / Lainnya">Generic / Lainnya</option>
+      </select>
+      <textarea class="prompt-box" id="promptBox" readonly></textarea>
+      <div class="prompt-actions">
+        <button class="btn-outline" onclick="copyPrompt()">📋 Copy</button>
+        <button class="btn-outline" id="editBtn" onclick="toggleEdit()">✏️ Edit</button>
+        <button class="btn-outline" onclick="generateUlang()">🔄 Ulang</button>
+      </div>
+      <div class="json-toggle" onclick="toggleJson()"><span id="jsonToggleIcon">▸</span> JSON lengkap</div>
+      <div class="output-head" style="margin-bottom:6px;"><span></span><button class="copy" onclick="copyJSON()">Salin JSON</button></div>
+      <pre id="jsonOutput"></pre>
+    </div>
+  </div>
+
+  <footer class="brand-footer">VERRY WIRANZA AI — AI Product Video Creator</footer>
+
+</div><!-- /tabContent-foto -->
+
+<div id="tabContent-panduan" style="display:none;">
+  <header class="tool-header">
+    <div class="eyebrow">Bantuan</div>
+    <h2 class="tool-title">📖 Panduan Penggunaan</h2>
+    <p>Cara cepat memakai VERRY WIRANZA AI.</p>
+  </header>
+
+  <div class="acc open">
+    <div class="acc-head" onclick="this.parentElement.classList.toggle('open')"><span class="ttl">🔑 Menghubungkan AI</span><span class="chev">▾</span></div>
+    <div class="acc-body"><div class="acc-body-inner">
+      <p style="font-size:12.5px; color:var(--ink-dim); line-height:1.6;">Tap tombol <b>🔑 AI</b> di pojok kanan atas → pilih Gemini atau Claude → ikuti langkah membuat API Key → paste → tap "Simpan & Mulai". Key gratis tersedia di Google AI Studio untuk Gemini.</p>
+    </div></div>
+  </div>
+  <div class="acc">
+    <div class="acc-head" onclick="this.parentElement.classList.toggle('open')"><span class="ttl">📷 Fitur Foto</span><span class="chev">▾</span></div>
+    <div class="acc-body"><div class="acc-body-inner">
+      <p style="font-size:12.5px; color:var(--ink-dim); line-height:1.6;">Upload foto → pilih Subjek (Model/Produk) → atur Jenis Produk, Gerakan, Review Produk (jika relevan), Lokasi, Posisi Kamera, dan Pencahayaan → tap Generate Prompt. Detail produk dari foto asli selalu dikunci otomatis agar tidak berubah bentuk, warna, atau desainnya.</p>
+    </div></div>
+  </div>
+</div><!-- /tabContent-panduan -->
+
+</div><!-- /wrap -->
+
+<div class="toast" id="toast">Tersalin ke clipboard</div>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightboxImg" src="" alt="preview besar" onclick="event.stopPropagation()">
+</div>
+
+<div class="sticky-bar">
+  <div class="wrap-inner" id="stickyBarInner">
+    <button class="gen-btn" id="mainGenBtn" onclick="onGenerateTap()">✨ Generate Prompt</button>
+  </div>
+</div>
+
+<script>
+/* ================= DATA ================= */
+const CATEGORIES = [
+  { id:"tas", label:"Tas", icon:"👜" }, { id:"sepatu", label:"Sepatu", icon:"👟" },
+  { id:"sandal", label:"Sandal", icon:"🩴" }, { id:"kosmetik", label:"Kosmetik", icon:"💄" },
+  { id:"baju", label:"Baju", icon:"👕" }, { id:"celana", label:"Celana", icon:"👖" },
+  { id:"aksesori", label:"Aksesori", icon:"💍" }, { id:"lainnya", label:"Lainnya", icon:"📦" },
+  { id:"custom", label:"Custom", icon:"✏️" },
+];
+const CATEGORY_HAS_INTERIOR = { tas:true, sepatu:true, sandal:false, kosmetik:true, baju:false, celana:false, aksesori:false, lainnya:false, custom:false };
+const KATEGORI_KAIN = ["baju","celana"];
+
+const GERAKAN_MODEL = ["Berdiri Natural","Berjalan Natural","Duduk di Kursi","Memegang Produk","Memperlihatkan Produk","Custom"];
+const GERAKAN_PRODUK_UMUM = ["Dipegang","Diputar Perlahan","Dielus","Ditekan jika sesuai","Memperlihatkan Detail","Review Produk","Custom"];
+const GERAKAN_PRODUK_KAIN = ["Dipegang","Diputar Perlahan","Dielus pada kain","Memperlihatkan tekstur","Memperlihatkan detail","Review Produk","Custom"];
+
+const REVIEW_LUAR_OPTIONS = ["Memperlihatkan Bagian Depan","Memperlihatkan Bagian Samping","Memperlihatkan Bagian Belakang","Memutar Produk Perlahan","Menunjukkan Detail Produk","Mendekatkan Produk ke Kamera","Review Natural","Custom"];
+const REVIEW_DALAM_OPTIONS = ["Membuka Produk","Memperlihatkan Bagian Dalam","Menunjukkan Detail Interior","Memperlihatkan Kantong / Kompartemen","Kamera Melihat ke Dalam Produk","Menutup Produk Secara Natural","Review Natural","Custom"];
+
+const INDOOR_OPTIONS = ["Studio","Boutique","Kamar Modern","Dressing Room","Cafe Indoor","Mall","Custom"];
+const OUTDOOR_OPTIONS = ["Di Dalam Mobil","Taman","Pantai","Trotoar","Area Gedung","Cafe Outdoor","Custom"];
+
+const CAM_POS_OPTIONS = [
+  { id:"static", label:"Static / Stabil", phrase:"kamera diam stabil, tidak bergerak" },
+  { id:"atas", label:"Dari Atas", phrase:"kamera dari sudut lebih tinggi mengarah ke bawah, sudut realistis tidak ekstrem" },
+  { id:"bawah", label:"Dari Bawah", phrase:"kamera dari sudut lebih rendah mengarah ke atas, proporsi tetap realistis" },
+  { id:"dada", label:"Sejajar Dada", phrase:"kamera sejajar area dada, framing natural dan nyaman dilihat" },
+  { id:"ikuti", label:"Ikuti Gerakan Model", phrase:"kamera mengikuti gerakan model secara otomatis dengan tracking halus dan stabil, tanpa zoom cepat atau orbit ekstrem" },
+  { id:"custom", label:"Custom", phrase:null },
+];
+
+const LIGHTING_INDOOR = ["Natural Window Light","Soft Light","Studio Softbox","Bright Commercial","Warm Indoor","Luxury Soft","Auto","Custom"];
+const LIGHTING_OUTDOOR = ["Natural Daylight","Overcast","Shade","Golden Hour","Sunrise","Sunset","Auto","Custom"];
+
+const MODEL_STYLES = ["Casual","Elegan","Fashion","Streetwear","Sporty","Luxury","Natural"];
+
+/* ================= STATE ================= */
+let fotoSubjek = "model"; // 'model' | 'produk'
+let selectedCategory = "tas";
+let gerakanUtama = ""; // diisi otomatis sesuai subjek/kategori
+let uploadedBase64 = null, uploadedMediaType = null;
+let modelSource = "upload", modelBase64 = null, modelMediaType = null, modelGender = "wanita", modelStyle = "Casual";
+let reviewProdukTab = "luar";
+let selectedReviewLuar = new Set();
+let selectedReviewDalam = new Set();
+let putaranSudut = "90°";
+let lokasiMode = "indoor";
+let selectedIndoor = "Studio";
+let selectedOutdoor = "Di Dalam Mobil";
+let locBgBase64 = null, locBgMediaType = null;
+let selectedCamPos = "dada";
+let selectedLighting = "Auto";
+let activeProvider = "gemini";
+let geminiKey = "";
+let claudeKey = "";
+let detectedProductDetails = "";
+let garmentDescription = "produk";
+let promptManuallyEdited = false;
+
+function toggleSection(id){ document.getElementById(id).classList.toggle('open'); }
+function openSection(id){ document.getElementById(id).classList.add('open'); }
+function closeSection(id){ document.getElementById(id).classList.remove('open'); }
+function autoAdvance(fromId, toId){
+  closeSection(fromId); openSection(toId);
+  setTimeout(()=> document.getElementById(toId).scrollIntoView({behavior:'smooth', block:'start'}), 120);
+}
+function jumpToSection(id){
+  openSection(id);
+  document.getElementById(id).scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+/* ================= ① REFERENSI (upload produk + deteksi AI) ================= */
+document.getElementById('fileInput').addEventListener('change', function(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt){
+    uploadedBase64 = evt.target.result.split(',')[1]; uploadedMediaType = file.type;
+    const img = document.getElementById('previewImg');
+    img.src = evt.target.result; img.style.display = 'block';
+    document.getElementById('uploadPlaceholder').style.display = 'none';
+    document.getElementById('uploadBox').classList.add('has-image');
+    document.getElementById('photoActions-produk').classList.add('show');
+    document.getElementById('detectBtn').disabled = false;
+    document.getElementById('detectStatus').textContent = '';
+    document.getElementById('detectStatus').className = 'detect-status';
+    updateSummaries();
+    autoAdvance('sec-foto','sec-subjek');
+  };
+  reader.readAsDataURL(file);
+});
+
+/* ================= ② SUBJEK ================= */
+function renderSubjekGrid(){
+  const grid = document.getElementById('subjekGrid');
+  grid.innerHTML = "";
+  [["model","👤 Model / Manusia"],["produk","📦 Produk"]].forEach(([id,label])=>{
+    const el = document.createElement('div');
+    el.className = 'pill' + (fotoSubjek === id ? ' selected' : '');
+    el.textContent = label;
+    el.addEventListener('click', ()=>{
+      fotoSubjek = id;
+      document.getElementById('modelPhotoSection').style.display = id === 'model' ? 'block' : 'none';
+      document.getElementById('sec-jenisproduk').style.display = id === 'produk' ? 'block' : 'none';
+      refreshGerakanOptions();
+      renderSubjekGrid(); updateSummaries(); render();
+      autoAdvance('sec-subjek', id === 'produk' ? 'sec-jenisproduk' : 'sec-gerakan');
+    });
+    grid.appendChild(el);
+  });
+}
+function renderModelSourceSeg(){
+  const seg = document.getElementById('modelSourceSeg');
+  seg.innerHTML = "";
+  [["upload","Upload Foto"],["generate_ai","Generate AI"]].forEach(([id,label])=>{
+    const el = document.createElement('div');
+    el.className = 'seg-btn' + (modelSource === id ? ' selected' : '');
+    el.textContent = label;
+    el.addEventListener('click', ()=>{
+      modelSource = id;
+      document.getElementById('modelUploadWrap').style.display = id === 'upload' ? 'block' : 'none';
+      document.getElementById('modelGenAiWrap').style.display = id === 'generate_ai' ? 'block' : 'none';
+      renderModelSourceSeg(); render();
+    });
+    seg.appendChild(el);
+  });
+}
+function renderModelGenderSeg(){
+  const seg = document.getElementById('modelGenderSeg');
+  seg.innerHTML = "";
+  [["wanita","Wanita"],["pria","Pria"]].forEach(([id,label])=>{
+    const el = document.createElement('div');
+    el.className = 'seg-btn' + (modelGender === id ? ' selected' : '');
+    el.textContent = label;
+    el.addEventListener('click', ()=>{ modelGender = id; renderModelGenderSeg(); render(); });
+    seg.appendChild(el);
+  });
+}
+function renderModelStyleChips(){
+  const wrap = document.getElementById('modelStyleChips');
+  wrap.innerHTML = "";
+  MODEL_STYLES.forEach(s=>{
+    const el = document.createElement('div');
+    el.className = 'chip' + (modelStyle === s ? ' selected' : '');
+    el.textContent = s;
+    el.addEventListener('click', ()=>{ modelStyle = s; renderModelStyleChips(); render(); });
+    wrap.appendChild(el);
+  });
+}
+document.getElementById('modelFileInput').addEventListener('change', function(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt){
+    modelBase64 = evt.target.result.split(',')[1]; modelMediaType = file.type;
+    const img = document.getElementById('modelPreviewImg');
+    img.src = evt.target.result; img.style.display = 'block';
+    document.getElementById('modelUploadPlaceholder').style.display = 'none';
+    document.getElementById('modelUploadBox').classList.add('has-image');
+    document.getElementById('photoActions-model').classList.add('show');
+    render();
+  };
+  reader.readAsDataURL(file);
+});
+
+/* ================= ③ JENIS PRODUK ================= */
+function renderCategoryGrid(){
+  const grid = document.getElementById('categoryGrid');
+  grid.innerHTML = "";
+  CATEGORIES.forEach(cat=>{
+    const el = document.createElement('div');
+    el.className = 'pill' + (cat.id === selectedCategory ? ' selected' : '');
+    el.innerHTML = `<span class="ic">${cat.icon}</span><span>${cat.label}</span>`;
+    el.addEventListener('click', ()=>{
+      selectedCategory = cat.id;
+      document.getElementById('categoryCustomWrap').style.display = cat.id === 'custom' ? 'block' : 'none';
+      refreshGerakanOptions();
+      renderCategoryGrid(); updateSummaries(); render();
+      autoAdvance('sec-jenisproduk','sec-gerakan');
+    });
+    grid.appendChild(el);
+  });
+}
+document.getElementById('categoryCustomText').addEventListener('input', render);
+
+/* ================= ④ GERAKAN (kondisional Subjek/Jenis Produk) ================= */
+function refreshGerakanOptions(){
+  let options;
+  if(fotoSubjek === 'model'){
+    options = GERAKAN_MODEL;
+  } else {
+    options = KATEGORI_KAIN.includes(selectedCategory) ? GERAKAN_PRODUK_KAIN : GERAKAN_PRODUK_UMUM;
+  }
+  if(!options.includes(gerakanUtama)) gerakanUtama = options[0];
+  renderGerakanChips(options);
+}
+function renderGerakanChips(options){
+  const wrap = document.getElementById('gerakanChips');
+  wrap.innerHTML = "";
+  options.forEach(opt=>{
+    const el = document.createElement('div');
+    el.className = 'chip' + (gerakanUtama === opt ? ' selected' : '');
+    el.textContent = opt;
+    el.addEventListener('click', ()=>{
+      gerakanUtama = opt;
+      document.getElementById('gerakanCustomWrap').style.display = opt === 'Custom' ? 'block' : 'none';
+      document.getElementById('reviewProdukWrap').style.display = opt === 'Review Produk' ? 'block' : 'none';
+      renderGerakanChips(options); updateSummaries(); render();
+    });
+    wrap.appendChild(el);
+  });
+  document.getElementById('gerakanCustomWrap').style.display = gerakanUtama === 'Custom' ? 'block' : 'none';
+  document.getElementById('reviewProdukWrap').style.display = gerakanUtama === 'Review Produk' ? 'block' : 'none';
+}
+document.getElementById('gerakanCustomText').addEventListener('input', render);
+
+function renderReviewTabSeg(){
+  const seg = document.getElementById('reviewProdukTabSeg');
+  seg.innerHTML = "";
+  [["luar","Review Luar"],["dalam","Review Dalam"]].forEach(([id,label])=>{
+    const el = document.createElement('div');
+    el.className = 'seg-btn' + (reviewProdukTab === id ? ' selected' : '');
+    el.textContent = label;
+    el.addEventListener('click', ()=>{
+      reviewProdukTab = id;
+      document.getElementById('reviewLuarWrap').style.display = id==='luar' ? 'block' : 'none';
+      document.getElementById('reviewDalamWrap').style.display = id==='dalam' ? 'block' : 'none';
+      document.getElementById('reviewDalamHint').style.display = (id==='dalam' && !CATEGORY_HAS_INTERIOR[selectedCategory]) ? 'block' : 'none';
+      renderReviewTabSeg(); render();
+    });
+    seg.appendChild(el);
+  });
+}
+function renderReviewChips(){
+  const luarWrap = document.getElementById('reviewLuarChips');
+  luarWrap.innerHTML = "";
+  REVIEW_LUAR_OPTIONS.forEach(opt=>{
+    const el = document.createElement('div');
+    el.className = 'chip' + (selectedReviewLuar.has(opt) ? ' selected' : '');
+    el.textContent = opt;
+    el.addEventListener('click', ()=>{
+      if(selectedReviewLuar.has(opt)) selectedReviewLuar.delete(opt); else selectedReviewLuar.add(opt);
+      document.getElementById('reviewLuarCustomWrap').style.display = selectedReviewLuar.has('Custom') ? 'block' : 'none';
+      document.getElementById('putaranWrap').style.display = selectedReviewLuar.has('Memutar Produk Perlahan') ? 'block' : 'none';
+      el.classList.toggle('selected');
+      render();
+    });
+    luarWrap.appendChild(el);
+  });
+  document.getElementById('putaranWrap').style.display = selectedReviewLuar.has('Memutar Produk Perlahan') ? 'block' : 'none';
+  const dalamWrap = document.getElementById('reviewDalamChips');
+  dalamWrap.innerHTML = "";
+  REVIEW_DALAM_OPTIONS.forEach(opt=>{
+    const el = document.createElement('div');
+    el.className = 'chip' + (selectedReviewDalam.has(opt) ? ' selected' : '');
+    el.textContent = opt;
+    el.addEventListener('click', ()=>{
+      if(selectedReviewDalam.has(opt)) selectedReviewDalam.delete(opt); else selectedReviewDalam.add(opt);
+      document.getElementById('reviewDalamCustomWrap').style.display = selectedReviewDalam.has('Custom') ? 'block' : 'none';
+      el.classList.toggle('selected');
+      render();
+    });
+    dalamWrap.appendChild(el);
+  });
+  document.getElementById('reviewDalamHint').style.display = (reviewProdukTab==='dalam' && !CATEGORY_HAS_INTERIOR[selectedCategory]) ? 'block' : 'none';
+}
+document.getElementById('reviewLuarCustomText').addEventListener('input', render);
+document.getElementById('reviewDalamCustomText').addEventListener('input', render);
+function renderPutaranSeg(){
+  const seg = document.getElementById('putaranSeg');
+  seg.innerHTML = "";
+  ["45°","90°","180°","Custom"].forEach(opt=>{
+    const el = document.createElement('div');
+    el.className = 'seg-btn' + (putaranSudut === opt ? ' selected' : '');
+    el.textContent = opt;
+    el.addEventListener('click', ()=>{
+      putaranSudut = opt;
+      document.getElementById('putaranCustomWrap').style.display = opt==='Custom' ? 'block' : 'none';
+      renderPutaranSeg(); render();
+    });
+    seg.appendChild(el);
+  });
+}
+document.getElementById('putaranCustomText').addEventListener('input', render);
+
+/* ================= ⑤ LOKASI ================= */
+function renderLokasiModeSeg(){
+  const seg = document.getElementById('lokasiModeSeg');
+  seg.innerHTML = "";
+  [["indoor","Indoor"],["outdoor","Outdoor"],["upload","Upload"],["custom","Custom"]].forEach(([id,label])=>{
+    const el = document.createElement('div');
+    el.className = 'seg-btn' + (lokasiMode === id ? ' selected' : '');
+    el.textContent = label;
+    el.addEventListener('click', ()=>{
+      lokasiMode = id;
+      document.getElementById('lokasiIndoorWrap').style.display = id==='indoor' ? 'block' : 'none';
+      document.getElementById('lokasiOutdoorWrap').style.display = id==='outdoor' ? 'block' : 'none';
+      document.getElementById('lokasiUploadWrap').style.display = id==='upload' ? 'block' : 'none';
+      document.getElementById('lokasiCustomWrap').style.display = id==='custom' ? 'block' : 'none';
+      refreshLightingOptions();
+      renderLokasiModeSeg(); updateSummaries(); render();
+    });
+    seg.appendChild(el);
+  });
+}
+function initLokasiSelects(){
+  const indoorEl = document.getElementById('indoorSelect');
+  INDOOR_OPTIONS.forEach(o=>{ const op=document.createElement('option'); op.value=o; op.textContent=o; indoorEl.appendChild(op); });
+  indoorEl.value = selectedIndoor;
+  indoorEl.addEventListener('change', ()=>{
+    selectedIndoor = indoorEl.value;
+    document.getElementById('indoorCustomWrap').style.display = selectedIndoor==='Custom' ? 'block' : 'none';
+    render();
+  });
+  const outdoorEl = document.getElementById('outdoorSelect');
+  OUTDOOR_OPTIONS.forEach(o=>{ const op=document.createElement('option'); op.value=o; op.textContent=o; outdoorEl.appendChild(op); });
+  outdoorEl.value = selectedOutdoor;
+  outdoorEl.addEventListener('change', ()=>{
+    selectedOutdoor = outdoorEl.value;
+    document.getElementById('outdoorCustomWrap').style.display = selectedOutdoor==='Custom' ? 'block' : 'none';
+    render();
+  });
+}
+document.getElementById('indoorCustomText').addEventListener('input', render);
+document.getElementById('outdoorCustomText').addEventListener('input', render);
+document.getElementById('lokasiCustomText').addEventListener('input', render);
+document.getElementById('locBgFileInput').addEventListener('change', function(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt){
+    locBgBase64 = evt.target.result.split(',')[1]; locBgMediaType = file.type;
+    const img = document.getElementById('locBgPreview');
+    img.src = evt.target.result; img.style.display = 'block';
+    document.getElementById('locBgUploadPlaceholder').style.display = 'none';
+    document.getElementById('locBgUploadBox').classList.add('has-image');
+    document.getElementById('photoActions-locBg').classList.add('show');
+    render();
+  };
+  reader.readAsDataURL(file);
+});
+
+function resolveLokasi(){
+  if(lokasiMode === 'indoor') return { label: selectedIndoor==='Custom' ? (document.getElementById('indoorCustomText').value.trim()||'lokasi indoor custom') : selectedIndoor, isOutdoor:false };
+  if(lokasiMode === 'outdoor') return { label: selectedOutdoor==='Custom' ? (document.getElementById('outdoorCustomText').value.trim()||'lokasi outdoor custom') : selectedOutdoor, isOutdoor:true };
+  if(lokasiMode === 'upload') return { label: locBgBase64 ? 'sesuai foto lokasi yang diunggah' : 'lokasi upload dipilih tapi foto belum diunggah', isOutdoor:false, isUpload:true };
+  return { label: document.getElementById('lokasiCustomText').value.trim() || 'lokasi custom (belum diisi)', isOutdoor:false };
+}
+
+/* ================= ⑥ POSISI KAMERA ================= */
+function renderCamPosChips(){
+  const wrap = document.getElementById('camPosChips');
+  wrap.innerHTML = "";
+  CAM_POS_OPTIONS.forEach(opt=>{
+    const el = document.createElement('div');
+    el.className = 'chip' + (selectedCamPos === opt.id ? ' selected' : '');
+    el.textContent = opt.label;
+    el.addEventListener('click', ()=>{
+      selectedCamPos = opt.id;
+      document.getElementById('camPosCustomWrap').style.display = opt.id === 'custom' ? 'block' : 'none';
+      renderCamPosChips(); render();
+    });
+    wrap.appendChild(el);
+  });
+}
+document.getElementById('camPosCustomText').addEventListener('input', render);
+
+/* ================= ⑦ PENCAHAYAAN (kondisional Indoor/Outdoor) ================= */
+function refreshLightingOptions(){
+  const options = lokasiMode === 'outdoor' ? LIGHTING_OUTDOOR : LIGHTING_INDOOR;
+  if(!options.includes(selectedLighting)) selectedLighting = 'Auto';
+  const el = document.getElementById('lightingSelect');
+  el.innerHTML = "";
+  options.forEach(o=>{ const op=document.createElement('option'); op.value=o; op.textContent=o; el.appendChild(op); });
+  el.value = selectedLighting;
+  document.getElementById('lightingCustomWrap').style.display = selectedLighting==='Custom' ? 'block' : 'none';
+}
+document.getElementById('lightingSelect').addEventListener('change', function(){
+  selectedLighting = this.value;
+  document.getElementById('lightingCustomWrap').style.display = selectedLighting==='Custom' ? 'block' : 'none';
+  render();
+});
+document.getElementById('lightingCustomText').addEventListener('input', render);
+
+/* ================= ⑧ INSTRUKSI TAMBAHAN ================= */
+document.getElementById('duration').addEventListener('input', render);
+document.getElementById('notes').addEventListener('input', render);
+
+/* ================= SUMMARY BADGES ================= */
+function updateSummaries(){
+  document.getElementById('sum-foto').textContent = uploadedBase64 ? 'Foto ✓' : '';
+  document.getElementById('sum-subjek').textContent = fotoSubjek === 'model' ? 'Model / Manusia' : 'Produk';
+  document.getElementById('sum-jenisproduk').textContent = (CATEGORIES.find(c=>c.id===selectedCategory)||{}).label || '';
+  document.getElementById('sum-gerakan').textContent = gerakanUtama;
+  document.getElementById('sum-lokasi').textContent = resolveLokasi().label.slice(0,22);
+  document.getElementById('sum-kamera').textContent = (CAM_POS_OPTIONS.find(c=>c.id===selectedCamPos)||{}).label || '';
+  document.getElementById('sum-cahaya').textContent = selectedLighting;
+}
+
+/* ================= AI PROVIDER MODAL, LIGHTBOX, COPY HELPERS (dipertahankan) ================= */
+let geminiForceEdit = false;
+let claudeForceEdit = false;
+
+function updateMainAiButton(){
+  const connected = geminiKey.length > 0 || claudeKey.length > 0;
+  document.getElementById('aiMenuLabel').textContent = connected ? '🟢 AI' : '🔑 AI';
+  document.getElementById('providerBadgeBtn').classList.toggle('connected', connected);
+}
+
+function openAiModal(){
+  document.getElementById('aiModal').classList.add('open');
+  document.getElementById('aiModalOverlay').classList.add('open');
+  renderAiProviderContent();
+}
+function closeAiModal(){
+  document.getElementById('aiModal').classList.remove('open');
+  document.getElementById('aiModalOverlay').classList.remove('open');
+}
+function switchProviderTab(btn){
+  document.querySelectorAll('.ai-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  activeProvider = btn.dataset.provider;
+  renderAiProviderContent();
+}
+
+const PROVIDER_META = {
+  gemini: {
+    name: "Gemini", icon: "🟣",
+    officialUrl: "https://aistudio.google.com/apikey",
+    officialLabel: "🌐 Buka Google AI Studio",
+    steps: ["Buka Google AI Studio", "Login dengan akun Google", "Buat API Key", "Copy API Key", "Kembali ke sini dan paste API Key"],
+    placeholder: "AIza..."
+  },
+  claude: {
+    name: "Claude", icon: "🟠",
+    officialUrl: "https://console.anthropic.com/settings/keys",
+    officialLabel: "🌐 Buka Anthropic Console",
+    steps: ["Buka halaman API resmi Anthropic", "Login atau buat akun", "Buat API Key", "Copy API Key", "Kembali ke sini dan paste API Key"],
+    placeholder: "sk-ant-..."
+  }
+};
+
+function renderAiProviderContent(){
+  const provider = activeProvider;
+  const meta = PROVIDER_META[provider];
+  const key = provider === 'gemini' ? geminiKey : claudeKey;
+  const forceEdit = provider === 'gemini' ? geminiForceEdit : claudeForceEdit;
+  const container = document.getElementById('aiProviderContent');
+  const isConnected = key.length > 0 && !forceEdit;
+
+  if(isConnected){
+    container.innerHTML = `
+      <div class="provider-status-row"><span class="pname">${meta.icon} ${meta.name}</span><span class="pstatus on">🟢 Terhubung</span></div>
+      <div class="connected-box">
+        <div style="font-size:12px; color:var(--ink-dim);">API Key tersimpan di sesi browser ini dan siap dipakai untuk deteksi foto.</div>
+        <div class="row-actions">
+          <button class="btn-replace" onclick="startReplaceKey('${provider}')">Ganti API Key</button>
+          <button class="btn-remove" onclick="removeApiKey('${provider}')">Hapus API Key</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const stepsHtml = meta.steps.map((s,i)=>`<li><span class="step-num">${i+1}</span><span>${s}</span></li>`).join('');
+  container.innerHTML = `
+    <div class="provider-status-row"><span class="pname">${meta.icon} ${meta.name}</span><span class="pstatus">⚪ Belum Terhubung</span></div>
+    <ul class="step-list">${stepsHtml}</ul>
+    <div class="link-actions">
+      <button onclick="window.open('${meta.officialUrl}','_blank','noopener')">${meta.officialLabel}</button>
+      <button onclick="copyProviderLink('${meta.officialUrl}')">📋 Copy Link</button>
+    </div>
+    <label class="field-label">API Key</label>
+    <div class="key-row">
+      <input type="password" id="apiKeyInput" placeholder="Paste API Key di sini" value="${escapeHtml(key)}">
+      <button class="key-eye" onclick="toggleKeyVisibility()">👁</button>
+    </div>
+    <div class="key-warn" id="apiKeyWarn"></div>
+    <button class="ai-save-btn" onclick="saveAndConnect('${provider}')">✓ Simpan &amp; Mulai →</button>
+    <div class="ai-key-warning">Key hanya tersimpan sementara di memori browser ini (hilang saat halaman ditutup/refresh — batasan platform, bukan bug) dan dikirim langsung ke server ${meta.name}, tidak lewat server lain mana pun.</div>
+  `;
+  document.getElementById('apiKeyInput').addEventListener('keydown', e=>{ if(e.key==='Enter') saveAndConnect(provider); });
+}
+
+function toggleKeyVisibility(){
+  const input = document.getElementById('apiKeyInput');
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+function copyProviderLink(url){ copyText(url); }
+function startReplaceKey(provider){
+  if(provider === 'gemini') geminiForceEdit = true; else claudeForceEdit = true;
+  renderAiProviderContent();
+}
+function removeApiKey(provider){
+  if(provider === 'gemini'){ geminiKey = ''; geminiForceEdit = false; }
+  else { claudeKey = ''; claudeForceEdit = false; }
+  updateMainAiButton();
+  renderAiProviderContent();
+}
+
+async function saveAndConnect(provider){
+  const input = document.getElementById('apiKeyInput');
+  const warn = document.getElementById('apiKeyWarn');
+  const val = input.value.trim();
+  if(!val){ warn.textContent = '⚠️ Masukkan API Key terlebih dahulu.'; return; }
+  warn.textContent = '';
+  if(provider === 'gemini') geminiKey = val; else claudeKey = val;
+
+  const btn = event.target;
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Menghubungkan...';
+
+  try{
+    await (provider === 'gemini' ? callGemini('Balas hanya dengan kata: OK', false) : callClaude('Balas hanya dengan kata: OK', false));
+    if(provider === 'gemini') geminiForceEdit = false; else claudeForceEdit = false;
+    warn.textContent = '';
+    updateMainAiButton();
+    const container = document.getElementById('aiProviderContent');
+    const successMsg = document.createElement('div');
+    successMsg.style.cssText = 'text-align:center; color:var(--ok); font-size:12.5px; font-weight:700; margin-bottom:10px;';
+    successMsg.textContent = '✓ AI berhasil terhubung';
+    container.prepend(successMsg);
+    setTimeout(()=> renderAiProviderContent(), 900);
+  }catch(err){
+    console.error('Koneksi AI gagal:', err.message);
+    let msg = '⚠️ Tidak dapat terhubung ke AI. Silakan coba lagi.';
+    const m = (err.message || '').toLowerCase();
+    if(m.includes('401') || m.includes('403') || m.includes('api key') || m.includes('invalid')){
+      msg = '⚠️ API Key tidak valid. Periksa kembali API Key Anda.';
+    } else if(m.includes('404') || m.includes('tidak tersedia')){
+      msg = '⚠️ AI belum siap digunakan.';
+    }
+    warn.textContent = msg;
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeAiModal(); });
+
+/* ================= LIGHTBOX & GANTI/HAPUS FOTO ================= */
+function openLightbox(imgId){
+  const src = document.getElementById(imgId).src;
+  if(!src) return;
+  document.getElementById('lightboxImg').src = src;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox(){ document.getElementById('lightbox').classList.remove('open'); }
+
+function removePhoto(which){
+  if(which === 'produk'){
+    uploadedBase64 = null; uploadedMediaType = null;
+    document.getElementById('fileInput').value = '';
+    document.getElementById('previewImg').style.display = 'none';
+    document.getElementById('uploadPlaceholder').style.display = 'block';
+    document.getElementById('uploadBox').classList.remove('has-image');
+    document.getElementById('photoActions-produk').classList.remove('show');
+    document.getElementById('detectBtn').disabled = true;
+  } else if(which === 'model'){
+    modelBase64 = null; modelMediaType = null;
+    document.getElementById('modelFileInput').value = '';
+    document.getElementById('modelPreviewImg').style.display = 'none';
+    document.getElementById('modelUploadPlaceholder').style.display = 'block';
+    document.getElementById('modelUploadBox').classList.remove('has-image');
+    document.getElementById('photoActions-model').classList.remove('show');
+  } else if(which === 'locBg'){
+    locBgBase64 = null; locBgMediaType = null;
+    document.getElementById('locBgFileInput').value = '';
+    document.getElementById('locBgPreview').style.display = 'none';
+    document.getElementById('locBgUploadPlaceholder').style.display = 'block';
+    document.getElementById('locBgUploadBox').classList.remove('has-image');
+    document.getElementById('photoActions-locBg').classList.remove('show');
+  }
+  updateSummaries(); render();
+}
+
+/* ================= PANGGILAN AI (GEMINI/CLAUDE) ================= */
+function explainNetworkError(err, providerLabel){
+  if(err instanceof TypeError){
+    return `Tidak bisa menghubungi server ${providerLabel}. Kemungkinan: (1) file ini masih dibuka di dalam viewer/app in-app browser (bukan Chrome/browser asli), (2) tidak ada koneksi internet, atau (3) API key salah format. Coba buka file ini lewat "Buka di browser" lalu ulangi.`;
+  }
+  return err.message || 'Kesalahan tidak diketahui';
+}
+const GEMINI_MODEL_FALLBACKS = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-flash", "gemini-flash-latest"];
+
+async function callGemini(promptText, imagePart){
+  if(!geminiKey) throw new Error('API key Gemini belum diisi. Isi lewat tombol 🔑 AI.');
+  const parts = [];
+  if(imagePart){
+    const img = (typeof imagePart === 'object') ? imagePart : { base64: uploadedBase64, mediaType: uploadedMediaType };
+    if(img.base64) parts.push({ inline_data: { mime_type: img.mediaType, data: img.base64 } });
+  }
+  parts.push({ text: promptText });
+  let lastErr = null;
+  for(const modelName of GEMINI_MODEL_FALLBACKS){
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(geminiKey)}`;
+    let response;
+    try{
+      response = await fetch(url, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ contents:[{ parts }] }) });
+    }catch(networkErr){ throw new Error(explainNetworkError(networkErr, 'Gemini')); }
+    if(response.status === 404){ lastErr = new Error(`Model ${modelName} tidak tersedia lagi`); continue; }
+    if(!response.ok){
+      let errMsg = `HTTP ${response.status}`;
+      try{ const errJson = await response.json(); errMsg += ': ' + (errJson?.error?.message || JSON.stringify(errJson)).slice(0,220); }catch(e){}
+      if(response.status === 400 || response.status === 403) errMsg += ' — kemungkinan API key salah atau belum diaktifkan.';
+      throw new Error(errMsg);
+    }
+    const data = await response.json();
+    const text = data?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("") || "";
+    if(!text) throw new Error('Respons Gemini kosong atau diblokir filter keamanan: ' + JSON.stringify(data).slice(0,200));
+    return text;
+  }
+  throw new Error('Semua model Gemini di daftar sudah tidak tersedia (' + lastErr?.message + ').');
+}
+
+async function callClaude(promptText, imagePart){
+  if(!claudeKey) throw new Error('API key Claude belum diisi. Isi lewat tombol 🔑 AI.');
+  const content = [];
+  if(imagePart){
+    const img = (typeof imagePart === 'object') ? imagePart : { base64: uploadedBase64, mediaType: uploadedMediaType };
+    if(img.base64) content.push({ type:"image", source:{ type:"base64", media_type: img.mediaType, data: img.base64 } });
+  }
+  content.push({ type:"text", text: promptText });
+  let response;
+  try{
+    response = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json", "x-api-key": claudeKey, "anthropic-version":"2023-06-01", "anthropic-dangerous-direct-browser-access":"true" },
+      body: JSON.stringify({ model:"claude-sonnet-5", max_tokens:1200, messages:[{ role:"user", content }] })
+    });
+  }catch(networkErr){ throw new Error(explainNetworkError(networkErr, 'Anthropic/Claude')); }
+  if(!response.ok){
+    let errMsg = `HTTP ${response.status}`;
+    try{ const errJson = await response.json(); errMsg += ': ' + (errJson?.error?.message || JSON.stringify(errJson)).slice(0,220); }catch(e){}
+    if(response.status === 401) errMsg += ' — API key salah atau tidak valid.';
+    throw new Error(errMsg);
+  }
+  const data = await response.json();
+  const text = (data.content || []).map(b=>b.text||"").join("");
+  if(!text) throw new Error('Respons Claude kosong: ' + JSON.stringify(data).slice(0,200));
+  return text;
+}
+
+const detectionInstruction = "Lihat foto produk ini dengan teliti. Balas HANYA dengan objek JSON mentah (tanpa markdown fences, tanpa kalimat pembuka), dalam Bahasa Indonesia, dengan field berikut: product_type (salah satu dari: 'tas', 'sepatu', 'sandal', 'kosmetik', 'baju', 'celana', 'aksesori', 'lainnya' — pilih yang paling cocok), garment_description (frasa singkat warna + produk, misalnya 'tas kulit coklat'), product_details (deskripsi rinci ciri khas produk yang harus dipertahankan persis: warna pasti, logo/motif dan posisinya, bentuk, tekstur bahan, jahitan, aksesoris, resleting/kancing/tali/sol jika ada — tulis 1-2 kalimat detail).";
+
+async function detectProduct(){
+  if(!uploadedBase64) return;
+  const btn = document.getElementById('detectBtn');
+  const status = document.getElementById('detectStatus');
+  btn.disabled = true;
+  status.className = 'detect-status';
+  status.textContent = `Menganalisis foto dengan ${activeProvider === 'gemini' ? 'Gemini' : 'Claude'}...`;
+  try{
+    let rawText = activeProvider === 'gemini' ? await callGemini(detectionInstruction, true) : await callClaude(detectionInstruction, true);
+    rawText = rawText.replace(/```json|```/g, "").trim();
+    let parsed;
+    try{ parsed = JSON.parse(rawText); }
+    catch(parseErr){ throw new Error('Gagal membaca hasil AI sebagai JSON: ' + rawText.slice(0,200)); }
+
+    const validCats = CATEGORIES.map(c=>c.id);
+    if(validCats.includes(parsed.product_type)){
+      selectedCategory = parsed.product_type;
+      document.getElementById('categoryCustomWrap').style.display = selectedCategory === 'custom' ? 'block' : 'none';
+      refreshGerakanOptions();
+      renderCategoryGrid();
+      if(fotoSubjek !== 'produk'){
+        fotoSubjek = 'produk';
+        document.getElementById('modelPhotoSection').style.display = 'none';
+        document.getElementById('sec-jenisproduk').style.display = 'block';
+        renderSubjekGrid();
+      }
+    }
+    if(parsed.garment_description){ garmentDescription = parsed.garment_description; }
+    if(parsed.product_details){ detectedProductDetails = parsed.product_details; }
+
+    status.textContent = '✓ Terisi otomatis — jenis produk & detail sudah dikunci.';
+    status.className = 'detect-status ok';
+    updateSummaries();
+    render();
+  }catch(err){
+    console.error(err);
+    status.textContent = 'Deteksi gagal: ' + (err.message || 'kesalahan tidak diketahui') + '\nKamu tetap bisa pilih manual — hasil sama baiknya.';
+    status.className = 'detect-status err';
+    const actions = document.createElement('div');
+    actions.className = 'err-actions';
+    actions.innerHTML = `<button class="btn-mini" onclick="detectProduct()">Coba Lagi</button><button class="btn-mini" onclick="switchToOtherProvider()">Ganti Provider</button>`;
+    status.appendChild(actions);
+  }finally{ btn.disabled = false; }
+}
+function switchToOtherProvider(){
+  activeProvider = activeProvider === 'gemini' ? 'claude' : 'gemini';
+  openAiModal();
+  document.querySelectorAll('.ai-tab').forEach(t=>t.classList.toggle('active', t.dataset.provider===activeProvider));
+  renderAiProviderContent();
+}
+
+/* ================= COPY / EDIT / OUTPUT ================= */
+function showToast(msg){
+  const toast = document.getElementById('toast');
+  toast.textContent = msg; toast.classList.add('show');
+  setTimeout(()=>toast.classList.remove('show'), 1800);
+}
+function fallbackCopy(text){
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.top = '-9999px'; ta.style.left = '-9999px';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  let ok = false;
+  try{ ok = document.execCommand('copy'); }catch(e){ ok = false; }
+  document.body.removeChild(ta);
+  return ok;
+}
+function copyText(text){
+  if(navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext){
+    navigator.clipboard.writeText(text).then(()=> showToast('Tersalin ke clipboard'))
+      .catch(()=>{ const ok = fallbackCopy(text); showToast(ok ? 'Tersalin ke clipboard' : 'Gagal menyalin — blok teks manual lalu salin'); });
+  } else {
+    const ok = fallbackCopy(text);
+    showToast(ok ? 'Tersalin ke clipboard' : 'Gagal menyalin otomatis — blok teks manual lalu salin (Ctrl/Cmd+C)');
+  }
+}
+function copyPrompt(){ copyText(document.getElementById('promptBox').value); }
+function copyJSON(){ copyText(document.getElementById('jsonOutput').innerText); }
+
+function toggleEdit(){
+  const box = document.getElementById('promptBox');
+  const btn = document.getElementById('editBtn');
+  if(box.hasAttribute('readonly')){
+    box.removeAttribute('readonly'); box.focus();
+    if(btn) btn.textContent = '💾 Selesai'; promptManuallyEdited = true;
+  } else {
+    box.setAttribute('readonly','true'); if(btn) btn.textContent = '✏️ Edit';
+  }
+}
+function generateUlang(){
+  promptManuallyEdited = false;
+  const box = document.getElementById('promptBox');
+  box.setAttribute('readonly','true');
+  const editBtn = document.getElementById('editBtn');
+  if(editBtn) editBtn.textContent = '✏️ Edit';
+  render();
+  showToast('Prompt digenerate ulang');
+}
+function toggleJson(){
+  const pre = document.getElementById('jsonOutput');
+  const icon = document.getElementById('jsonToggleIcon');
+  pre.classList.toggle('show');
+  icon.textContent = pre.classList.contains('show') ? '▾' : '▸';
+}
+
+function escapeHtml(str){
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function syntaxHighlight(json){
+  const safe = escapeHtml(json);
+  return safe.replace(/"([^"]+)":/g, '<span class="key">"$1"</span>:').replace(/: "([^"]*)"/g, ': <span class="str">"$1"</span>');
+}
+
+/* ================= RENDER PROMPT FINAL ================= */
+function render(){
+  const catObj = CATEGORIES.find(c=>c.id===selectedCategory) || CATEGORIES[0];
+  const catLabel = selectedCategory === 'custom' ? (document.getElementById('categoryCustomText').value.trim() || 'produk custom') : catObj.label;
+  const duration = parseInt(document.getElementById('duration').value) || 8;
+  const notes = document.getElementById('notes').value.trim();
+
+  const subjekText = fotoSubjek === 'model' ? 'Model / manusia' : `Produk (${catLabel})`;
+
+  // gerakan utama
+  let gerakanText;
+  if(gerakanUtama === 'Custom'){
+    gerakanText = document.getElementById('gerakanCustomText').value.trim() || 'gerakan custom (belum diisi)';
+  } else if(gerakanUtama === 'Review Produk'){
+    gerakanText = 'produk dipegang stabil lalu direview sesuai detail di bawah';
+  } else {
+    gerakanText = gerakanUtama || 'diam natural';
+  }
+
+  // review produk (jika dipilih)
+  let reviewBlock = '';
+  if(gerakanUtama === 'Review Produk'){
+    const luarRaw = Array.from(selectedReviewLuar).filter(x=>x!=='Custom');
+    const luarCustom = selectedReviewLuar.has('Custom') ? document.getElementById('reviewLuarCustomText').value.trim() : '';
+    const dalamRaw = Array.from(selectedReviewDalam).filter(x=>x!=='Custom');
+    const dalamCustom = selectedReviewDalam.has('Custom') ? document.getElementById('reviewDalamCustomText').value.trim() : '';
+    const isMemutar = luarRaw.includes('Memutar Produk Perlahan');
+    const putaranDeg = putaranSudut === 'Custom' ? (document.getElementById('putaranCustomText').value.trim() || '90 derajat') : putaranSudut.replace('°',' derajat');
+
+    let luarSteps = [];
+    if(luarRaw.length || luarCustom){
+      luarSteps.push('produk dipegang stabil dengan satu/kedua tangan');
+      const nonRotate = luarRaw.filter(x=>x!=='Memutar Produk Perlahan');
+      if(nonRotate.length) luarSteps.push(nonRotate.join(', ').toLowerCase() + ', dilakukan berurutan satu per satu');
+      if(isMemutar) luarSteps.push(`produk diputar perlahan sekitar ${putaranDeg}, terkontrol, bukan putaran penuh 360°, orientasi dan skala tetap konsisten`);
+      if(luarCustom) luarSteps.push(luarCustom);
+      luarSteps.push('diakhiri produk kembali ke posisi stabil');
+    }
+    let dalamSteps = [];
+    if(dalamRaw.length || dalamCustom){
+      if(CATEGORY_HAS_INTERIOR[selectedCategory]){
+        if(dalamRaw.length) dalamSteps.push(dalamRaw.join(', ').toLowerCase());
+        if(dalamCustom) dalamSteps.push(dalamCustom);
+        dalamSteps.push('menutup kembali produk secara natural jika sempat dibuka');
+      } else {
+        dalamSteps.push('HANYA jika foto referensi benar-benar menunjukkan bagian dalam produk — jika tidak terlihat jelas pada referensi, JANGAN mengarang atau mengklaim detail interior, cukup pertahankan sudut yang terlihat');
+      }
+    }
+    if(luarSteps.length) reviewBlock += ` Review bagian luar: ${luarSteps.join('; ')}.`;
+    if(dalamSteps.length) reviewBlock += ` Review bagian dalam: ${dalamSteps.join('; ')}.`;
+  }
+
+  // model (jika subjek = model)
+  let modelBlock = '';
+  if(fotoSubjek === 'model'){
+    const modelSourceText = (modelSource === 'upload' && modelBase64)
+      ? 'menggunakan foto model yang diunggah sebagai acuan wajah, rambut, dan bentuk tubuh — pertahankan karakter ini konsisten sepanjang hasil'
+      : `model AI gender ${modelGender}, gaya ${modelStyle.toLowerCase()}`;
+    modelBlock = ` Model (${modelSourceText}).`;
+  }
+
+  const lokasi = resolveLokasi();
+  let lokasiNote = '';
+  if(lokasiMode === 'upload' && locBgBase64){
+    lokasiNote = ' Foto lokasi yang diunggah adalah acuan utama — jangan diganti lokasi lain.';
+  }
+
+  const camObj = CAM_POS_OPTIONS.find(c=>c.id===selectedCamPos) || CAM_POS_OPTIONS[0];
+  const camText = selectedCamPos === 'custom' ? (document.getElementById('camPosCustomText').value.trim() || 'posisi kamera custom (belum diisi)') : camObj.phrase;
+
+  let lightingText;
+  if(selectedLighting === 'Auto'){
+    lightingText = lokasi.isOutdoor ? 'cahaya natural outdoor yang lembut, disesuaikan suasana lokasi' : 'pencahayaan indoor natural yang lembut dan merata';
+  } else if(selectedLighting === 'Custom'){
+    lightingText = document.getElementById('lightingCustomText').value.trim() || 'pencahayaan custom (belum diisi)';
+  } else {
+    lightingText = selectedLighting;
+  }
+
+  const preservasi = `PRODUCT CONSISTENCY: maintain exact product consistency throughout — do not alter the product shape, proportions, color, design, logo, material, texture, or visible details. Pertahankan bentuk, ukuran, proporsi, warna, motif, logo, tulisan, desain, material, tekstur, jahitan, dan aksesori produk agar identik dengan foto referensi (${garmentDescription})${detectedProductDetails ? '. Detail spesifik dari foto: ' + detectedProductDetails : ''}. Jangan menambahkan detail yang tidak terlihat pada referensi. Gerakan tangan harus realistis dan konsisten (posisi stabil, jangan menembus produk, jangan berpindah tangan tiba-tiba).`;
+
+  const promptText = `Video natural dan realistis dengan satu subjek, satu lokasi, dan satu gerakan utama — hindari gerakan berlebihan, kaku, atau beberapa aksi sekaligus.
+Subjek: ${subjekText}.${modelBlock}
+Gerakan: ${gerakanText}, dilakukan halus dan tidak terburu-buru.${reviewBlock}
+Lokasi: ${lokasi.label}.${lokasiNote}
+Posisi kamera: ${camText}.
+Pencahayaan: ${lightingText}.
+${preservasi}` + (notes ? `\nInstruksi tambahan: ${notes}.` : '');
+
+  const data = {
+    subjek: subjekText,
+    jenis_produk: fotoSubjek === 'produk' ? catLabel : null,
+    gerakan: gerakanText,
+    review_produk: gerakanUtama === 'Review Produk' ? (reviewBlock || 'belum diisi') : null,
+    lokasi: lokasi.label,
+    posisi_kamera: camText,
+    pencahayaan: lightingText,
+    durasi_detik: duration,
+    instruksi_tambahan: notes || null,
+    ai_provider: activeProvider === 'gemini' ? 'Google Gemini' : 'Anthropic Claude',
+    prompt: promptText
+  };
+
+  document.getElementById('jsonOutput').innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
+  const promptBox = document.getElementById('promptBox');
+  if(!promptManuallyEdited){ promptBox.value = promptText; }
+}
+
+function onGenerateTap(){
+  render();
+  document.getElementById('sec-output').scrollIntoView({behavior:'smooth', block:'start'});
+  showToast('Prompt siap!');
+  const inner = document.getElementById('stickyBarInner');
+  inner.innerHTML = `
+    <button class="btn-outline" onclick="copyPrompt()">📋 Copy</button>
+    <button class="btn-outline" onclick="toggleEdit()">✏️ Edit</button>
+    <button class="btn-outline" onclick="generateUlang()">🔄 Ulang</button>
+  `;
+}
+
+function switchMainTab(tab){
+  ['foto','panduan'].forEach(t=>{
+    document.getElementById('tabContent-'+t).style.display = (t===tab) ? 'block' : 'none';
+  });
+  document.querySelectorAll('.main-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  document.querySelector('.sticky-bar').style.display = (tab==='panduan') ? 'none' : 'flex';
+}
+
+/* ================= INIT ================= */
+renderSubjekGrid();
+renderModelSourceSeg();
+renderModelGenderSeg();
+renderModelStyleChips();
+renderCategoryGrid();
+refreshGerakanOptions();
+renderReviewTabSeg();
+renderReviewChips();
+renderPutaranSeg();
+renderLokasiModeSeg();
+initLokasiSelects();
+refreshLightingOptions();
+renderCamPosChips();
+document.getElementById('modelPhotoSection').style.display = fotoSubjek === 'model' ? 'block' : 'none';
+document.getElementById('sec-jenisproduk').style.display = fotoSubjek === 'produk' ? 'block' : 'none';
+updateMainAiButton();
+updateSummaries();
+render();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
