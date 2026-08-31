@@ -1,4 +1,4 @@
-const CACHE_NAME = "verry-wiranza-ai-v1";
+const CACHE_NAME = "verry-wiranza-ai-v2";
 const ASSETS = [
   "./",
   "./index.html",
@@ -27,16 +27,16 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+
+  // Network-first: always try to get the latest version from the server.
+  // Falls back to cache only when the network is unavailable (offline).
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request)
-        .then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          return response;
-        })
-        .catch(() => cached);
-    })
+    fetch(event.request)
+      .then((response) => {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
