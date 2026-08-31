@@ -2,32 +2,17 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Foto Generator AI</title>
-<link rel="manifest" href="./manifest.json">
-<link rel="icon" href="./icon-192.png">
-<link rel="apple-touch-icon" href="./icon-192.png">
-<meta name="theme-color" content="#0c0c12">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VERRY WIRANZA AI — AI Product Video Creator</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f0f14">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Verry Wiranza AI">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
-/* Native app feel: no pinch-zoom, no visible scrollbars, no rubber-band overscroll */
-html, body {
-  touch-action: pan-y;
-  overscroll-behavior: none;
-  -webkit-text-size-adjust: 100%;
-  height: 100%;
-}
-* {
-  -webkit-tap-highlight-color: transparent;
-}
-::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
-}
-* {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
   :root{
@@ -47,6 +32,24 @@ html, body {
   }
   *{box-sizing:border-box;}
   html, body{ overflow-x:hidden; max-width:100%; }
+  /* Matikan long-press "Salin/Select" ala browser supaya terasa seperti app native.
+     Input & textarea yang memang perlu diketik/diedit tetap bisa dipilih teksnya. */
+  html, body, div, span, h1, h2, h3, h4, h5, h6, p, button, label, li, ul, a, img, svg{
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  input, textarea{
+    -webkit-touch-callout: default;
+  }
+  input[readonly], textarea[readonly]{
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  img{ -webkit-user-drag: none; }
   body{
     margin:0;
     background:
@@ -711,8 +714,15 @@ let locBgBase64 = null, locBgMediaType = null;
 let selectedCamPos = "dada";
 let selectedLighting = "Auto";
 let activeProvider = "gemini";
-let geminiKey = "";
-let claudeKey = "";
+let geminiKey = localStorage.getItem('vw_geminiKey') || "";
+let claudeKey = localStorage.getItem('vw_claudeKey') || "";
+
+function persistKeys(){
+  try{
+    if(geminiKey) localStorage.setItem('vw_geminiKey', geminiKey); else localStorage.removeItem('vw_geminiKey');
+    if(claudeKey) localStorage.setItem('vw_claudeKey', claudeKey); else localStorage.removeItem('vw_claudeKey');
+  }catch(err){ console.error('Gagal menyimpan API Key:', err); }
+}
 let detectedProductDetails = "";
 let garmentDescription = "produk";
 let promptManuallyEdited = false;
@@ -1130,6 +1140,7 @@ document.getElementById('importSettingsInput').addEventListener('change', functi
       if(data.geminiKey) geminiKey = data.geminiKey;
       if(data.claudeKey) claudeKey = data.claudeKey;
       if(data.activeProvider) activeProvider = data.activeProvider;
+      persistKeys();
       updateMainAiButton();
       showToast('Pengaturan berhasil diimpor');
     }catch(err){
@@ -1207,7 +1218,7 @@ function renderAiProviderContent(){
     container.innerHTML = `
       <div class="provider-status-row"><span class="pname">${meta.icon} ${meta.name}</span><span class="pstatus on">🟢 Terhubung</span></div>
       <div class="connected-box">
-        <div style="font-size:12px; color:var(--ink-dim);">API Key tersimpan di sesi browser ini dan siap dipakai untuk deteksi foto.</div>
+        <div style="font-size:12px; color:var(--ink-dim);">API Key tersimpan permanen di browser ini (localStorage) — tidak perlu isi ulang tiap buka aplikasi.</div>
         <div class="row-actions">
           <button class="btn-replace" onclick="startReplaceKey('${provider}')">Ganti API Key</button>
           <button class="btn-remove" onclick="removeApiKey('${provider}')">Hapus API Key</button>
@@ -1232,7 +1243,7 @@ function renderAiProviderContent(){
     </div>
     <div class="key-warn" id="apiKeyWarn"></div>
     <button class="ai-save-btn" onclick="saveAndConnect('${provider}')">✓ Simpan &amp; Mulai →</button>
-    <div class="ai-key-warning">Key hanya tersimpan sementara di memori browser ini (hilang saat halaman ditutup/refresh — batasan platform, bukan bug) dan dikirim langsung ke server ${meta.name}, tidak lewat server lain mana pun.</div>
+    <div class="ai-key-warning">Key tersimpan permanen di browser ini (localStorage) — cukup isi sekali, tidak hilang saat refresh/tutup halaman. Key dikirim langsung ke server ${meta.name}, tidak lewat server lain mana pun.</div>
   `;
   document.getElementById('apiKeyInput').addEventListener('keydown', e=>{ if(e.key==='Enter') saveAndConnect(provider); });
 }
@@ -1249,6 +1260,7 @@ function startReplaceKey(provider){
 function removeApiKey(provider){
   if(provider === 'gemini'){ geminiKey = ''; geminiForceEdit = false; }
   else { claudeKey = ''; claudeForceEdit = false; }
+  persistKeys();
   updateMainAiButton();
   renderAiProviderContent();
 }
@@ -1269,6 +1281,7 @@ async function saveAndConnect(provider){
   try{
     await (provider === 'gemini' ? callGemini('Balas hanya dengan kata: OK', false) : callClaude('Balas hanya dengan kata: OK', false));
     if(provider === 'gemini') geminiForceEdit = false; else claudeForceEdit = false;
+    persistKeys();
     warn.textContent = '';
     updateMainAiButton();
     const container = document.getElementById('aiProviderContent');
@@ -1679,30 +1692,19 @@ document.getElementById('sec-jenisproduk').style.display = fotoSubjek === 'produ
 updateMainAiButton();
 updateSummaries();
 render();
-</script>
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+
+// Cegah menu "Salin/Select" saat tekan lama, kecuali di area input/textarea yang memang harus bisa diketik
+document.addEventListener('contextmenu', function(e){
+  const tag = e.target.tagName;
+  const isEditable = (tag === 'INPUT' || tag === 'TEXTAREA') && !e.target.hasAttribute('readonly');
+  if(!isEditable) e.preventDefault();
+});
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(err=>console.error('SW gagal daftar:', err));
   });
 }
-</script>
-<script>
-// Kunci pinch-zoom & double-tap zoom secara paksa (jaga-jaga untuk browser yang mengabaikan viewport meta)
-document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
-document.addEventListener('gesturechange', function (e) { e.preventDefault(); });
-document.addEventListener('gestureend', function (e) { e.preventDefault(); });
-
-document.addEventListener('touchmove', function (e) {
-  if (e.touches.length > 1) e.preventDefault();
-}, { passive: false });
-
-let lastTouchEnd = 0;
-document.addEventListener('touchend', function (e) {
-  const now = Date.now();
-  if (now - lastTouchEnd <= 350) e.preventDefault();
-  lastTouchEnd = now;
-}, { passive: false });
 </script>
 </body>
 </html>
