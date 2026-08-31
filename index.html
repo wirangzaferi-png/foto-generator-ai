@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>VERRY WIRANZA AI — AI Product Video Creator</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0f0f14">
+<meta name="theme-color" content="#0c0c12">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -31,7 +31,19 @@
     --warn:#ffb454;
   }
   *{box-sizing:border-box;}
-  html, body{ overflow-x:hidden; max-width:100%; overscroll-behavior:none; touch-action:pan-y; }
+  html{ background: var(--bg); }
+  html, body{
+    overflow-x:hidden;
+    max-width:100%;
+    width:100%;
+    margin:0;
+    overscroll-behavior:none;
+    overscroll-behavior-x:none;
+    overscroll-behavior-y:none;
+    touch-action:pan-y;
+    scrollbar-width:none;
+  }
+  html::-webkit-scrollbar, body::-webkit-scrollbar{ display:none; width:0; height:0; }
   /* Matikan long-press "Salin/Select" ala browser supaya terasa seperti app native.
      Input & textarea yang memang perlu diketik/diedit tetap bisa dipilih teksnya. */
   html, body, div, span, h1, h2, h3, h4, h5, h6, p, button, label, li, ul, a, img, svg{
@@ -1785,25 +1797,27 @@ render();
   function hideSplash(){
     const elapsed = Date.now() - started;
     const wait = Math.max(0, minDisplay - elapsed);
-    setTimeout(()=>{ splash.classList.add('hide'); }, wait);
+    setTimeout(()=>{
+      splash.classList.add('hide');
+      // Hapus total dari DOM setelah transisi fade-out selesai, supaya animasi
+      // infinite (glow/bounce) di dalamnya berhenti total dan tidak makan CPU
+      // terus-menerus di background (penyebab scroll jadi lambat).
+      setTimeout(()=>{ splash.remove(); }, 550);
+    }, wait);
   }
   if(document.readyState === 'complete'){ hideSplash(); }
   else { window.addEventListener('load', hideSplash); }
 })();
 
-// Cegah pinch-zoom & double-tap zoom (Android kadang masih bisa zoom meski viewport dikunci)
-document.addEventListener('touchmove', function(e){
-  if(e.touches.length > 1) e.preventDefault();
-}, { passive:false });
-
+// Cegah double-tap zoom (Android kadang masih bisa zoom meski viewport dikunci)
+// Catatan: pinch-zoom sudah diblokir lewat CSS "touch-action:pan-y" di html/body,
+// jadi tidak perlu listener touchmove non-passive yang bikin scroll jadi macet/lag.
 let lastTouchEnd = 0;
 document.addEventListener('touchend', function(e){
   const now = Date.now();
   if(now - lastTouchEnd <= 300) e.preventDefault();
   lastTouchEnd = now;
 }, { passive:false });
-
-document.addEventListener('gesturestart', function(e){ e.preventDefault(); });
 
 // Cegah menu "Salin/Select" saat tekan lama, kecuali di area input/textarea yang memang harus bisa diketik
 document.addEventListener('contextmenu', function(e){

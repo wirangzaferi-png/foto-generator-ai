@@ -1,13 +1,13 @@
 {
-  "name": "Foto Generator AI",
-  "short_name": "Foto Generator AI",
-  "description": "AI Product Video Prompt Generator untuk konten TikTok/Instagram",
+  "name": "Verry Wiranza AI — AI Product Video Creator",
+  "short_name": "Verry Wiranza AI",
+  "description": "Generator prompt video produk AI untuk TikTok & Instagram",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0c0c12",
   "theme_color": "#0c0c12",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "icon-192.png",
