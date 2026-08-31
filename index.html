@@ -106,35 +106,19 @@
 
   .ai-key-warning{font-size:10.5px; color:var(--ink-dim); margin-top:10px; line-height:1.5;}
 
-  /* hook video */
-  .hook-card{
-    border:1.3px solid var(--line); background:var(--bg-input); border-radius:11px;
-    padding:11px 12px; margin-bottom:8px; transition:.15s;
+  /* hook & storytelling */
+  .hookstory-row{display:flex; align-items:center; gap:8px;}
+  .hookstory-label{font-size:12.5px; font-weight:700;}
+  .hookstory-badge{
+    font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700;
+    background:var(--grad); color:#fff; padding:2px 8px; border-radius:999px;
   }
-  .hook-card.selected{border-color:transparent; box-shadow:0 0 0 1.5px var(--accent2) inset; background:linear-gradient(rgba(124,77,255,.08),rgba(124,77,255,.08)), var(--bg-input);}
-  .hook-card .htype{
-    font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:.05em; text-transform:uppercase;
-    color:var(--accent3); margin-bottom:4px; display:flex; align-items:center; justify-content:space-between; gap:6px;
+  .hookstory-preview{
+    font-size:12.5px; color:var(--ink-dim); line-height:1.55;
+    background:var(--bg-input); border:1px solid var(--line); border-radius:9px;
+    padding:10px 12px; margin-top:6px; white-space:pre-wrap;
   }
-  .hook-card .score{background:var(--grad); color:#fff; padding:2px 7px; border-radius:999px; font-weight:700;}
-  .hook-card .htext{font-size:13px; font-weight:600; line-height:1.45; margin-bottom:6px;}
-  .hook-card details{font-size:11px; color:var(--ink-dim); line-height:1.5;}
-  .hook-card summary{cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--ink-dim); margin-bottom:4px;}
-  .hook-card summary:hover{color:var(--accent3);}
-  .hook-card .detail-line{margin-top:4px;}
-  .hook-card .detail-line b{color:var(--ink);}
-  .hook-card .use-btn{
-    margin-top:8px; width:100%; background:var(--bg-panel-2); border:1px solid var(--line); color:var(--ink);
-    border-radius:8px; padding:7px 0; font-size:11px; font-weight:700; cursor:pointer; font-family:'Space Grotesk',sans-serif;
-  }
-  .hook-card.selected .use-btn{background:var(--grad); color:#fff; border-color:transparent;}
-  .hook-card .use-btn:hover{border-color:var(--accent2);}
-  .hook-gen-btn{
-    width:100%; background:var(--grad); color:#fff; border:none; border-radius:9px;
-    padding:11px 0; font-weight:700; font-size:12.5px; cursor:pointer; font-family:'Space Grotesk',sans-serif; margin-top:4px;
-  }
-  .hook-gen-btn:disabled{opacity:.4; cursor:not-allowed;}
-  .hook-loading{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-dim); text-align:center; padding:14px 0;}
+  .hookstory-preview.filled{color:var(--ink);}
 
   .main-tab-nav{
     position:sticky; top:45px; z-index:55;
@@ -536,9 +520,38 @@
         </div></div>
       </div>
 
+      <div class="acc" id="sec-hook">
+        <div class="acc-head" onclick="toggleSection('sec-hook')">
+          <span class="num">⑧</span><span class="ttl">Hook & Storytelling</span>
+          <span class="summary" id="sum-hook"></span><span class="chev">▾</span>
+        </div>
+        <div class="acc-body"><div class="acc-body-inner">
+          <div class="hint" style="margin-bottom:8px;">Dibuat otomatis oleh AI saat kamu tap Generate Prompt — berdasarkan foto, produk, gerakan, lokasi, dan pengaturan lain yang sudah dipilih.</div>
+
+          <div class="hookstory-row">
+            <span class="hookstory-label">🪝 Hook</span>
+            <span class="hookstory-badge">Auto</span>
+          </div>
+          <div class="hookstory-preview" id="hookPreview">Belum dibuat — tap Generate Prompt di bawah.</div>
+
+          <div class="hookstory-row" style="margin-top:10px;">
+            <span class="hookstory-label">📖 Storytelling</span>
+            <span class="hookstory-badge">Auto</span>
+          </div>
+          <div class="hookstory-preview" id="storyPreview">Belum dibuat — tap Generate Prompt di bawah.</div>
+
+          <button class="btn-mini" style="margin-top:10px;" id="regenHookBtn" onclick="generateHookStory(true)">🔄 Buat Ulang Hook & Storytelling</button>
+
+          <div class="field" style="margin-top:12px;">
+            <label class="field-label">🎯 CTA</label>
+            <input type="text" id="ctaText" value="Cek keranjang di bawah!">
+          </div>
+        </div></div>
+      </div>
+
       <div class="acc" id="sec-lain">
         <div class="acc-head" onclick="toggleSection('sec-lain')">
-          <span class="num">⑧</span><span class="ttl">Instruksi Tambahan</span>
+          <span class="num">⑨</span><span class="ttl">Instruksi Tambahan</span>
           <span class="chev">▾</span>
         </div>
         <div class="acc-body"><div class="acc-body-inner">
@@ -549,6 +562,15 @@
           <div class="field">
             <label class="field-label">Catatan Tambahan</label>
             <textarea id="notes" placeholder="opsional"></textarea>
+          </div>
+          <div class="field" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+            <label class="field-label">⚙️ Pengaturan (API Key)</label>
+            <div class="chip-toolbar">
+              <button class="btn-mini" onclick="exportSettings()">⬇️ Export Pengaturan</button>
+              <button class="btn-mini" onclick="document.getElementById('importSettingsInput').click()">⬆️ Import Pengaturan</button>
+              <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
+            </div>
+            <div class="hint">Simpan/pulihkan API Key lewat file kecil di HP — key browser ini hilang saat halaman ditutup (batasan platform), jadi export dulu kalau mau pakai lagi nanti tanpa isi ulang.</div>
           </div>
         </div></div>
       </div>
@@ -675,6 +697,9 @@ let claudeKey = "";
 let detectedProductDetails = "";
 let garmentDescription = "produk";
 let promptManuallyEdited = false;
+let autoHook = "";
+let autoStorytelling = "";
+let hookGenerating = false;
 
 function toggleSection(id){ document.getElementById(id).classList.toggle('open'); }
 function openSection(id){ document.getElementById(id).classList.add('open'); }
@@ -1001,6 +1026,100 @@ document.getElementById('lightingCustomText').addEventListener('input', render);
 /* ================= ⑧ INSTRUKSI TAMBAHAN ================= */
 document.getElementById('duration').addEventListener('input', render);
 document.getElementById('notes').addEventListener('input', render);
+document.getElementById('ctaText').addEventListener('input', render);
+
+/* ================= HOOK & STORYTELLING (AI) ================= */
+function buildHookStoryInstruction(){
+  const catObj = CATEGORIES.find(c=>c.id===selectedCategory) || CATEGORIES[0];
+  const catLabel = selectedCategory === 'custom' ? (document.getElementById('categoryCustomText').value.trim() || 'produk custom') : catObj.label;
+  const subjekText = fotoSubjek === 'model' ? 'Model / manusia' : `Produk (${catLabel})`;
+  const gerakanText = gerakanUtama === 'Custom' ? (document.getElementById('gerakanCustomText').value.trim()||'gerakan custom') : gerakanUtama;
+  const lokasi = resolveLokasi();
+  const notes = document.getElementById('notes').value.trim();
+
+  return `Kamu adalah copywriter video pendek (TikTok/Reels/Shorts) yang ahli membuat hook & storytelling natural yang tidak terdengar seperti iklan.
+
+Konteks video:
+- Subjek: ${subjekText}
+- Deskripsi produk: ${garmentDescription}
+- Detail produk yang terlihat (jangan mengarang di luar ini): ${detectedProductDetails || 'tidak ada detail spesifik terdeteksi'}
+- Gerakan: ${gerakanText}
+- Lokasi: ${lokasi.label}
+- Instruksi tambahan dari pengguna: ${notes || 'tidak ada'}
+
+Buat:
+1. HOOK — satu kalimat pembuka singkat yang menarik perhatian dan membuat penasaran, natural, TIDAK terdengar seperti iklan yang memaksa. Jangan mulai dengan "Halo guys, hari ini...".
+2. STORYTELLING — 2-3 kalimat singkat yang mengalir dari hook, menunjukkan/mereview produk secara natural sesuai gerakan yang dipilih, lalu menyebutkan detail atau kegunaan produk. Gunakan HANYA informasi yang tersedia di atas — jangan membuat klaim atau fitur yang tidak diketahui dari detail produk.
+
+Hook dan storytelling harus satu konsep yang konsisten dan saling berhubungan — jangan hook tentang satu hal tapi storytelling membahas hal lain.
+
+Balas HANYA dengan objek JSON mentah (tanpa markdown fences, tanpa penjelasan): {"hook": "...", "storytelling": "..."}`;
+}
+
+async function generateHookStory(isManualRegen){
+  if(hookGenerating) return;
+  hookGenerating = true;
+  const regenBtn = document.getElementById('regenHookBtn');
+  const hookPrev = document.getElementById('hookPreview');
+  const storyPrev = document.getElementById('storyPreview');
+  if(regenBtn){ regenBtn.disabled = true; regenBtn.textContent = 'Membuat...'; }
+  hookPrev.textContent = 'AI sedang membuat hook...'; hookPrev.className = 'hookstory-preview';
+  storyPrev.textContent = 'AI sedang membuat storytelling...'; storyPrev.className = 'hookstory-preview';
+
+  try{
+    const instruction = buildHookStoryInstruction();
+    const imgOverride = uploadedBase64 ? { base64: uploadedBase64, mediaType: uploadedMediaType } : null;
+    let rawText = activeProvider === 'gemini' ? await callGemini(instruction, imgOverride) : await callClaude(instruction, imgOverride);
+    rawText = rawText.replace(/```json|```/g, "").trim();
+    const parsed = JSON.parse(rawText);
+    autoHook = parsed.hook || '';
+    autoStorytelling = parsed.storytelling || '';
+    hookPrev.textContent = autoHook || '(kosong)'; hookPrev.classList.add('filled');
+    storyPrev.textContent = autoStorytelling || '(kosong)'; storyPrev.classList.add('filled');
+    updateSummaries();
+    if(isManualRegen) render();
+  }catch(err){
+    console.error(err);
+    autoHook = ''; autoStorytelling = '';
+    hookPrev.textContent = 'Gagal membuat hook: ' + (err.message || 'kesalahan tidak diketahui');
+    hookPrev.className = 'hookstory-preview';
+    storyPrev.textContent = 'Storytelling dilewati karena hook gagal dibuat.';
+    storyPrev.className = 'hookstory-preview';
+  }finally{
+    hookGenerating = false;
+    if(regenBtn){ regenBtn.disabled = false; regenBtn.textContent = '🔄 Buat Ulang Hook & Storytelling'; }
+  }
+}
+
+/* ================= EXPORT / IMPORT PENGATURAN (API KEY) ================= */
+function exportSettings(){
+  const data = { geminiKey, claudeKey, activeProvider, exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'verry-wiranza-ai-settings.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Pengaturan diekspor');
+}
+document.getElementById('importSettingsInput').addEventListener('change', function(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt){
+    try{
+      const data = JSON.parse(evt.target.result);
+      if(data.geminiKey) geminiKey = data.geminiKey;
+      if(data.claudeKey) claudeKey = data.claudeKey;
+      if(data.activeProvider) activeProvider = data.activeProvider;
+      updateMainAiButton();
+      showToast('Pengaturan berhasil diimpor');
+    }catch(err){
+      showToast('File pengaturan tidak valid');
+    }
+  };
+  reader.readAsText(file);
+});
+
 
 /* ================= SUMMARY BADGES ================= */
 function updateSummaries(){
@@ -1011,6 +1130,7 @@ function updateSummaries(){
   document.getElementById('sum-lokasi').textContent = resolveLokasi().label.slice(0,22);
   document.getElementById('sum-kamera').textContent = (CAM_POS_OPTIONS.find(c=>c.id===selectedCamPos)||{}).label || '';
   document.getElementById('sum-cahaya').textContent = selectedLighting;
+  document.getElementById('sum-hook').textContent = autoHook ? '✓ Dibuat' : '';
 }
 
 /* ================= AI PROVIDER MODAL, LIGHTBOX, COPY HELPERS (dipertahankan) ================= */
@@ -1348,12 +1468,15 @@ function toggleEdit(){
     box.setAttribute('readonly','true'); if(btn) btn.textContent = '✏️ Edit';
   }
 }
-function generateUlang(){
+async function generateUlang(){
   promptManuallyEdited = false;
   const box = document.getElementById('promptBox');
   box.setAttribute('readonly','true');
   const editBtn = document.getElementById('editBtn');
   if(editBtn) editBtn.textContent = '✏️ Edit';
+  if(geminiKey || claudeKey){
+    await generateHookStory(false);
+  }
   render();
   showToast('Prompt digenerate ulang');
 }
@@ -1453,12 +1576,21 @@ function render(){
 
   const preservasi = `PRODUCT CONSISTENCY: maintain exact product consistency throughout — do not alter the product shape, proportions, color, design, logo, material, texture, or visible details. Pertahankan bentuk, ukuran, proporsi, warna, motif, logo, tulisan, desain, material, tekstur, jahitan, dan aksesori produk agar identik dengan foto referensi (${garmentDescription})${detectedProductDetails ? '. Detail spesifik dari foto: ' + detectedProductDetails : ''}. Jangan menambahkan detail yang tidak terlihat pada referensi. Gerakan tangan harus realistis dan konsisten (posisi stabil, jangan menembus produk, jangan berpindah tangan tiba-tiba).`;
 
-  const promptText = `Video natural dan realistis dengan satu subjek, satu lokasi, dan satu gerakan utama — hindari gerakan berlebihan, kaku, atau beberapa aksi sekaligus.
-Subjek: ${subjekText}.${modelBlock}
-Gerakan: ${gerakanText}, dilakukan halus dan tidak terburu-buru.${reviewBlock}
-Lokasi: ${lokasi.label}.${lokasiNote}
-Posisi kamera: ${camText}.
-Pencahayaan: ${lightingText}.
+  const ctaText = document.getElementById('ctaText').value.trim() || 'Cek keranjang di bawah!';
+  const hookSection = autoHook ? `\nHOOK: ${autoHook}` : '';
+  const storySection = autoStorytelling ? `\nSTORYTELLING: ${autoStorytelling}` : '';
+
+  const promptText = `SUBJECT: ${subjekText}.${modelBlock}
+LOCATION: ${lokasi.label}.${lokasiNote}
+LIGHTING: ${lightingText}.
+STARTING POSITION: ${fotoSubjek === 'model' ? 'model dalam posisi santai natural, siap memulai gerakan' : 'produk dalam posisi awal yang stabil dan jelas terlihat kamera'}.
+MAIN ACTION: ${gerakanText}, dilakukan halus, satu aksi utama, tidak terburu-buru.
+NATURAL TRANSITION: perpindahan antar gerakan dilakukan halus dan berkesinambungan, hindari perubahan pose atau posisi yang ekstrem/tiba-tiba.
+PRODUCT INTERACTION: ${reviewBlock ? reviewBlock.trim() : 'produk ditampilkan konsisten mengikuti gerakan utama tanpa interaksi tambahan yang rumit'}
+CAMERA: ${camText}.${hookSection}${storySection}
+CTA: ${ctaText}
+ENDING: kembali ke posisi stabil dan natural, produk tetap jelas terlihat di frame terakhir.
+
 ${preservasi}` + (notes ? `\nInstruksi tambahan: ${notes}.` : '');
 
   const data = {
@@ -1469,6 +1601,9 @@ ${preservasi}` + (notes ? `\nInstruksi tambahan: ${notes}.` : '');
     lokasi: lokasi.label,
     posisi_kamera: camText,
     pencahayaan: lightingText,
+    hook: autoHook || "belum dibuat — tap Generate Prompt",
+    storytelling: autoStorytelling || "belum dibuat — tap Generate Prompt",
+    cta: ctaText,
     durasi_detik: duration,
     instruksi_tambahan: notes || null,
     ai_provider: activeProvider === 'gemini' ? 'Google Gemini' : 'Anthropic Claude',
@@ -1480,7 +1615,13 @@ ${preservasi}` + (notes ? `\nInstruksi tambahan: ${notes}.` : '');
   if(!promptManuallyEdited){ promptBox.value = promptText; }
 }
 
-function onGenerateTap(){
+async function onGenerateTap(){
+  const btn = document.getElementById('mainGenBtn');
+  if(btn){ btn.disabled = true; btn.textContent = '✨ Membuat Hook & Storytelling...'; }
+  if(geminiKey || claudeKey){
+    await generateHookStory(false);
+  }
+  if(btn){ btn.disabled = false; btn.textContent = '✨ Generate Prompt'; }
   render();
   document.getElementById('sec-output').scrollIntoView({behavior:'smooth', block:'start'});
   showToast('Prompt siap!');
