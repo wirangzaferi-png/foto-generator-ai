@@ -43,6 +43,12 @@
     touch-action:pan-y;
     scrollbar-width:none;
   }
+  /* Jaga-jaga: pastikan elemen interaktif (tombol, kartu, area upload) tidak pernah
+     "menelan" gestur scroll vertikal saat jari mulai geser dari dalam elemen tsb —
+     ini penyebab bug "scroll cuma bisa dari area tertentu" di beberapa WebView Android. */
+  button, a, input, select, textarea, .upload-box, .drawer-trigger, .acc, .main-tab, .cta-btn, .gen-btn{
+    touch-action: pan-y;
+  }
   html::-webkit-scrollbar, body::-webkit-scrollbar{ display:none; width:0; height:0; }
   /* Matikan long-press "Salin/Select" ala browser supaya terasa seperti app native.
      Input & textarea yang memang perlu diketik/diedit tetap bisa dipilih teksnya. */
@@ -188,7 +194,7 @@
   .ai-modal-head{display:flex; align-items:center; justify-content:space-between; padding:16px 18px; flex-shrink:0; border-bottom:1px solid var(--line);}
   .ai-modal-title{font-size:14.5px; font-weight:800;}
   .ai-modal-close{background:var(--bg-input); border:1px solid var(--line); color:var(--ink); width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:14px; flex-shrink:0;}
-  .ai-modal-body{overflow-y:auto; padding:16px 18px 20px;}
+  .ai-modal-body{overflow-y:auto; -webkit-overflow-scrolling:touch; padding:16px 18px 20px; flex:1; min-height:0;}
 
   .provider-status-row{display:flex; align-items:center; gap:8px; margin:2px 0 14px;}
   .provider-status-row .pname{font-size:14px; font-weight:700;}
@@ -307,9 +313,9 @@
   .hint{font-size:10.5px; color:var(--ink-dim); margin-top:6px; line-height:1.45;}
   .badge-info{font-size:10.5px;color:var(--accent3);background:rgba(37,244,238,.08);border:1px solid rgba(37,244,238,.2);border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.45;}
 
-  .upload-box{border:1.3px dashed var(--line);border-radius:11px;padding:14px;text-align:center;cursor:pointer;position:relative;background:var(--bg-input);overflow:hidden;}
+  .upload-box{border:1.3px dashed var(--line);border-radius:11px;padding:14px;text-align:center;cursor:pointer;position:relative;background:var(--bg-input);overflow:hidden;touch-action:pan-y;}
   .upload-box.has-image{padding:0; border-style:solid;}
-  .upload-box input[type=file]{position:absolute; inset:0; opacity:0; cursor:pointer;}
+  .upload-box input[type=file]{position:absolute; inset:0; opacity:0; cursor:pointer; touch-action:pan-y;}
   .upload-placeholder{color:var(--ink-dim); font-size:12px;}
   .upload-placeholder .icon{width:32px;height:32px;border-radius:10px;background:var(--grad);display:flex;align-items:center;justify-content:center;margin:0 auto 7px;font-size:15px;color:#fff;}
   #previewImg, #modelPreviewImg, #bgPreviewImg, #gvPhotoPreview, #gvBgPreview, #modelLocBgPreview{display:none; width:100%; max-width:100%; max-height:220px; height:auto; object-fit:contain; border-radius:10px; background:var(--bg-input); cursor:zoom-in;}
@@ -1811,15 +1817,13 @@ render();
   else { window.addEventListener('load', hideSplash); }
 })();
 
-// Cegah double-tap zoom (Android kadang masih bisa zoom meski viewport dikunci)
-// Catatan: pinch-zoom sudah diblokir lewat CSS "touch-action:pan-y" di html/body,
-// jadi tidak perlu listener touchmove non-passive yang bikin scroll jadi macet/lag.
-let lastTouchEnd = 0;
-document.addEventListener('touchend', function(e){
-  const now = Date.now();
-  if(now - lastTouchEnd <= 300) e.preventDefault();
-  lastTouchEnd = now;
-}, { passive:false });
+// Zoom (pinch & double-tap) sudah diblokir sepenuhnya lewat CSS/meta-viewport:
+// - meta viewport: maximum-scale=1, user-scalable=no
+// - CSS: touch-action:pan-y di html/body
+// Sengaja TIDAK pakai listener touchend/touchmove custom di sini karena listener
+// semacam itu (terutama passive:false) terbukti mengganggu gestur scroll normal
+// di sebagian WebView Android — bikin scroll cuma bisa dimulai dari area tertentu
+// (mis. hanya dari bawah). CSS jauh lebih aman untuk urusan ini.
 
 // Cegah menu "Salin/Select" saat tekan lama, kecuali di area input/textarea yang memang harus bisa diketik
 document.addEventListener('contextmenu', function(e){
