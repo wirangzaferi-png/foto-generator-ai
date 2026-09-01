@@ -1,4 +1,4 @@
-const CACHE_NAME = "verry-wiranza-ai-v7.1";
+const CACHE_NAME = "verry-wiranza-ai-v7";
 const ASSETS = [
   "./",
   "./index.html",
