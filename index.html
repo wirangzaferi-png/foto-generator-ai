@@ -3,41 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b0d12">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="VERRY WIRANZA AI">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>VERRY WIRANZA AI — AI Product Video Creator</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
-  /* ====== Mobile-app-like experience (tidak mengubah desain/layout) ====== */
-  html, body{
-    overflow-x:hidden;
-    max-width:100%;
-    overscroll-behavior-x:none;
-    -webkit-overflow-scrolling:touch;
-    scrollbar-width:none;
-    -ms-overflow-style:none;
-  }
-  ::-webkit-scrollbar{ display:none; width:0; height:0; }
-
-  html, body, div, section, header, footer, p, span, h1, h2, h3, h4, h5, h6,
-  button, label, li, ul, ol, a, img{
-    -webkit-user-select:none;
-    -moz-user-select:none;
-    user-select:none;
-    -webkit-touch-callout:none;
-  }
-  input, textarea, select, option, [contenteditable="true"]{
-    -webkit-user-select:text;
-    -moz-user-select:text;
-    user-select:text;
-    -webkit-touch-callout:default;
-  }
-  img{
-    -webkit-user-drag:none;
-    user-drag:none;
-    -khtml-user-drag:none;
-    -moz-user-drag:none;
-    -o-user-drag:none;
-  }
 
   :root{
     --bg:#0c0c12;
@@ -274,10 +250,6 @@
   .json-toggle{font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--ink-dim); cursor:pointer; margin:14px 0 8px; display:flex; align-items:center; gap:6px;}
   pre{background:var(--bg-input);border:1px solid var(--line);border-radius:10px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.55;color:#d5f5ef;overflow-x:auto;white-space:pre-wrap;word-break:break-word;margin:0;max-height:340px;overflow-y:auto;display:none;}
   pre.show{display:block;}
-  .flow-scene{margin-top:16px;}
-  .flow-scene-head{margin-bottom:8px;}
-  .flow-scene-tag{font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--ink);background:var(--bg-input);border:1px solid var(--line);border-radius:999px;padding:4px 12px;}
-  .flow-scene pre{display:block;margin-bottom:8px;}
   .key{color:#8fb8ff;}
   .str{color:#ffcf86;}
   button.copy{font-family:'Space Grotesk',sans-serif;font-size:11.5px;font-weight:700;background:var(--grad);color:#fff;border:none;border-radius:8px;padding:8px 12px;cursor:pointer;}
@@ -331,6 +303,30 @@
   .drawer-body .acc{display:none;}
   .drawer-body .acc.tab-visible{display:block;}
 
+
+/* ===== APP / MOBILE LOCK ===== */
+html, body {
+  width:100%; max-width:100%; min-height:100%;
+  margin:0; padding:0;
+  overflow-x:hidden !important;
+  overscroll-behavior-x:none;
+  -webkit-text-size-adjust:100%;
+  touch-action:pan-y;
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-touch-callout:none;
+}
+body { -webkit-tap-highlight-color:transparent; }
+img, svg { -webkit-user-drag:none; user-drag:none; }
+input, textarea, select, [contenteditable="true"] {
+  user-select:text !important;
+  -webkit-user-select:text !important;
+  -webkit-touch-callout:default;
+  touch-action:auto;
+}
+/* Tidak menampilkan scrollbar, tetapi scrolling tetap aktif */
+* { scrollbar-width:none; }
+*::-webkit-scrollbar { width:0 !important; height:0 !important; display:none !important; }
 </style>
 </head>
 <body>
@@ -589,7 +585,7 @@
         <div class="acc-body"><div class="acc-body-inner">
           <div class="field">
             <label class="field-label">Durasi (detik)</label>
-            <input type="text" id="duration" value="8" readonly disabled style="opacity:.7;">
+            <input type="text" id="duration" value="8">
           </div>
           <div class="field">
             <label class="field-label">Catatan Tambahan</label>
@@ -627,29 +623,6 @@
       <div class="json-toggle" onclick="toggleJson()"><span id="jsonToggleIcon">▸</span> JSON lengkap</div>
       <div class="output-head" style="margin-bottom:6px;"><span></span></div>
       <pre id="jsonOutput"></pre>
-
-      <div class="output-head" style="margin-top:22px; padding-top:18px; border-top:1px solid var(--line);">
-        <h2>🎬 Video Flow — 3 Scene × 8 Detik</h2>
-      </div>
-      <p style="font-size:11.5px; color:var(--ink-dim); margin:-4px 0 12px; line-height:1.5;">Setiap scene wajib 8 detik, JSON terpisah agar bisa disalin satu per satu ke Flow lalu digabung.</p>
-
-      <div class="flow-scene">
-        <div class="flow-scene-head"><span class="flow-scene-tag">SCENE 1 — HOOK</span></div>
-        <pre id="flowSceneHook"></pre>
-        <button class="btn-outline" onclick="copyFlowScene('flowSceneHook')">📋 Copy JSON Hook</button>
-      </div>
-
-      <div class="flow-scene">
-        <div class="flow-scene-head"><span class="flow-scene-tag">SCENE 2 — STORYTELLING</span></div>
-        <pre id="flowSceneStory"></pre>
-        <button class="btn-outline" onclick="copyFlowScene('flowSceneStory')">📋 Copy JSON Storytelling</button>
-      </div>
-
-      <div class="flow-scene">
-        <div class="flow-scene-head"><span class="flow-scene-tag">SCENE 3 — CTA</span></div>
-        <pre id="flowSceneCta"></pre>
-        <button class="btn-outline" onclick="copyFlowScene('flowSceneCta')">📋 Copy JSON CTA</button>
-      </div>
     </div>
   </div>
 
@@ -1258,6 +1231,7 @@ function renderAiProviderContent(){
     <ul class="step-list">${stepsHtml}</ul>
     <div class="link-actions">
       <button onclick="window.open('${meta.officialUrl}','_blank','noopener')">${meta.officialLabel}</button>
+      
     </div>
     <label class="field-label">API Key</label>
     <div class="key-row">
@@ -1275,7 +1249,7 @@ function toggleKeyVisibility(){
   const input = document.getElementById('apiKeyInput');
   input.type = input.type === 'password' ? 'text' : 'password';
 }
-function copyProviderLink(url){ copyText(url); }
+function copyProviderLink(url){ return false; }
 function startReplaceKey(provider){
   if(provider === 'gemini') geminiForceEdit = true; else claudeForceEdit = true;
   renderAiProviderContent();
@@ -1490,26 +1464,10 @@ function showToast(msg){
   toast.textContent = msg; toast.classList.add('show');
   setTimeout(()=>toast.classList.remove('show'), 1800);
 }
-function fallbackCopy(text){
-  const ta = document.createElement('textarea');
-  ta.value = text; ta.style.position = 'fixed'; ta.style.top = '-9999px'; ta.style.left = '-9999px';
-  document.body.appendChild(ta); ta.focus(); ta.select();
-  let ok = false;
-  try{ ok = document.execCommand('copy'); }catch(e){ ok = false; }
-  document.body.removeChild(ta);
-  return ok;
-}
-function copyText(text){
-  if(navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext){
-    navigator.clipboard.writeText(text).then(()=> showToast('Tersalin ke clipboard'))
-      .catch(()=>{ const ok = fallbackCopy(text); showToast(ok ? 'Tersalin ke clipboard' : 'Gagal menyalin — blok teks manual lalu salin'); });
-  } else {
-    const ok = fallbackCopy(text);
-    showToast(ok ? 'Tersalin ke clipboard' : 'Gagal menyalin otomatis — blok teks manual lalu salin (Ctrl/Cmd+C)');
-  }
-}
-function copyPrompt(){ copyText(document.getElementById('promptBox').value); }
-function copyJSON(){ copyText(document.getElementById('jsonOutput').innerText); }
+function fallbackCopy(text){ return false; }
+function copyText(text){ showToast('Penyalinan dinonaktifkan'); return false; }
+function copyPrompt(){ return false; }
+function copyJSON(){ return false; }
 
 function toggleEdit(){
   const box = document.getElementById('promptBox');
@@ -1666,62 +1624,6 @@ ${preservasi}` + (notes ? `\nInstruksi tambahan: ${notes}.` : '');
   document.getElementById('jsonOutput').innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
   const promptBox = document.getElementById('promptBox');
   if(!promptManuallyEdited){ promptBox.value = promptText; }
-
-  buildVideoFlowScenes({
-    subjekText, modelBlock, lokasi, lokasiNote, lightingText, camText,
-    gerakanText, reviewBlock, preservasi, ctaText, catLabel
-  });
-}
-
-/* ================= VIDEO FLOW: 3 SCENE TERPISAH (HOOK / STORYTELLING / CTA) — durasi fix 8 detik per scene ================= */
-function buildVideoFlowScenes(ctx){
-  const FIXED_DURATION = 8; // durasi fix, tidak bisa diubah
-
-  const consistencyNote = `KONSISTENSI WAJIB ANTAR SCENE: karakter/model, produk, outfit, lokasi, pencahayaan, dan gaya visual harus identik persis dengan scene lain dalam video ini — jangan mengubah bentuk, warna, ukuran, logo, tulisan, atau detail produk sedikit pun. ${ctx.preservasi}`;
-
-  const baseFields = (sceneAksi) => ({
-    subjek: ctx.subjekText,
-    jenis_produk: ctx.catLabel || null,
-    lokasi: ctx.lokasi.label,
-    pencahayaan: ctx.lightingText,
-    posisi_kamera: ctx.camText,
-    aksi: sceneAksi,
-    gerakan_natural: "gerakan halus dan realistis, hindari gerakan kaku atau terlihat seperti animasi AI, transisi antar pose tidak boleh patah/tiba-tiba",
-    durasi_detik: FIXED_DURATION,
-    konsistensi_visual: consistencyNote
-  });
-
-  // SCENE 1 — HOOK
-  const hookData = baseFields(
-    `Pembuka video: ${ctx.subjekText.toLowerCase()} muncul di frame dengan gerakan natural yang langsung menarik perhatian, posisi awal jelas dan stabil, membangun rasa penasaran penonton dalam 8 detik pertama.`
-  );
-  hookData.dialog = autoHook || "belum dibuat — tap Generate Prompt";
-  hookData.scene = "HOOK";
-  hookData.urutan = 1;
-
-  // SCENE 2 — STORYTELLING
-  const storyAksi = `${ctx.gerakanText}, dilakukan halus dan berkesinambungan dari scene sebelumnya.${ctx.reviewBlock ? ' ' + ctx.reviewBlock.trim() : ''}`;
-  const storyData = baseFields(storyAksi);
-  storyData.dialog = autoStorytelling || "belum dibuat — tap Generate Prompt";
-  storyData.scene = "STORYTELLING";
-  storyData.urutan = 2;
-
-  // SCENE 3 — CTA
-  const ctaData = baseFields(
-    `Penutup video: ${ctx.subjekText.toLowerCase()} kembali ke posisi stabil dan natural, tetap jelas terlihat penuh di frame, mengarahkan perhatian penonton ke produk untuk mengambil tindakan.`
-  );
-  ctaData.dialog = ctx.ctaText || "Cek keranjang kuning di bawah.";
-  ctaData.scene = "CTA";
-  ctaData.urutan = 3;
-
-  document.getElementById('flowSceneHook').textContent = JSON.stringify(hookData, null, 2);
-  document.getElementById('flowSceneStory').textContent = JSON.stringify(storyData, null, 2);
-  document.getElementById('flowSceneCta').textContent = JSON.stringify(ctaData, null, 2);
-}
-
-function copyFlowScene(elId){
-  const el = document.getElementById(elId);
-  if(el) copyText(el.textContent);
 }
 
 async function onGenerateTap(){
@@ -1769,56 +1671,34 @@ updateMainAiButton();
 updateSummaries();
 render();
 </script>
+
 <script>
-/* ====== Native-app-like protection (tidak mengganggu input/textarea/select) ====== */
+/* ===== NATIVE-LIKE INTERACTION PROTECTION ===== */
 (function(){
-  function isEditableTarget(el){
-    if(!el) return false;
-    const tag = el.tagName ? el.tagName.toLowerCase() : '';
-    return tag === 'input' || tag === 'textarea' || tag === 'select' || el.isContentEditable;
-  }
-
-  // 1. Matikan pinch-zoom (gesture) & pastikan skala tetap 1:1
-  document.addEventListener('gesturestart', function(e){ e.preventDefault(); });
-  document.addEventListener('gesturechange', function(e){ e.preventDefault(); });
-  document.addEventListener('gestureend', function(e){ e.preventDefault(); });
-  document.addEventListener('touchmove', function(e){
-    if(e.touches && e.touches.length > 1) e.preventDefault();
-  }, { passive:false });
-
-  // Matikan double-tap zoom, tapi jangan ganggu tap normal pada tombol/input
-  let lastTouchEnd = 0;
+  const editable = el => !!el && (el.matches('input, textarea, select, [contenteditable="true"]') || el.closest('input, textarea, select, [contenteditable="true"]'));
+  ['contextmenu','selectstart','dragstart','copy','cut'].forEach(type => {
+    document.addEventListener(type, function(e){
+      if(!editable(e.target)) e.preventDefault();
+    }, {capture:true});
+  });
+  document.addEventListener('gesturestart', e => e.preventDefault(), {passive:false});
+  document.addEventListener('gesturechange', e => e.preventDefault(), {passive:false});
+  document.addEventListener('gestureend', e => e.preventDefault(), {passive:false});
+  let lastTouchEnd=0;
   document.addEventListener('touchend', function(e){
-    const now = Date.now();
-    if(now - lastTouchEnd <= 300 && !isEditableTarget(e.target)){
-      e.preventDefault();
-    }
-    lastTouchEnd = now;
-  }, { passive:false });
-
-  // 2. Blokir context menu (long-press menu / klik kanan) kecuali pada field input
-  document.addEventListener('contextmenu', function(e){
-    if(!isEditableTarget(e.target)) e.preventDefault();
-  });
-
-  // 3. Blokir seleksi teks kecuali pada field input
-  document.addEventListener('selectstart', function(e){
-    if(!isEditableTarget(e.target)) e.preventDefault();
-  });
-
-  // 4. Blokir drag teks/gambar keluar dari aplikasi
-  document.addEventListener('dragstart', function(e){
-    if(!isEditableTarget(e.target)) e.preventDefault();
-  });
-
-  // 5. Blokir copy & cut kecuali pada field input (paste tetap diizinkan untuk API Key dll)
-  document.addEventListener('copy', function(e){
-    if(!isEditableTarget(e.target)) e.preventDefault();
-  });
-  document.addEventListener('cut', function(e){
-    if(!isEditableTarget(e.target)) e.preventDefault();
-  });
+    const now=Date.now();
+    if(now-lastTouchEnd<=300 && !editable(e.target)) e.preventDefault();
+    lastTouchEnd=now;
+  }, {passive:false});
+  document.addEventListener('touchmove', function(e){
+    if(e.touches && e.touches.length>1) e.preventDefault();
+  }, {passive:false});
 })();
+
+/* ===== PWA SERVICE WORKER ===== */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+}
 </script>
 </body>
 </html>
