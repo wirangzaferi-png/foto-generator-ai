@@ -768,11 +768,9 @@ function openSection(id){ document.getElementById(id).classList.add('open'); }
 function closeSection(id){ document.getElementById(id).classList.remove('open'); }
 function autoAdvance(fromId, toId){
   closeSection(fromId); openSection(toId);
-  setTimeout(()=> document.getElementById(toId).scrollIntoView({behavior:'smooth', block:'start'}), 120);
 }
 function jumpToSection(id){
   openSection(id);
-  document.getElementById(id).scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 /* ================= ① REFERENSI (upload produk + deteksi AI) ================= */
@@ -1504,7 +1502,7 @@ function showToast(msg){
 function fallbackCopy(text){
   const ta = document.createElement('textarea');
   ta.value = text; ta.style.position = 'fixed'; ta.style.top = '-9999px'; ta.style.left = '-9999px';
-  document.body.appendChild(ta); ta.focus(); ta.select();
+  document.body.appendChild(ta); ta.focus({preventScroll:true}); ta.select();
   let ok = false;
   try{ ok = document.execCommand('copy'); }catch(e){ ok = false; }
   document.body.removeChild(ta);
@@ -1526,7 +1524,7 @@ function toggleEdit(){
   const box = document.getElementById('promptBox');
   const btn = document.getElementById('editBtn');
   if(box.hasAttribute('readonly')){
-    box.removeAttribute('readonly'); box.focus();
+    box.removeAttribute('readonly'); box.focus({preventScroll:true});
     if(btn) btn.textContent = '💾 Selesai'; promptManuallyEdited = true;
   } else {
     box.setAttribute('readonly','true'); if(btn) btn.textContent = '✏️ Edit';
@@ -1743,7 +1741,6 @@ async function onGenerateTap(){
   }
   if(btn){ btn.disabled = false; btn.textContent = '✨ Generate Prompt'; }
   render();
-  document.getElementById('sec-output').scrollIntoView({behavior:'smooth', block:'start'});
   showToast('Prompt siap!');
   const inner = document.getElementById('stickyBarInner');
   inner.innerHTML = `
