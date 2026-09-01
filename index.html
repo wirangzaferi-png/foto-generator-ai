@@ -610,7 +610,7 @@
               <button class="btn-mini" onclick="document.getElementById('importSettingsInput').click()">⬆️ Import Pengaturan</button>
               <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
             </div>
-            <div class="hint">Simpan/pulihkan API Key lewat file kecil di HP — key browser ini hilang saat halaman ditutup (batasan platform), jadi export dulu kalau mau pakai lagi nanti tanpa isi ulang.</div>
+            <div class="hint">API Key tersimpan otomatis di HP ini (sekali isi, tetap ada meski aplikasi ditutup). Export/Import tetap berguna kalau ganti HP atau pindah browser.</div>
           </div>
         </div></div>
       </div>
@@ -753,9 +753,9 @@ let selectedOutdoor = "Di Dalam Mobil";
 let locBgBase64 = null, locBgMediaType = null;
 let selectedCamPos = "dada";
 let selectedLighting = "Auto";
-let activeProvider = "gemini";
-let geminiKey = "";
-let claudeKey = "";
+let activeProvider = localStorage.getItem('vw_activeProvider') || "gemini";
+let geminiKey = localStorage.getItem('vw_geminiKey') || "";
+let claudeKey = localStorage.getItem('vw_claudeKey') || "";
 let detectedProductDetails = "";
 let garmentDescription = "produk";
 let promptManuallyEdited = false;
@@ -1274,7 +1274,7 @@ function renderAiProviderContent(){
     </div>
     <div class="key-warn" id="apiKeyWarn"></div>
     <button class="ai-save-btn" onclick="saveAndConnect('${provider}')">✓ Simpan &amp; Mulai →</button>
-    <div class="ai-key-warning">Key hanya tersimpan sementara di memori browser ini (hilang saat halaman ditutup/refresh — batasan platform, bukan bug) dan dikirim langsung ke server ${meta.name}, tidak lewat server lain mana pun.</div>
+    <div class="ai-key-warning">Key tersimpan otomatis di HP ini (${meta.name}) dan dikirim langsung ke server ${meta.name}, tidak lewat server lain mana pun. Kalau ganti HP/browser, isi ulang atau pakai Export/Import Pengaturan.</div>
   `;
   document.getElementById('apiKeyInput').addEventListener('keydown', e=>{ if(e.key==='Enter') saveAndConnect(provider); });
 }
@@ -1289,8 +1289,8 @@ function startReplaceKey(provider){
   renderAiProviderContent();
 }
 function removeApiKey(provider){
-  if(provider === 'gemini'){ geminiKey = ''; geminiForceEdit = false; }
-  else { claudeKey = ''; claudeForceEdit = false; }
+  if(provider === 'gemini'){ geminiKey = ''; geminiForceEdit = false; localStorage.removeItem('vw_geminiKey'); }
+  else { claudeKey = ''; claudeForceEdit = false; localStorage.removeItem('vw_claudeKey'); }
   updateMainAiButton();
   renderAiProviderContent();
 }
@@ -1311,6 +1311,9 @@ async function saveAndConnect(provider){
   try{
     await (provider === 'gemini' ? callGemini('Balas hanya dengan kata: OK', false) : callClaude('Balas hanya dengan kata: OK', false));
     if(provider === 'gemini') geminiForceEdit = false; else claudeForceEdit = false;
+    if(provider === 'gemini') localStorage.setItem('vw_geminiKey', geminiKey);
+    else localStorage.setItem('vw_claudeKey', claudeKey);
+    localStorage.setItem('vw_activeProvider', provider);
     warn.textContent = '';
     updateMainAiButton();
     const container = document.getElementById('aiProviderContent');
