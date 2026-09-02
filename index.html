@@ -328,60 +328,122 @@ input, textarea, select, [contenteditable="true"] {
 * { scrollbar-width:none; }
 *::-webkit-scrollbar { width:0 !important; height:0 !important; display:none !important; }
 
-/* ===== WIRANZA AI SPLASH SCREEN ===== */
+/* ===== WIRANZA AI SPLASH SCREEN — animasi 9 fase, ~3 detik total ===== */
 #wiranzaSplash{
   position:fixed; inset:0; z-index:999999;
   display:flex; align-items:center; justify-content:center;
   overflow:hidden;
-  background:
-    radial-gradient(circle at 50% 42%, rgba(71,88,255,.16), transparent 25%),
-    radial-gradient(circle at 50% 55%, rgba(255,45,149,.09), transparent 34%),
-    #07111f;
-  transition:opacity .55s ease, visibility .55s ease;
+  background:#07111f;
+  transition:opacity .5s ease, visibility .5s ease;
 }
 #wiranzaSplash.hide{opacity:0;visibility:hidden;pointer-events:none}
+
+/* FASE 1 (0 - 0.4s): background + cahaya radial lembut muncul halus */
+.wz-bg-glow{
+  position:absolute; inset:0;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(71,88,255,.15), transparent 30%),
+    radial-gradient(circle at 50% 55%, rgba(255,45,149,.08), transparent 38%);
+  opacity:0;
+  animation:wzBgIn .4s ease-out forwards;
+}
+
 .wz-splash-inner{text-align:center;width:min(88vw,420px);position:relative}
-.wz-logo-wrap{width:190px;height:170px;margin:0 auto 20px;position:relative;display:grid;place-items:center}
-.wz-logo-glow{position:absolute;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(0,178,255,.28),rgba(138,43,226,.15) 42%,transparent 70%);filter:blur(14px);animation:wzGlow 1.8s ease-in-out infinite}
-.wz-logo{width:150px;height:118px;position:relative;filter:drop-shadow(0 0 9px rgba(0,178,255,.7)) drop-shadow(0 0 18px rgba(255,45,149,.38));animation:wzLogoIn .85s cubic-bezier(.2,.8,.2,1) both}
-.wz-logo .bar{stroke:url(#wzGrad);stroke-width:15;stroke-linecap:round;stroke-linejoin:round;fill:none}
-.wz-spark{position:absolute;top:0;right:20px;width:36px;height:36px;animation:wzSpark .9s .25s ease-out both, wzTwinkle 1.8s 1.1s ease-in-out infinite}
+.wz-logo-wrap{width:190px;height:170px;margin:0 auto 20px;position:relative;display:grid;place-items:center;
+  animation:wzPulse .5s 1s ease-out both; /* FASE 4: glow pulse 1x, 1.0 - 1.5s */
+}
+
+/* FASE 2 (0.3 - 0.9s): sparkle muncul dari kecil+transparan ke normal, glow lembut */
+.wz-spark{
+  position:absolute; top:2px; right:14px; width:34px; height:34px;
+  opacity:0; transform:rotate(45deg) scale(.25);
+  filter:drop-shadow(0 0 6px rgba(0,178,255,.55)) drop-shadow(0 0 10px rgba(255,45,149,.35));
+  animation:wzSpark .6s .3s cubic-bezier(.2,.8,.2,1) forwards;
+}
 .wz-spark::before,.wz-spark::after{content:"";position:absolute;left:50%;top:50%;background:linear-gradient(180deg,#00d9ff,#ff39c8);transform:translate(-50%,-50%);border-radius:999px}
-.wz-spark::before{width:5px;height:36px}.wz-spark::after{width:36px;height:5px}
-.wz-spark{transform:rotate(45deg)}
-.wz-title{margin:0;font:800 clamp(30px,9vw,44px)/1.05 'Space Grotesk',sans-serif;letter-spacing:.12em;background:linear-gradient(100deg,#00b2ff,#7a5cff 52%,#ff2d95);-webkit-background-clip:text;background-clip:text;color:transparent;animation:wzText .65s .55s ease-out both}
-.wz-sub{margin:10px 0 0;color:#b9c1d2;font:500 11px/1.4 'Space Grotesk',sans-serif;letter-spacing:.24em;animation:wzText .65s .72s ease-out both}
-.wz-author{margin:26px 0 0;color:#fff;font:500 12px/1.4 'Space Grotesk',sans-serif;letter-spacing:.3em;animation:wzText .65s .9s ease-out both}
-.wz-line{height:2px;width:130px;margin:18px auto 0;background:linear-gradient(90deg,#00b2ff,#7a5cff,#ff2d95);border-radius:99px;box-shadow:0 0 12px rgba(0,178,255,.45);animation:wzLine 1s .9s ease-out both}
-.wz-light-sweep{position:absolute;left:-25%;top:38%;width:45%;height:2px;background:linear-gradient(90deg,transparent,#fff,transparent);filter:blur(1px);opacity:0;animation:wzSweep 1.2s 1.15s ease-in-out forwards}
-.wz-particles{position:absolute;inset:0;pointer-events:none}
-.wz-particles i{position:absolute;width:3px;height:3px;border-radius:50%;background:#55cfff;box-shadow:0 0 9px #55cfff;animation:wzFloat 2.2s ease-in-out infinite}
-.wz-particles i:nth-child(1){left:17%;top:32%;animation-delay:.1s}.wz-particles i:nth-child(2){left:79%;top:38%;animation-delay:.5s}.wz-particles i:nth-child(3){left:25%;top:65%;animation-delay:.8s}.wz-particles i:nth-child(4){left:72%;top:68%;animation-delay:1.1s}
-@keyframes wzLogoIn{from{opacity:0;transform:translateY(18px) scale(.75)}to{opacity:1;transform:none}}
-@keyframes wzGlow{0%,100%{transform:scale(.86);opacity:.55}50%{transform:scale(1.08);opacity:1}}
-@keyframes wzSpark{from{opacity:0;transform:rotate(45deg) scale(.2)}to{opacity:1;transform:rotate(45deg) scale(1)}}
-@keyframes wzTwinkle{0%,100%{filter:drop-shadow(0 0 4px #00b2ff)}50%{filter:drop-shadow(0 0 16px #ff2d95);transform:rotate(45deg) scale(1.12)}}
-@keyframes wzText{from{opacity:0;transform:translateY(10px);letter-spacing:.38em}to{opacity:1;transform:none}}
-@keyframes wzLine{from{width:0;opacity:0}to{width:130px;opacity:1}}
-@keyframes wzSweep{0%{left:-30%;opacity:0}20%{opacity:1}100%{left:110%;opacity:0}}
-@keyframes wzFloat{0%,100%{transform:translateY(0);opacity:.25}50%{transform:translateY(-14px);opacity:1}}
-@media (prefers-reduced-motion:reduce){#wiranzaSplash *{animation:none!important}.wz-title,.wz-sub,.wz-author,.wz-line{opacity:1}}
+.wz-spark::before{width:4px;height:34px}
+.wz-spark::after{width:34px;height:4px}
+
+/* FASE 3 (0.5 - 1.2s): huruf W "digambar" oleh cahaya (stroke reveal) */
+.wz-logo{width:150px;height:118px;position:relative}
+.wz-logo .bar{
+  stroke:url(#wzGrad); stroke-width:15; stroke-linecap:round; stroke-linejoin:round; fill:none;
+  filter:drop-shadow(0 0 8px rgba(0,178,255,.6)) drop-shadow(0 0 16px rgba(255,45,149,.35));
+  stroke-dasharray:1; stroke-dashoffset:1;
+  animation:wzDraw .7s .5s cubic-bezier(.3,.7,.2,1) forwards;
+}
+
+/* FASE 5 (1.3 - 1.9s): judul WIRANZA AI */
+.wz-title{
+  margin:0;font:800 clamp(30px,9vw,44px)/1.05 'Space Grotesk',sans-serif;letter-spacing:.06em;
+  background:linear-gradient(100deg,#00b2ff,#7a5cff 52%,#ff2d95);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  opacity:0; transform:translateY(10px);
+  animation:wzTextUp .6s 1.3s cubic-bezier(.2,.7,.2,1) forwards;
+}
+/* FASE 6 (1.7 - 2.2s): subjudul, fade-in halus saja */
+.wz-sub{
+  margin:10px 0 0;color:#b9c1d2;font:500 11px/1.4 'Space Grotesk',sans-serif;letter-spacing:.22em;
+  opacity:0;
+  animation:wzFadeOnly .5s 1.7s ease-out forwards;
+}
+.wz-line{height:2px;width:130px;margin:18px auto 0;background:linear-gradient(90deg,#00b2ff,#7a5cff,#ff2d95);border-radius:99px;
+  opacity:0; width:0;
+  animation:wzLine .5s 1.7s ease-out forwards;
+}
+/* FASE 7 (2.0 - 2.5s): nama pembuat, putih/abu, kecil, elegan */
+.wz-author{
+  margin:26px 0 0;color:#e8ebf2;font:500 12px/1.4 'Space Grotesk',sans-serif;letter-spacing:.28em;
+  opacity:0;
+  animation:wzFadeOnly .5s 2.0s ease-out forwards;
+}
+
+/* FASE 8 (2.2 - 2.8s): light sweep, sekali saja, melewati logo */
+.wz-light-sweep{
+  position:absolute; left:-30%; top:38%; width:40%; height:2px;
+  background:linear-gradient(90deg,transparent,#fff,transparent);
+  filter:blur(1px); opacity:0;
+  animation:wzSweep .6s 2.2s ease-in-out forwards;
+}
+
+@keyframes wzBgIn{ from{opacity:0} to{opacity:1} }
+@keyframes wzSpark{ from{opacity:0; transform:rotate(45deg) scale(.25)} to{opacity:1; transform:rotate(45deg) scale(1)} }
+@keyframes wzDraw{ to{ stroke-dashoffset:0 } }
+@keyframes wzPulse{ 0%{transform:scale(1)} 50%{transform:scale(1.025)} 100%{transform:scale(1)} }
+@keyframes wzTextUp{ to{opacity:1; transform:translateY(0)} }
+@keyframes wzFadeOnly{ to{opacity:1} }
+@keyframes wzLine{ to{opacity:1; width:130px} }
+@keyframes wzSweep{ 0%{left:-30%; opacity:0} 25%{opacity:.9} 100%{left:110%; opacity:0} }
+
+@media (prefers-reduced-motion:reduce){
+  #wiranzaSplash *{animation:none!important}
+  .wz-title,.wz-sub,.wz-author,.wz-line,.wz-spark,.wz-bg-glow{opacity:1}
+  .wz-logo .bar{stroke-dashoffset:0}
+  .wz-line{width:130px}
+}
 
 </style>
 </head>
 <body>
 <div id="wiranzaSplash" aria-label="Memuat Wiranza AI">
-  <div class="wz-particles"><i></i><i></i><i></i><i></i></div>
+  <div class="wz-bg-glow"></div>
   <div class="wz-splash-inner">
     <div class="wz-logo-wrap">
-      <div class="wz-logo-glow"></div>
       <svg class="wz-logo" viewBox="0 0 180 140" aria-hidden="true">
         <defs>
           <linearGradient id="wzGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stop-color="#00d9ff"/><stop offset=".5" stop-color="#635bff"/><stop offset="1" stop-color="#ff2d95"/>
+            <stop offset="0" stop-color="#00d9ff">
+              <animate attributeName="stop-color" values="#00d9ff;#635bff;#00d9ff" dur="2.4s" begin="0.5s" fill="freeze"/>
+            </stop>
+            <stop offset=".5" stop-color="#635bff">
+              <animate attributeName="stop-color" values="#635bff;#a24bff;#635bff" dur="2.4s" begin="0.5s" fill="freeze"/>
+            </stop>
+            <stop offset="1" stop-color="#ff2d95">
+              <animate attributeName="stop-color" values="#ff2d95;#ff6bb3;#ff2d95" dur="2.4s" begin="0.5s" fill="freeze"/>
+            </stop>
           </linearGradient>
         </defs>
-        <path class="bar" d="M20 25 L58 108 L78 67 L100 108 L145 25"/>
+        <path class="bar" pathLength="1" d="M20 25 L58 108 L78 67 L100 108 L145 25"/>
       </svg>
       <div class="wz-spark"></div>
       <div class="wz-light-sweep"></div>
@@ -782,9 +844,9 @@ let selectedOutdoor = "Di Dalam Mobil";
 let locBgBase64 = null, locBgMediaType = null;
 let selectedCamPos = "dada";
 let selectedLighting = "Auto";
-let activeProvider = "gemini";
-let geminiKey = "";
-let claudeKey = "";
+let activeProvider = localStorage.getItem('vw_activeProvider') || "gemini";
+let geminiKey = localStorage.getItem('vw_geminiKey') || "";
+let claudeKey = localStorage.getItem('vw_claudeKey') || "";
 let detectedProductDetails = "";
 let garmentDescription = "produk";
 let promptManuallyEdited = false;
@@ -796,9 +858,11 @@ function toggleSection(id){ document.getElementById(id).classList.toggle('open')
 function openSection(id){ document.getElementById(id).classList.add('open'); }
 function closeSection(id){ document.getElementById(id).classList.remove('open'); }
 function autoAdvance(fromId, toId){
-  // Buka bagian berikutnya tanpa memindahkan posisi scroll pengguna.
-  // Pengguna tetap berada di posisi layar saat ini.
-  closeSection(fromId);
+  // Buka bagian berikutnya tanpa menutup bagian sebelumnya.
+  // Menutup (mengecilkan tinggi) section sebelumnya bisa membuat konten
+  // di bawahnya "naik" dan terasa seperti halaman berpindah, walau tidak
+  // ada scrollTo/scrollIntoView yang dipanggil. Section sebelumnya sengaja
+  // dibiarkan tetap terbuka agar posisi visual pengguna benar-benar diam.
   openSection(toId);
 }
 function jumpToSection(id){
@@ -1321,8 +1385,8 @@ function startReplaceKey(provider){
   renderAiProviderContent();
 }
 function removeApiKey(provider){
-  if(provider === 'gemini'){ geminiKey = ''; geminiForceEdit = false; }
-  else { claudeKey = ''; claudeForceEdit = false; }
+  if(provider === 'gemini'){ geminiKey = ''; geminiForceEdit = false; localStorage.removeItem('vw_geminiKey'); }
+  else { claudeKey = ''; claudeForceEdit = false; localStorage.removeItem('vw_claudeKey'); }
   updateMainAiButton();
   renderAiProviderContent();
 }
@@ -1343,6 +1407,9 @@ async function saveAndConnect(provider){
   try{
     await (provider === 'gemini' ? callGemini('Balas hanya dengan kata: OK', false) : callClaude('Balas hanya dengan kata: OK', false));
     if(provider === 'gemini') geminiForceEdit = false; else claudeForceEdit = false;
+    if(provider === 'gemini') localStorage.setItem('vw_geminiKey', geminiKey);
+    else localStorage.setItem('vw_claudeKey', claudeKey);
+    localStorage.setItem('vw_activeProvider', provider);
     warn.textContent = '';
     updateMainAiButton();
     const container = document.getElementById('aiProviderContent');
@@ -1359,6 +1426,10 @@ async function saveAndConnect(provider){
       msg = '⚠️ API Key tidak valid. Periksa kembali API Key Anda.';
     } else if(m.includes('404') || m.includes('tidak tersedia')){
       msg = '⚠️ AI belum siap digunakan.';
+    } else if(m.includes('failed to fetch') || m.includes('tidak bisa menghubungi') || m.includes('networkerror') || m.includes('load failed')){
+      msg = '⚠️ Gagal terhubung ke internet/server AI. Pastikan koneksi internet aktif (bukan mode pesawat/data terbatas), lalu coba lagi. Kalau masih gagal, coba jaringan lain (WiFi ⇄ data seluler).';
+    } else if(err.message){
+      msg = '⚠️ ' + err.message;
     }
     warn.textContent = msg;
     btn.disabled = false;
@@ -1539,7 +1610,7 @@ function toggleEdit(){
   const box = document.getElementById('promptBox');
   const btn = document.getElementById('editBtn');
   if(box.hasAttribute('readonly')){
-    box.removeAttribute('readonly'); box.focus();
+    box.removeAttribute('readonly'); box.focus({preventScroll:true});
     if(btn) btn.textContent = '💾 Selesai'; promptManuallyEdited = true;
   } else {
     box.setAttribute('readonly','true'); if(btn) btn.textContent = '✏️ Edit';
