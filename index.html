@@ -250,8 +250,7 @@
   .json-toggle{font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--ink-dim); cursor:pointer; margin:14px 0 8px; display:flex; align-items:center; gap:6px;}
   pre{background:var(--bg-input);border:1px solid var(--line);border-radius:10px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.55;color:#d5f5ef;overflow-x:auto;white-space:pre-wrap;word-break:break-word;margin:0;max-height:340px;overflow-y:auto;display:none;}
   pre.show{display:block;}
-  .json-actions{display:none; gap:8px; margin-top:8px;}
-  .json-actions.show{display:flex;}
+  .json-actions{display:flex; gap:8px; margin-top:8px;}
   .key{color:#8fb8ff;}
   .str{color:#ffcf86;}
   button.copy{font-family:'Space Grotesk',sans-serif;font-size:11.5px;font-weight:700;background:var(--grad);color:#fff;border:none;border-radius:8px;padding:8px 12px;cursor:pointer;}
@@ -697,6 +696,11 @@ input, textarea, select, [contenteditable="true"] {
           <div class="hookstory-preview" id="storyPreview">Belum dibuat — tap Generate Prompt di bawah.</div>
 
           <button class="btn-mini" style="margin-top:10px;" id="regenHookBtn" onclick="generateHookStory(true)">🔄 Buat Ulang Hook & Storytelling</button>
+
+          <div class="prompt-actions" style="margin-top:8px;">
+            <button class="btn-outline" id="hookCopyBtn" onclick="copyHookStory()" type="button">📋 Copy</button>
+            <button class="btn-outline" id="hookRenderBtn" onclick="renderHookStory()" type="button">▶️ Render</button>
+          </div>
 
           <div class="field" style="margin-top:12px;">
             <label class="field-label">🎯 CTA</label>
@@ -1677,6 +1681,42 @@ function renderFromJSON(){
   showToast('JSON diterapkan ke Prompt di atas');
 }
 
+async function copyHookStory(){
+  if(!autoHook && !autoStorytelling){
+    showToast('Hook & Storytelling belum dibuat — tap Generate Prompt dulu');
+    return;
+  }
+  const combined = `HOOK:\n${autoHook || '(kosong)'}\n\nSTORYTELLING:\n${autoStorytelling || '(kosong)'}`;
+  const ok = await copyText(combined);
+  const btn = document.getElementById('hookCopyBtn');
+  if(btn && ok){
+    const original = btn.textContent;
+    btn.textContent = 'COPIED ✓';
+    btn.disabled = true;
+    setTimeout(()=>{ btn.textContent = original; btn.disabled = false; }, 1500);
+  }
+}
+
+function renderHookStory(){
+  if(!autoHook && !autoStorytelling){
+    showToast('Hook & Storytelling belum dibuat — tap Generate Prompt dulu');
+    return;
+  }
+  const combined = `${autoHook || ''}\n\n${autoStorytelling || ''}`.trim();
+  const box = document.getElementById('promptBox');
+  if(box){
+    box.value = combined;
+    promptManuallyEdited = true;
+  }
+  const btn = document.getElementById('hookRenderBtn');
+  if(btn){
+    const original = btn.textContent;
+    btn.textContent = 'RENDERED ✓';
+    setTimeout(()=>{ btn.textContent = original; }, 1500);
+  }
+  showToast('Hook & Storytelling diterapkan ke Prompt di atas');
+}
+
 function toggleEdit(){
   const box = document.getElementById('promptBox');
   const btn = document.getElementById('editBtn');
@@ -1702,11 +1742,8 @@ async function generateUlang(){
 function toggleJson(){
   const pre = document.getElementById('jsonOutput');
   const icon = document.getElementById('jsonToggleIcon');
-  const actions = document.getElementById('jsonActions');
   pre.classList.toggle('show');
-  const isOpen = pre.classList.contains('show');
-  icon.textContent = isOpen ? '▾' : '▸';
-  if(actions) actions.classList.toggle('show', isOpen);
+  icon.textContent = pre.classList.contains('show') ? '▾' : '▸';
 }
 
 function escapeHtml(str){
