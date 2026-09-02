@@ -802,8 +802,8 @@ function autoAdvance(fromId, toId){
   openSection(toId);
 }
 function jumpToSection(id){
+  // Tidak melakukan scroll otomatis. Hanya membuka section.
   openSection(id);
-  document.getElementById(id).scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 /* ================= ① REFERENSI (upload produk + deteksi AI) ================= */
