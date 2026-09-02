@@ -3,49 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>VERRY WIRANZA AI — AI Product Video Creator</title>
-<link rel="manifest" href="./manifest.json">
-<link rel="icon" href="./icon-192.png">
-<link rel="apple-touch-icon" href="./icon-192.png">
-<meta name="theme-color" content="#0c0c12">
+<meta name="theme-color" content="#07111f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="VERRY WIRANZA AI">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>WIRANZA AI — AI Photo &amp; Content Generator</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
-  /* ====== Mobile-app-like experience (tidak mengubah desain/layout) ====== */
-  html, body{
-    overflow-x:hidden;
-    max-width:100%;
-    overscroll-behavior-x:none;
-    -webkit-overflow-scrolling:touch;
-    scrollbar-width:none;
-    -ms-overflow-style:none;
-  }
-  ::-webkit-scrollbar{ display:none; width:0; height:0; }
-
-  html, body, div, section, header, footer, p, span, h1, h2, h3, h4, h5, h6,
-  button, label, li, ul, ol, a, img{
-    -webkit-user-select:none;
-    -moz-user-select:none;
-    user-select:none;
-    -webkit-touch-callout:none;
-  }
-  input, textarea, select, option, [contenteditable="true"]{
-    -webkit-user-select:text;
-    -moz-user-select:text;
-    user-select:text;
-    -webkit-touch-callout:default;
-  }
-  img{
-    -webkit-user-drag:none;
-    user-drag:none;
-    -khtml-user-drag:none;
-    -moz-user-drag:none;
-    -o-user-drag:none;
-  }
 
   :root{
     --bg:#0c0c12;
@@ -282,10 +250,6 @@
   .json-toggle{font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--ink-dim); cursor:pointer; margin:14px 0 8px; display:flex; align-items:center; gap:6px;}
   pre{background:var(--bg-input);border:1px solid var(--line);border-radius:10px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.55;color:#d5f5ef;overflow-x:auto;white-space:pre-wrap;word-break:break-word;margin:0;max-height:340px;overflow-y:auto;display:none;}
   pre.show{display:block;}
-  .flow-scene{margin-top:16px;}
-  .flow-scene-head{margin-bottom:8px;}
-  .flow-scene-tag{font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--ink);background:var(--bg-input);border:1px solid var(--line);border-radius:999px;padding:4px 12px;}
-  .flow-scene pre{display:block;margin-bottom:8px;}
   .key{color:#8fb8ff;}
   .str{color:#ffcf86;}
   button.copy{font-family:'Space Grotesk',sans-serif;font-size:11.5px;font-weight:700;background:var(--grad);color:#fff;border:none;border-radius:8px;padding:8px 12px;cursor:pointer;}
@@ -339,9 +303,97 @@
   .drawer-body .acc{display:none;}
   .drawer-body .acc.tab-visible{display:block;}
 
+
+/* ===== APP / MOBILE LOCK ===== */
+html, body {
+  width:100%; max-width:100%; min-height:100%;
+  margin:0; padding:0;
+  overflow-x:hidden !important;
+  overscroll-behavior-x:none;
+  -webkit-text-size-adjust:100%;
+  touch-action:pan-y;
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-touch-callout:none;
+}
+body { -webkit-tap-highlight-color:transparent; }
+img, svg { -webkit-user-drag:none; user-drag:none; }
+input, textarea, select, [contenteditable="true"] {
+  user-select:text !important;
+  -webkit-user-select:text !important;
+  -webkit-touch-callout:default;
+  touch-action:auto;
+}
+/* Tidak menampilkan scrollbar, tetapi scrolling tetap aktif */
+* { scrollbar-width:none; }
+*::-webkit-scrollbar { width:0 !important; height:0 !important; display:none !important; }
+
+/* ===== WIRANZA AI SPLASH SCREEN ===== */
+#wiranzaSplash{
+  position:fixed; inset:0; z-index:999999;
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(71,88,255,.16), transparent 25%),
+    radial-gradient(circle at 50% 55%, rgba(255,45,149,.09), transparent 34%),
+    #07111f;
+  transition:opacity .55s ease, visibility .55s ease;
+}
+#wiranzaSplash.hide{opacity:0;visibility:hidden;pointer-events:none}
+.wz-splash-inner{text-align:center;width:min(88vw,420px);position:relative}
+.wz-logo-wrap{width:190px;height:170px;margin:0 auto 20px;position:relative;display:grid;place-items:center}
+.wz-logo-glow{position:absolute;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(0,178,255,.28),rgba(138,43,226,.15) 42%,transparent 70%);filter:blur(14px);animation:wzGlow 1.8s ease-in-out infinite}
+.wz-logo{width:150px;height:118px;position:relative;filter:drop-shadow(0 0 9px rgba(0,178,255,.7)) drop-shadow(0 0 18px rgba(255,45,149,.38));animation:wzLogoIn .85s cubic-bezier(.2,.8,.2,1) both}
+.wz-logo .bar{stroke:url(#wzGrad);stroke-width:15;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.wz-spark{position:absolute;top:0;right:20px;width:36px;height:36px;animation:wzSpark .9s .25s ease-out both, wzTwinkle 1.8s 1.1s ease-in-out infinite}
+.wz-spark::before,.wz-spark::after{content:"";position:absolute;left:50%;top:50%;background:linear-gradient(180deg,#00d9ff,#ff39c8);transform:translate(-50%,-50%);border-radius:999px}
+.wz-spark::before{width:5px;height:36px}.wz-spark::after{width:36px;height:5px}
+.wz-spark{transform:rotate(45deg)}
+.wz-title{margin:0;font:800 clamp(30px,9vw,44px)/1.05 'Space Grotesk',sans-serif;letter-spacing:.12em;background:linear-gradient(100deg,#00b2ff,#7a5cff 52%,#ff2d95);-webkit-background-clip:text;background-clip:text;color:transparent;animation:wzText .65s .55s ease-out both}
+.wz-sub{margin:10px 0 0;color:#b9c1d2;font:500 11px/1.4 'Space Grotesk',sans-serif;letter-spacing:.24em;animation:wzText .65s .72s ease-out both}
+.wz-author{margin:26px 0 0;color:#fff;font:500 12px/1.4 'Space Grotesk',sans-serif;letter-spacing:.3em;animation:wzText .65s .9s ease-out both}
+.wz-line{height:2px;width:130px;margin:18px auto 0;background:linear-gradient(90deg,#00b2ff,#7a5cff,#ff2d95);border-radius:99px;box-shadow:0 0 12px rgba(0,178,255,.45);animation:wzLine 1s .9s ease-out both}
+.wz-light-sweep{position:absolute;left:-25%;top:38%;width:45%;height:2px;background:linear-gradient(90deg,transparent,#fff,transparent);filter:blur(1px);opacity:0;animation:wzSweep 1.2s 1.15s ease-in-out forwards}
+.wz-particles{position:absolute;inset:0;pointer-events:none}
+.wz-particles i{position:absolute;width:3px;height:3px;border-radius:50%;background:#55cfff;box-shadow:0 0 9px #55cfff;animation:wzFloat 2.2s ease-in-out infinite}
+.wz-particles i:nth-child(1){left:17%;top:32%;animation-delay:.1s}.wz-particles i:nth-child(2){left:79%;top:38%;animation-delay:.5s}.wz-particles i:nth-child(3){left:25%;top:65%;animation-delay:.8s}.wz-particles i:nth-child(4){left:72%;top:68%;animation-delay:1.1s}
+@keyframes wzLogoIn{from{opacity:0;transform:translateY(18px) scale(.75)}to{opacity:1;transform:none}}
+@keyframes wzGlow{0%,100%{transform:scale(.86);opacity:.55}50%{transform:scale(1.08);opacity:1}}
+@keyframes wzSpark{from{opacity:0;transform:rotate(45deg) scale(.2)}to{opacity:1;transform:rotate(45deg) scale(1)}}
+@keyframes wzTwinkle{0%,100%{filter:drop-shadow(0 0 4px #00b2ff)}50%{filter:drop-shadow(0 0 16px #ff2d95);transform:rotate(45deg) scale(1.12)}}
+@keyframes wzText{from{opacity:0;transform:translateY(10px);letter-spacing:.38em}to{opacity:1;transform:none}}
+@keyframes wzLine{from{width:0;opacity:0}to{width:130px;opacity:1}}
+@keyframes wzSweep{0%{left:-30%;opacity:0}20%{opacity:1}100%{left:110%;opacity:0}}
+@keyframes wzFloat{0%,100%{transform:translateY(0);opacity:.25}50%{transform:translateY(-14px);opacity:1}}
+@media (prefers-reduced-motion:reduce){#wiranzaSplash *{animation:none!important}.wz-title,.wz-sub,.wz-author,.wz-line{opacity:1}}
+
 </style>
 </head>
 <body>
+<div id="wiranzaSplash" aria-label="Memuat Wiranza AI">
+  <div class="wz-particles"><i></i><i></i><i></i><i></i></div>
+  <div class="wz-splash-inner">
+    <div class="wz-logo-wrap">
+      <div class="wz-logo-glow"></div>
+      <svg class="wz-logo" viewBox="0 0 180 140" aria-hidden="true">
+        <defs>
+          <linearGradient id="wzGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#00d9ff"/><stop offset=".5" stop-color="#635bff"/><stop offset="1" stop-color="#ff2d95"/>
+          </linearGradient>
+        </defs>
+        <path class="bar" d="M20 25 L58 108 L78 67 L100 108 L145 25"/>
+      </svg>
+      <div class="wz-spark"></div>
+      <div class="wz-light-sweep"></div>
+    </div>
+    <h1 class="wz-title">WIRANZA AI</h1>
+    <div class="wz-sub">AI PHOTO &amp; CONTENT GENERATOR</div>
+    <div class="wz-line"></div>
+    <div class="wz-author">VERRY WIRANZA</div>
+  </div>
+</div>
+
+
 
   <div class="topbar">
     <div class="brand-mini"><span class="logo">✨</span> VERRY WIRANZA AI</div>
@@ -597,7 +649,7 @@
         <div class="acc-body"><div class="acc-body-inner">
           <div class="field">
             <label class="field-label">Durasi (detik)</label>
-            <input type="text" id="duration" value="8" readonly disabled style="opacity:.7;">
+            <input type="text" id="duration" value="8">
           </div>
           <div class="field">
             <label class="field-label">Catatan Tambahan</label>
@@ -610,7 +662,7 @@
               <button class="btn-mini" onclick="document.getElementById('importSettingsInput').click()">⬆️ Import Pengaturan</button>
               <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
             </div>
-            <div class="hint">API Key tersimpan otomatis di HP ini (sekali isi, tetap ada meski aplikasi ditutup). Export/Import tetap berguna kalau ganti HP atau pindah browser.</div>
+            <div class="hint">Simpan/pulihkan API Key lewat file kecil di HP — key browser ini hilang saat halaman ditutup (batasan platform), jadi export dulu kalau mau pakai lagi nanti tanpa isi ulang.</div>
           </div>
         </div></div>
       </div>
@@ -635,29 +687,6 @@
       <div class="json-toggle" onclick="toggleJson()"><span id="jsonToggleIcon">▸</span> JSON lengkap</div>
       <div class="output-head" style="margin-bottom:6px;"><span></span></div>
       <pre id="jsonOutput"></pre>
-
-      <div class="output-head" style="margin-top:22px; padding-top:18px; border-top:1px solid var(--line);">
-        <h2>🎬 Video Flow — 3 Scene × 8 Detik</h2>
-      </div>
-      <p style="font-size:11.5px; color:var(--ink-dim); margin:-4px 0 12px; line-height:1.5;">Setiap scene wajib 8 detik, JSON terpisah agar bisa disalin satu per satu ke Flow lalu digabung.</p>
-
-      <div class="flow-scene">
-        <div class="flow-scene-head"><span class="flow-scene-tag">SCENE 1 — HOOK</span></div>
-        <pre id="flowSceneHook"></pre>
-        <button class="btn-outline" onclick="copyFlowScene('flowSceneHook')">📋 Copy JSON Hook</button>
-      </div>
-
-      <div class="flow-scene">
-        <div class="flow-scene-head"><span class="flow-scene-tag">SCENE 2 — STORYTELLING</span></div>
-        <pre id="flowSceneStory"></pre>
-        <button class="btn-outline" onclick="copyFlowScene('flowSceneStory')">📋 Copy JSON Storytelling</button>
-      </div>
-
-      <div class="flow-scene">
-        <div class="flow-scene-head"><span class="flow-scene-tag">SCENE 3 — CTA</span></div>
-        <pre id="flowSceneCta"></pre>
-        <button class="btn-outline" onclick="copyFlowScene('flowSceneCta')">📋 Copy JSON CTA</button>
-      </div>
     </div>
   </div>
 
@@ -753,9 +782,9 @@ let selectedOutdoor = "Di Dalam Mobil";
 let locBgBase64 = null, locBgMediaType = null;
 let selectedCamPos = "dada";
 let selectedLighting = "Auto";
-let activeProvider = localStorage.getItem('vw_activeProvider') || "gemini";
-let geminiKey = localStorage.getItem('vw_geminiKey') || "";
-let claudeKey = localStorage.getItem('vw_claudeKey') || "";
+let activeProvider = "gemini";
+let geminiKey = "";
+let claudeKey = "";
 let detectedProductDetails = "";
 let garmentDescription = "produk";
 let promptManuallyEdited = false;
@@ -767,10 +796,14 @@ function toggleSection(id){ document.getElementById(id).classList.toggle('open')
 function openSection(id){ document.getElementById(id).classList.add('open'); }
 function closeSection(id){ document.getElementById(id).classList.remove('open'); }
 function autoAdvance(fromId, toId){
-  closeSection(fromId); openSection(toId);
+  // Buka bagian berikutnya tanpa memindahkan posisi scroll pengguna.
+  // Pengguna tetap berada di posisi layar saat ini.
+  closeSection(fromId);
+  openSection(toId);
 }
 function jumpToSection(id){
   openSection(id);
+  document.getElementById(id).scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 /* ================= ① REFERENSI (upload produk + deteksi AI) ================= */
@@ -1264,6 +1297,7 @@ function renderAiProviderContent(){
     <ul class="step-list">${stepsHtml}</ul>
     <div class="link-actions">
       <button onclick="window.open('${meta.officialUrl}','_blank','noopener')">${meta.officialLabel}</button>
+      
     </div>
     <label class="field-label">API Key</label>
     <div class="key-row">
@@ -1272,7 +1306,7 @@ function renderAiProviderContent(){
     </div>
     <div class="key-warn" id="apiKeyWarn"></div>
     <button class="ai-save-btn" onclick="saveAndConnect('${provider}')">✓ Simpan &amp; Mulai →</button>
-    <div class="ai-key-warning">Key tersimpan otomatis di HP ini (${meta.name}) dan dikirim langsung ke server ${meta.name}, tidak lewat server lain mana pun. Kalau ganti HP/browser, isi ulang atau pakai Export/Import Pengaturan.</div>
+    <div class="ai-key-warning">Key hanya tersimpan sementara di memori browser ini (hilang saat halaman ditutup/refresh — batasan platform, bukan bug) dan dikirim langsung ke server ${meta.name}, tidak lewat server lain mana pun.</div>
   `;
   document.getElementById('apiKeyInput').addEventListener('keydown', e=>{ if(e.key==='Enter') saveAndConnect(provider); });
 }
@@ -1281,14 +1315,14 @@ function toggleKeyVisibility(){
   const input = document.getElementById('apiKeyInput');
   input.type = input.type === 'password' ? 'text' : 'password';
 }
-function copyProviderLink(url){ copyText(url); }
+function copyProviderLink(url){ return false; }
 function startReplaceKey(provider){
   if(provider === 'gemini') geminiForceEdit = true; else claudeForceEdit = true;
   renderAiProviderContent();
 }
 function removeApiKey(provider){
-  if(provider === 'gemini'){ geminiKey = ''; geminiForceEdit = false; localStorage.removeItem('vw_geminiKey'); }
-  else { claudeKey = ''; claudeForceEdit = false; localStorage.removeItem('vw_claudeKey'); }
+  if(provider === 'gemini'){ geminiKey = ''; geminiForceEdit = false; }
+  else { claudeKey = ''; claudeForceEdit = false; }
   updateMainAiButton();
   renderAiProviderContent();
 }
@@ -1309,9 +1343,6 @@ async function saveAndConnect(provider){
   try{
     await (provider === 'gemini' ? callGemini('Balas hanya dengan kata: OK', false) : callClaude('Balas hanya dengan kata: OK', false));
     if(provider === 'gemini') geminiForceEdit = false; else claudeForceEdit = false;
-    if(provider === 'gemini') localStorage.setItem('vw_geminiKey', geminiKey);
-    else localStorage.setItem('vw_claudeKey', claudeKey);
-    localStorage.setItem('vw_activeProvider', provider);
     warn.textContent = '';
     updateMainAiButton();
     const container = document.getElementById('aiProviderContent');
@@ -1499,32 +1530,16 @@ function showToast(msg){
   toast.textContent = msg; toast.classList.add('show');
   setTimeout(()=>toast.classList.remove('show'), 1800);
 }
-function fallbackCopy(text){
-  const ta = document.createElement('textarea');
-  ta.value = text; ta.style.position = 'fixed'; ta.style.top = '-9999px'; ta.style.left = '-9999px';
-  document.body.appendChild(ta); ta.focus({preventScroll:true}); ta.select();
-  let ok = false;
-  try{ ok = document.execCommand('copy'); }catch(e){ ok = false; }
-  document.body.removeChild(ta);
-  return ok;
-}
-function copyText(text){
-  if(navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext){
-    navigator.clipboard.writeText(text).then(()=> showToast('Tersalin ke clipboard'))
-      .catch(()=>{ const ok = fallbackCopy(text); showToast(ok ? 'Tersalin ke clipboard' : 'Gagal menyalin — blok teks manual lalu salin'); });
-  } else {
-    const ok = fallbackCopy(text);
-    showToast(ok ? 'Tersalin ke clipboard' : 'Gagal menyalin otomatis — blok teks manual lalu salin (Ctrl/Cmd+C)');
-  }
-}
-function copyPrompt(){ copyText(document.getElementById('promptBox').value); }
-function copyJSON(){ copyText(document.getElementById('jsonOutput').innerText); }
+function fallbackCopy(text){ return false; }
+function copyText(text){ showToast('Penyalinan dinonaktifkan'); return false; }
+function copyPrompt(){ return false; }
+function copyJSON(){ return false; }
 
 function toggleEdit(){
   const box = document.getElementById('promptBox');
   const btn = document.getElementById('editBtn');
   if(box.hasAttribute('readonly')){
-    box.removeAttribute('readonly'); box.focus({preventScroll:true});
+    box.removeAttribute('readonly'); box.focus();
     if(btn) btn.textContent = '💾 Selesai'; promptManuallyEdited = true;
   } else {
     box.setAttribute('readonly','true'); if(btn) btn.textContent = '✏️ Edit';
@@ -1675,62 +1690,6 @@ ${preservasi}` + (notes ? `\nInstruksi tambahan: ${notes}.` : '');
   document.getElementById('jsonOutput').innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
   const promptBox = document.getElementById('promptBox');
   if(!promptManuallyEdited){ promptBox.value = promptText; }
-
-  buildVideoFlowScenes({
-    subjekText, modelBlock, lokasi, lokasiNote, lightingText, camText,
-    gerakanText, reviewBlock, preservasi, ctaText, catLabel
-  });
-}
-
-/* ================= VIDEO FLOW: 3 SCENE TERPISAH (HOOK / STORYTELLING / CTA) — durasi fix 8 detik per scene ================= */
-function buildVideoFlowScenes(ctx){
-  const FIXED_DURATION = 8; // durasi fix, tidak bisa diubah
-
-  const consistencyNote = `KONSISTENSI WAJIB ANTAR SCENE: karakter/model, produk, outfit, lokasi, pencahayaan, dan gaya visual harus identik persis dengan scene lain dalam video ini — jangan mengubah bentuk, warna, ukuran, logo, tulisan, atau detail produk sedikit pun. ${ctx.preservasi}`;
-
-  const baseFields = (sceneAksi) => ({
-    subjek: ctx.subjekText,
-    jenis_produk: ctx.catLabel || null,
-    lokasi: ctx.lokasi.label,
-    pencahayaan: ctx.lightingText,
-    posisi_kamera: ctx.camText,
-    aksi: sceneAksi,
-    gerakan_natural: "gerakan halus dan realistis, hindari gerakan kaku atau terlihat seperti animasi AI, transisi antar pose tidak boleh patah/tiba-tiba",
-    durasi_detik: FIXED_DURATION,
-    konsistensi_visual: consistencyNote
-  });
-
-  // SCENE 1 — HOOK
-  const hookData = baseFields(
-    `Pembuka video: ${ctx.subjekText.toLowerCase()} muncul di frame dengan gerakan natural yang langsung menarik perhatian, posisi awal jelas dan stabil, membangun rasa penasaran penonton dalam 8 detik pertama.`
-  );
-  hookData.dialog = autoHook || "belum dibuat — tap Generate Prompt";
-  hookData.scene = "HOOK";
-  hookData.urutan = 1;
-
-  // SCENE 2 — STORYTELLING
-  const storyAksi = `${ctx.gerakanText}, dilakukan halus dan berkesinambungan dari scene sebelumnya.${ctx.reviewBlock ? ' ' + ctx.reviewBlock.trim() : ''}`;
-  const storyData = baseFields(storyAksi);
-  storyData.dialog = autoStorytelling || "belum dibuat — tap Generate Prompt";
-  storyData.scene = "STORYTELLING";
-  storyData.urutan = 2;
-
-  // SCENE 3 — CTA
-  const ctaData = baseFields(
-    `Penutup video: ${ctx.subjekText.toLowerCase()} kembali ke posisi stabil dan natural, tetap jelas terlihat penuh di frame, mengarahkan perhatian penonton ke produk untuk mengambil tindakan.`
-  );
-  ctaData.dialog = ctx.ctaText || "Cek keranjang kuning di bawah.";
-  ctaData.scene = "CTA";
-  ctaData.urutan = 3;
-
-  document.getElementById('flowSceneHook').textContent = JSON.stringify(hookData, null, 2);
-  document.getElementById('flowSceneStory').textContent = JSON.stringify(storyData, null, 2);
-  document.getElementById('flowSceneCta').textContent = JSON.stringify(ctaData, null, 2);
-}
-
-function copyFlowScene(elId){
-  const el = document.getElementById(elId);
-  if(el) copyText(el.textContent);
 }
 
 async function onGenerateTap(){
@@ -1741,6 +1700,7 @@ async function onGenerateTap(){
   }
   if(btn){ btn.disabled = false; btn.textContent = '✨ Generate Prompt'; }
   render();
+  // Jangan paksa halaman scroll ke output. Pengguna tetap di posisi terakhir.
   showToast('Prompt siap!');
   const inner = document.getElementById('stickyBarInner');
   inner.innerHTML = `
@@ -1777,63 +1737,52 @@ updateMainAiButton();
 updateSummaries();
 render();
 </script>
+
 <script>
-/* ====== Native-app-like protection (tidak mengganggu input/textarea/select) ====== */
+/* ===== NATIVE-LIKE INTERACTION PROTECTION ===== */
 (function(){
-  function isEditableTarget(el){
-    if(!el) return false;
-    const tag = el.tagName ? el.tagName.toLowerCase() : '';
-    return tag === 'input' || tag === 'textarea' || tag === 'select' || el.isContentEditable;
-  }
-
-  // 1. Matikan pinch-zoom (gesture) & pastikan skala tetap 1:1
-  document.addEventListener('gesturestart', function(e){ e.preventDefault(); });
-  document.addEventListener('gesturechange', function(e){ e.preventDefault(); });
-  document.addEventListener('gestureend', function(e){ e.preventDefault(); });
-  document.addEventListener('touchmove', function(e){
-    if(e.touches && e.touches.length > 1) e.preventDefault();
-  }, { passive:false });
-
-  // Matikan double-tap zoom, tapi jangan ganggu tap normal pada tombol/input
-  let lastTouchEnd = 0;
+  const editable = el => !!el && (el.matches('input, textarea, select, [contenteditable="true"]') || el.closest('input, textarea, select, [contenteditable="true"]'));
+  ['contextmenu','selectstart','dragstart','copy','cut'].forEach(type => {
+    document.addEventListener(type, function(e){
+      if(!editable(e.target)) e.preventDefault();
+    }, {capture:true});
+  });
+  document.addEventListener('gesturestart', e => e.preventDefault(), {passive:false});
+  document.addEventListener('gesturechange', e => e.preventDefault(), {passive:false});
+  document.addEventListener('gestureend', e => e.preventDefault(), {passive:false});
+  let lastTouchEnd=0;
   document.addEventListener('touchend', function(e){
-    const now = Date.now();
-    if(now - lastTouchEnd <= 300 && !isEditableTarget(e.target)){
-      e.preventDefault();
-    }
-    lastTouchEnd = now;
-  }, { passive:false });
-
-  // 2. Blokir context menu (long-press menu / klik kanan) kecuali pada field input
-  document.addEventListener('contextmenu', function(e){
-    if(!isEditableTarget(e.target)) e.preventDefault();
-  });
-
-  // 3. Blokir seleksi teks kecuali pada field input
-  document.addEventListener('selectstart', function(e){
-    if(!isEditableTarget(e.target)) e.preventDefault();
-  });
-
-  // 4. Blokir drag teks/gambar keluar dari aplikasi
-  document.addEventListener('dragstart', function(e){
-    if(!isEditableTarget(e.target)) e.preventDefault();
-  });
-
-  // 5. Blokir copy & cut kecuali pada field input (paste tetap diizinkan untuk API Key dll)
-  document.addEventListener('copy', function(e){
-    if(!isEditableTarget(e.target)) e.preventDefault();
-  });
-  document.addEventListener('cut', function(e){
-    if(!isEditableTarget(e.target)) e.preventDefault();
-  });
+    const now=Date.now();
+    if(now-lastTouchEnd<=300 && !editable(e.target)) e.preventDefault();
+    lastTouchEnd=now;
+  }, {passive:false});
+  document.addEventListener('touchmove', function(e){
+    if(e.touches && e.touches.length>1) e.preventDefault();
+  }, {passive:false});
 })();
-</script>
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
-  });
+
+/* ===== PWA SERVICE WORKER ===== */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 }
 </script>
+
+<script>
+/* ===== SPLASH LIFECYCLE ===== */
+(function(){
+  const splash=document.getElementById('wiranzaSplash');
+  if(!splash) return;
+  document.documentElement.classList.add('wz-loading');
+  const closeSplash=()=>{
+    splash.classList.add('hide');
+    document.documentElement.classList.remove('wz-loading');
+    setTimeout(()=>splash.remove(),650);
+  };
+  window.addEventListener('load',()=>setTimeout(closeSplash,3000),{once:true});
+  // Fallback agar splash tidak pernah mengunci aplikasi bila ada resource lambat.
+  setTimeout(closeSplash,5000);
+})();
+</script>
+
 </body>
 </html>
