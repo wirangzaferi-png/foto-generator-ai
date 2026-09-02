@@ -250,6 +250,8 @@
   .json-toggle{font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--ink-dim); cursor:pointer; margin:14px 0 8px; display:flex; align-items:center; gap:6px;}
   pre{background:var(--bg-input);border:1px solid var(--line);border-radius:10px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.55;color:#d5f5ef;overflow-x:auto;white-space:pre-wrap;word-break:break-word;margin:0;max-height:340px;overflow-y:auto;display:none;}
   pre.show{display:block;}
+  .json-actions{display:none; gap:8px; margin-top:8px;}
+  .json-actions.show{display:flex;}
   .key{color:#8fb8ff;}
   .str{color:#ffcf86;}
   button.copy{font-family:'Space Grotesk',sans-serif;font-size:11.5px;font-weight:700;background:var(--grad);color:#fff;border:none;border-radius:8px;padding:8px 12px;cursor:pointer;}
@@ -743,12 +745,17 @@ input, textarea, select, [contenteditable="true"] {
       </select>
       <textarea class="prompt-box" id="promptBox" readonly></textarea>
       <div class="prompt-actions">
+        <button class="btn-outline" onclick="copyPrompt()">📋 Copy</button>
         <button class="btn-outline" id="editBtn" onclick="toggleEdit()">✏️ Edit</button>
         <button class="btn-outline" onclick="generateUlang()">🔄 Ulang</button>
       </div>
       <div class="json-toggle" onclick="toggleJson()"><span id="jsonToggleIcon">▸</span> JSON lengkap</div>
       <div class="output-head" style="margin-bottom:6px;"><span></span></div>
       <pre id="jsonOutput"></pre>
+      <div class="json-actions" id="jsonActions">
+        <button class="btn-outline" id="jsonCopyBtn" onclick="copyJSON()" type="button">📋 COPY</button>
+        <button class="btn-outline" id="jsonRenderBtn" onclick="renderFromJSON()" type="button">▶️ RENDER</button>
+      </div>
     </div>
   </div>
 
@@ -1601,10 +1608,74 @@ function showToast(msg){
   toast.textContent = msg; toast.classList.add('show');
   setTimeout(()=>toast.classList.remove('show'), 1800);
 }
-function fallbackCopy(text){ return false; }
-function copyText(text){ showToast('Penyalinan dinonaktifkan'); return false; }
-function copyPrompt(){ return false; }
-function copyJSON(){ return false; }
+function fallbackCopy(text){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.top = '-9999px';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.focus({preventScroll:true});
+  ta.select();
+  let ok = false;
+  try{ ok = document.execCommand('copy'); }catch(e){ ok = false; }
+  document.body.removeChild(ta);
+  return ok;
+}
+async function copyText(text){
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(text);
+      showToast('Berhasil disalin');
+      return true;
+    }
+  }catch(e){ /* fallback di bawah */ }
+  const ok = fallbackCopy(text);
+  showToast(ok ? 'Berhasil disalin' : 'Gagal menyalin');
+  return ok;
+}
+function copyPrompt(){
+  const box = document.getElementById('promptBox');
+  if(box) copyText(box.value);
+}
+async function copyJSON(){
+  const el = document.getElementById('jsonOutput');
+  if(!el) return;
+  const text = el.innerText || el.textContent;
+  const ok = await copyText(text);
+  const btn = document.getElementById('jsonCopyBtn');
+  if(btn && ok){
+    const original = btn.textContent;
+    btn.textContent = 'COPIED ✓';
+    btn.disabled = true;
+    setTimeout(()=>{ btn.textContent = original; btn.disabled = false; }, 1500);
+  }
+}
+
+function renderFromJSON(){
+  const el = document.getElementById('jsonOutput');
+  if(!el) return;
+  const raw = el.innerText || el.textContent;
+  let data;
+  try{ data = JSON.parse(raw); }
+  catch(e){ showToast('JSON belum lengkap/valid, generate prompt dulu'); return; }
+
+  const promptText = data.prompt || (data.scene ? JSON.stringify(data, null, 2) : '');
+  if(!promptText){ showToast('Tidak ada data prompt di JSON ini'); return; }
+
+  const box = document.getElementById('promptBox');
+  if(box){
+    box.value = promptText;
+    promptManuallyEdited = true;
+  }
+  const btn = document.getElementById('jsonRenderBtn');
+  if(btn){
+    const original = btn.textContent;
+    btn.textContent = 'RENDERED ✓';
+    setTimeout(()=>{ btn.textContent = original; }, 1500);
+  }
+  showToast('JSON diterapkan ke Prompt di atas');
+}
 
 function toggleEdit(){
   const box = document.getElementById('promptBox');
@@ -1631,8 +1702,11 @@ async function generateUlang(){
 function toggleJson(){
   const pre = document.getElementById('jsonOutput');
   const icon = document.getElementById('jsonToggleIcon');
+  const actions = document.getElementById('jsonActions');
   pre.classList.toggle('show');
-  icon.textContent = pre.classList.contains('show') ? '▾' : '▸';
+  const isOpen = pre.classList.contains('show');
+  icon.textContent = isOpen ? '▾' : '▸';
+  if(actions) actions.classList.toggle('show', isOpen);
 }
 
 function escapeHtml(str){
@@ -1775,6 +1849,7 @@ async function onGenerateTap(){
   showToast('Prompt siap!');
   const inner = document.getElementById('stickyBarInner');
   inner.innerHTML = `
+    <button class="btn-outline" onclick="copyPrompt()">📋 Copy</button>
     <button class="btn-outline" onclick="toggleEdit()">✏️ Edit</button>
     <button class="btn-outline" onclick="generateUlang()">🔄 Ulang</button>
   `;
