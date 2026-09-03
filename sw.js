@@ -3,7 +3,7 @@
    Naikkan CACHE_VERSION setiap kali kamu update index.html/manifest/icon
    supaya pengguna lama otomatis dapat versi terbaru. */
 
-const CACHE_VERSION = 'wiranza-ai-v16';
+const CACHE_VERSION = 'wiranza-ai-v17';
 const CACHE_NAME = `${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [
