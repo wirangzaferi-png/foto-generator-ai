@@ -118,11 +118,13 @@
     background:var(--grad); color:#fff; padding:2px 8px; border-radius:999px;
   }
   .hookstory-preview{
-    font-size:12.5px; color:var(--ink-dim); line-height:1.55;
+    display:block; width:100%; box-sizing:border-box; resize:vertical;
+    font-family:inherit; font-size:12.5px; color:var(--ink-dim); line-height:1.55;
     background:var(--bg-input); border:1px solid var(--line); border-radius:9px;
     padding:10px 12px; margin-top:6px; white-space:pre-wrap;
   }
   .hookstory-preview.filled{color:var(--ink);}
+  .hookstory-badge.manual{background:var(--bg-input); border:1px solid var(--line); color:var(--ink-dim);}
 
   .main-tab-nav{
     position:sticky; top:45px; z-index:55;
@@ -681,21 +683,21 @@ input, textarea, select, [contenteditable="true"] {
           <span class="summary" id="sum-hook"></span><span class="chev">▾</span>
         </div>
         <div class="acc-body"><div class="acc-body-inner">
-          <div class="hint" style="margin-bottom:8px;">Dibuat otomatis oleh AI saat kamu tap Generate Prompt — berdasarkan foto, produk, gerakan, lokasi, dan pengaturan lain yang sudah dipilih.</div>
+          <div class="hint" style="margin-bottom:8px;">Dibuat otomatis oleh AI saat kamu tap Generate Prompt — atau ketik sendiri kalau AI gagal/kuota habis. Isi manual juga langsung tersimpan.</div>
 
           <div class="hookstory-row">
             <span class="hookstory-label">🪝 Hook</span>
-            <span class="hookstory-badge">Auto</span>
+            <span class="hookstory-badge" id="hookBadge">Auto</span>
           </div>
-          <div class="hookstory-preview" id="hookPreview">Belum dibuat — tap Generate Prompt di bawah.</div>
+          <textarea class="hookstory-preview" id="hookPreview" rows="2" placeholder="Belum dibuat — tap Generate Prompt di bawah, atau ketik hook secara manual di sini." oninput="onHookStoryManualInput('hook', this.value)"></textarea>
 
           <div class="hookstory-row" style="margin-top:10px;">
             <span class="hookstory-label">📖 Storytelling</span>
-            <span class="hookstory-badge">Auto</span>
+            <span class="hookstory-badge" id="storyBadge">Auto</span>
           </div>
-          <div class="hookstory-preview" id="storyPreview">Belum dibuat — tap Generate Prompt di bawah.</div>
+          <textarea class="hookstory-preview" id="storyPreview" rows="3" placeholder="Belum dibuat — tap Generate Prompt di bawah, atau ketik storytelling secara manual di sini." oninput="onHookStoryManualInput('story', this.value)"></textarea>
 
-          <button class="btn-mini" style="margin-top:10px;" id="regenHookBtn" onclick="generateHookStory(true)">🔄 Buat Ulang Hook & Storytelling</button>
+          <button class="btn-mini" style="margin-top:10px;" id="regenHookBtn" onclick="generateHookStory(true).catch(()=>{})">🔄 Buat Ulang Hook & Storytelling (AI)</button>
 
           <div class="prompt-actions" style="margin-top:8px;">
             <button class="btn-outline" id="hookCopyBtn" onclick="copyHookStory()" type="button">📋 Copy</button>
@@ -860,10 +862,23 @@ let geminiKey = localStorage.getItem('vw_geminiKey') || "";
 let claudeKey = localStorage.getItem('vw_claudeKey') || "";
 let detectedProductDetails = "";
 let garmentDescription = "produk";
+let detectedProductMaterial = "";
+let detectedProductColor = "";
+let detectedProductTexture = "";
+let detectedProductLogo = "";
+let detectedSubjectPose = "";
+let detectedSubjectExpression = "";
+let detectedComposition = "";
+let detectedLighting = "";
+let detectedEnvironment = "";
+let detectedColors = []; // array warna dominan hasil analisis foto
+let detectedStyle = "";
 let promptManuallyEdited = false;
 let autoHook = "";
 let autoStorytelling = "";
 let hookGenerating = false;
+let mainGenerating = false; // extra lock so Generate Prompt can never fire twice at once
+const GENERATE_TIMEOUT_MS = 30000; // 30s hard timeout for the whole Generate Prompt flow
 
 function toggleSection(id){ document.getElementById(id).classList.toggle('open'); }
 function openSection(id){ document.getElementById(id).classList.add('open'); }
@@ -1224,39 +1239,70 @@ Hook dan storytelling harus satu konsep yang konsisten dan saling berhubungan �
 Balas HANYA dengan objek JSON mentah (tanpa markdown fences, tanpa penjelasan): {"hook": "...", "storytelling": "..."}`;
 }
 
-async function generateHookStory(isManualRegen){
+async function generateHookStory(isManualRegen, signal){
   if(hookGenerating) return;
   hookGenerating = true;
   const regenBtn = document.getElementById('regenHookBtn');
   const hookPrev = document.getElementById('hookPreview');
   const storyPrev = document.getElementById('storyPreview');
+  const hookBadge = document.getElementById('hookBadge');
+  const storyBadge = document.getElementById('storyBadge');
   if(regenBtn){ regenBtn.disabled = true; regenBtn.textContent = 'Membuat...'; }
-  hookPrev.textContent = 'AI sedang membuat hook...'; hookPrev.className = 'hookstory-preview';
-  storyPrev.textContent = 'AI sedang membuat storytelling...'; storyPrev.className = 'hookstory-preview';
+  // Kunci textarea sesaat supaya ketikan manual tidak tertimpa/tabrakan saat AI sedang menulis
+  hookPrev.readOnly = true; storyPrev.readOnly = true;
+  hookPrev.value = 'AI sedang membuat hook...'; hookPrev.className = 'hookstory-preview';
+  storyPrev.value = 'AI sedang membuat storytelling...'; storyPrev.className = 'hookstory-preview';
 
   try{
     const instruction = buildHookStoryInstruction();
     const imgOverride = uploadedBase64 ? { base64: uploadedBase64, mediaType: uploadedMediaType } : null;
-    let rawText = activeProvider === 'gemini' ? await callGemini(instruction, imgOverride) : await callClaude(instruction, imgOverride);
+    let rawText = activeProvider === 'gemini' ? await callGemini(instruction, imgOverride, signal) : await callClaude(instruction, imgOverride, signal);
     rawText = rawText.replace(/```json|```/g, "").trim();
     const parsed = JSON.parse(rawText);
     autoHook = parsed.hook || '';
     autoStorytelling = parsed.storytelling || '';
-    hookPrev.textContent = autoHook || '(kosong)'; hookPrev.classList.add('filled');
-    storyPrev.textContent = autoStorytelling || '(kosong)'; storyPrev.classList.add('filled');
+    hookPrev.value = autoHook; hookPrev.classList.toggle('filled', !!autoHook);
+    storyPrev.value = autoStorytelling; storyPrev.classList.toggle('filled', !!autoStorytelling);
+    if(hookBadge){ hookBadge.textContent = 'Auto'; hookBadge.classList.remove('manual'); }
+    if(storyBadge){ storyBadge.textContent = 'Auto'; storyBadge.classList.remove('manual'); }
     updateSummaries();
     if(isManualRegen) render();
   }catch(err){
     console.error(err);
     autoHook = ''; autoStorytelling = '';
-    hookPrev.textContent = 'Gagal membuat hook: ' + (err.message || 'kesalahan tidak diketahui');
+    const timedOut = err && err.name === 'AbortError';
+    const msg = timedOut ? 'Proses terlalu lama. Silakan coba lagi, atau ketik hook manual di sini.' : ('Gagal membuat hook: ' + (err.message || 'kesalahan tidak diketahui') + ' — bisa diketik manual di sini.');
+    hookPrev.value = msg;
     hookPrev.className = 'hookstory-preview';
-    storyPrev.textContent = 'Storytelling dilewati karena hook gagal dibuat.';
+    storyPrev.value = 'Storytelling dilewati karena hook gagal dibuat — bisa diketik manual di sini.';
     storyPrev.className = 'hookstory-preview';
+    if(hookBadge){ hookBadge.textContent = 'Gagal'; hookBadge.classList.add('manual'); }
+    if(storyBadge){ storyBadge.textContent = 'Gagal'; storyBadge.classList.add('manual'); }
+    throw err; // biar onGenerateTap tahu ini gagal/timeout dan bisa tampilkan tombol Coba Lagi
   }finally{
     hookGenerating = false;
-    if(regenBtn){ regenBtn.disabled = false; regenBtn.textContent = '🔄 Buat Ulang Hook & Storytelling'; }
+    hookPrev.readOnly = false; storyPrev.readOnly = false;
+    if(regenBtn){ regenBtn.disabled = false; regenBtn.textContent = '🔄 Buat Ulang Hook & Storytelling (AI)'; }
   }
+}
+
+function onHookStoryManualInput(which, value){
+  // Dipanggil saat pengguna mengetik langsung di kotak Hook/Storytelling.
+  // Isi manual ini dipakai apa adanya ke prompt akhir, tidak akan ditimpa AI kecuali tap "Buat Ulang" lagi.
+  if(which === 'hook'){
+    autoHook = value;
+    const hookPrev = document.getElementById('hookPreview');
+    const hookBadge = document.getElementById('hookBadge');
+    hookPrev.classList.toggle('filled', !!value);
+    if(hookBadge){ hookBadge.textContent = 'Manual'; hookBadge.classList.add('manual'); }
+  } else {
+    autoStorytelling = value;
+    const storyPrev = document.getElementById('storyPreview');
+    const storyBadge = document.getElementById('storyBadge');
+    storyPrev.classList.toggle('filled', !!value);
+    if(storyBadge){ storyBadge.textContent = 'Manual'; storyBadge.classList.add('manual'); }
+  }
+  updateSummaries();
 }
 
 /* ================= EXPORT / IMPORT PENGATURAN (API KEY) ================= */
@@ -1495,7 +1541,7 @@ function explainNetworkError(err, providerLabel){
 }
 const GEMINI_MODEL_FALLBACKS = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-flash", "gemini-flash-latest"];
 
-async function callGemini(promptText, imagePart){
+async function callGemini(promptText, imagePart, signal){
   if(!geminiKey) throw new Error('API key Gemini belum diisi. Isi lewat tombol 🔑 AI.');
   const parts = [];
   if(imagePart){
@@ -1505,11 +1551,15 @@ async function callGemini(promptText, imagePart){
   parts.push({ text: promptText });
   let lastErr = null;
   for(const modelName of GEMINI_MODEL_FALLBACKS){
+    if(signal && signal.aborted) throw new DOMException('Aborted', 'AbortError');
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(geminiKey)}`;
     let response;
     try{
-      response = await fetch(url, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ contents:[{ parts }] }) });
-    }catch(networkErr){ throw new Error(explainNetworkError(networkErr, 'Gemini')); }
+      response = await fetch(url, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ contents:[{ parts }] }), signal });
+    }catch(networkErr){
+      if(networkErr.name === 'AbortError') throw networkErr;
+      throw new Error(explainNetworkError(networkErr, 'Gemini'));
+    }
     if(response.status === 404){ lastErr = new Error(`Model ${modelName} tidak tersedia lagi`); continue; }
     if(!response.ok){
       let errMsg = `HTTP ${response.status}`;
@@ -1525,7 +1575,7 @@ async function callGemini(promptText, imagePart){
   throw new Error('Semua model Gemini di daftar sudah tidak tersedia (' + lastErr?.message + ').');
 }
 
-async function callClaude(promptText, imagePart){
+async function callClaude(promptText, imagePart, signal){
   if(!claudeKey) throw new Error('API key Claude belum diisi. Isi lewat tombol 🔑 AI.');
   const content = [];
   if(imagePart){
@@ -1538,9 +1588,13 @@ async function callClaude(promptText, imagePart){
     response = await fetch("https://api.anthropic.com/v1/messages", {
       method:"POST",
       headers:{ "Content-Type":"application/json", "x-api-key": claudeKey, "anthropic-version":"2023-06-01", "anthropic-dangerous-direct-browser-access":"true" },
-      body: JSON.stringify({ model:"claude-sonnet-5", max_tokens:1200, messages:[{ role:"user", content }] })
+      body: JSON.stringify({ model:"claude-sonnet-5", max_tokens:1200, messages:[{ role:"user", content }] }),
+      signal
     });
-  }catch(networkErr){ throw new Error(explainNetworkError(networkErr, 'Anthropic/Claude')); }
+  }catch(networkErr){
+    if(networkErr.name === 'AbortError') throw networkErr;
+    throw new Error(explainNetworkError(networkErr, 'Anthropic/Claude'));
+  }
   if(!response.ok){
     let errMsg = `HTTP ${response.status}`;
     try{ const errJson = await response.json(); errMsg += ': ' + (errJson?.error?.message || JSON.stringify(errJson)).slice(0,220); }catch(e){}
@@ -1553,7 +1607,24 @@ async function callClaude(promptText, imagePart){
   return text;
 }
 
-const detectionInstruction = "Lihat foto produk ini dengan teliti. Balas HANYA dengan objek JSON mentah (tanpa markdown fences, tanpa kalimat pembuka), dalam Bahasa Indonesia, dengan field berikut: product_type (salah satu dari: 'tas', 'sepatu', 'sandal', 'kosmetik', 'baju', 'celana', 'aksesori', 'lainnya' — pilih yang paling cocok), garment_description (frasa singkat warna + produk, misalnya 'tas kulit coklat'), product_details (deskripsi rinci ciri khas produk yang harus dipertahankan persis: warna pasti, logo/motif dan posisinya, bentuk, tekstur bahan, jahitan, aksesoris, resleting/kancing/tali/sol jika ada — tulis 1-2 kalimat detail).";
+const detectionInstruction = `Lihat foto ini dengan sangat teliti sebagai seorang product/commercial photographer profesional. Balas HANYA dengan objek JSON mentah (tanpa markdown fences, tanpa kalimat pembuka), dalam Bahasa Indonesia, dengan field berikut. Jika suatu detail TIDAK terlihat jelas pada foto, isi dengan string kosong "" atau array kosong [] — JANGAN mengarang detail yang tidak terlihat.
+
+{
+  "product_type": "salah satu dari: 'tas','sepatu','sandal','kosmetik','baju','celana','aksesori','lainnya' — pilih paling cocok, kosongkan jika foto bukan produk",
+  "garment_description": "frasa singkat warna + produk, misalnya 'tas kulit coklat'",
+  "product_material": "material/bahan produk yang terlihat, misalnya 'kulit sintetis', 'katun', 'plastik glossy'",
+  "product_color": "warna pasti produk yang terlihat",
+  "product_texture": "tekstur permukaan yang terlihat, misalnya 'bertekstur bintik', 'permukaan halus mengkilap'",
+  "product_logo": "logo/label/tulisan yang terlihat dan posisinya, kosongkan jika tidak ada",
+  "product_details": "1-2 kalimat rangkuman ciri khas produk yang harus dipertahankan persis (bentuk, jahitan, aksesoris, resleting/kancing/tali/sol jika ada)",
+  "subject_pose": "kalau ada orang/model di foto: pose dan posisi tubuhnya. Kosongkan jika tidak ada orang di foto",
+  "subject_expression": "kalau ada orang/model di foto dan wajah terlihat: ekspresi wajahnya. Kosongkan jika tidak ada orang atau wajah tidak terlihat",
+  "composition_notes": "framing, angle kamera, dan posisi subjek pada foto referensi ini (foreground/background jika terlihat)",
+  "lighting_notes": "jenis, arah, dan intensitas cahaya yang terlihat pada foto referensi ini",
+  "environment_notes": "lokasi/latar/suasana yang terlihat pada foto referensi ini",
+  "dominant_colors": ["array 2-4 warna dominan yang benar-benar terlihat pada foto, urutkan dari paling dominan"],
+  "suggested_style": "gaya fotografi/videografi paling sesuai untuk foto ini, misalnya 'commercial product photography' atau 'natural lifestyle photography'"
+}`;
 
 async function detectProduct(){
   if(!uploadedBase64) return;
@@ -1584,6 +1655,17 @@ async function detectProduct(){
     }
     if(parsed.garment_description){ garmentDescription = parsed.garment_description; }
     if(parsed.product_details){ detectedProductDetails = parsed.product_details; }
+    detectedProductMaterial = parsed.product_material || "";
+    detectedProductColor = parsed.product_color || "";
+    detectedProductTexture = parsed.product_texture || "";
+    detectedProductLogo = parsed.product_logo || "";
+    detectedSubjectPose = parsed.subject_pose || "";
+    detectedSubjectExpression = parsed.subject_expression || "";
+    detectedComposition = parsed.composition_notes || "";
+    detectedLighting = parsed.lighting_notes || "";
+    detectedEnvironment = parsed.environment_notes || "";
+    detectedColors = Array.isArray(parsed.dominant_colors) ? parsed.dominant_colors.filter(Boolean) : [];
+    detectedStyle = parsed.suggested_style || "";
 
     status.textContent = '✓ Terisi otomatis — jenis produk & detail sudah dikunci.';
     status.className = 'detect-status ok';
@@ -1664,7 +1746,16 @@ function renderFromJSON(){
   try{ data = JSON.parse(raw); }
   catch(e){ showToast('JSON belum lengkap/valid, generate prompt dulu'); return; }
 
-  const promptText = data.prompt || (data.scene ? JSON.stringify(data, null, 2) : '');
+  let promptText;
+  // Sesuai bagian F: kalau JSON punya struktur baru (product/subject/composition/lighting/camera/style/prompt),
+  // RENDER wajib memakai SEMUA field itu — bukan bikin data baru.
+  if(data.prompt && typeof data.prompt === 'object'){
+    promptText = formatFullPrompt(data);
+  } else if(typeof data.prompt === 'string' && data.prompt){
+    promptText = data.prompt; // fallback: JSON versi lama / hasil edit manual dengan prompt berupa teks biasa
+  } else if(data.scene){
+    promptText = JSON.stringify(data, null, 2);
+  }
   if(!promptText){ showToast('Tidak ada data prompt di JSON ini'); return; }
 
   const box = document.getElementById('promptBox');
@@ -1734,7 +1825,7 @@ async function generateUlang(){
   const editBtn = document.getElementById('editBtn');
   if(editBtn) editBtn.textContent = '✏️ Edit';
   if(geminiKey || claudeKey){
-    await generateHookStory(false);
+    try{ await generateHookStory(false); }catch(e){ /* pesan error sudah ditampilkan di hookPreview/storyPreview */ }
   }
   render();
   showToast('Prompt digenerate ulang');
@@ -1755,6 +1846,87 @@ function syntaxHighlight(json){
 }
 
 /* ================= RENDER PROMPT FINAL ================= */
+/* ================= UPGRADE: NEGATIVE PROMPT, TITLE, STYLE, DLL (LOKAL, TANPA AI, INSTAN) ================= */
+function buildNegativePrompt(){
+  const base = ['blurry','low quality','distorted object','duplicate object','incorrect logo','unreadable text','oversaturated','unnatural lighting','artifacts','watermark','extra text overlay','jpeg artifacts'];
+  if(fotoSubjek === 'model'){
+    base.push('malformed hands','extra fingers','missing fingers','deformed face','asymmetrical face','extra limbs','unnatural pose','bad anatomy');
+  }
+  if(fotoSubjek === 'produk'){
+    base.push('warped product','product shape changed','wrong product color','floating product','product clipping through hand','melted product edges');
+  }
+  return base.join(', ');
+}
+
+function buildTitle(subjekLabel, lokasiLabel, gerakanLabel){
+  const t = `${subjekLabel} — ${gerakanLabel || 'Video Produk'} di ${lokasiLabel}`;
+  return t.length > 90 ? t.slice(0,87) + '...' : t;
+}
+
+function buildStyleText(){
+  const platform = document.getElementById('platformSelect')?.value || 'Generic / Lainnya';
+  const cinematicPlatforms = ['Runway Gen-3','Luma Dream Machine'];
+  const base = fotoSubjek === 'model'
+    ? 'natural lifestyle photography, authentic dan tidak berlebihan'
+    : 'professional commercial product photography, bersih dan fokus pada produk';
+  const platformNote = cinematicPlatforms.includes(platform)
+    ? ', cinematic film-look, shallow depth of field'
+    : ', tampilan tajam dan jelas untuk media sosial';
+  return (detectedStyle ? detectedStyle + '. ' : '') + base + platformNote + ` (dioptimalkan untuk ${platform}).`;
+}
+
+function buildAspectRatioText(){
+  const platform = document.getElementById('platformSelect')?.value || 'Generic / Lainnya';
+  return `9:16 vertical — dioptimalkan untuk TikTok/Instagram Reels/Shorts, kompatibel dengan ${platform}.`;
+}
+
+function buildQualityText(){
+  return 'highly detailed, realistic texture, natural lighting, realistic shadow, sharp focus pada subjek utama, professional photography, clean composition, high resolution, tanpa artifact.';
+}
+
+function buildCompositionText(camText, lokasiLabel){
+  const subjekWord = fotoSubjek === 'model' ? 'model' : 'produk';
+  const base = `Framing mengikuti posisi kamera (${camText}). ${subjekWord.charAt(0).toUpperCase()+subjekWord.slice(1)} diposisikan jelas sebagai focal point dengan ruang negatif natural di sekitarnya; latar (${lokasiLabel}) berfungsi sebagai pendukung tanpa mengalihkan perhatian dari ${subjekWord}.`;
+  return detectedComposition ? `${detectedComposition} ${base}` : base;
+}
+
+// Dipakai oleh render() (data baru) DAN renderFromJSON() (data dari kotak JSON, sesuai bagian F: RENDER wajib
+// memakai product/subject/composition/lighting/camera/style/prompt yang ada di JSON, bukan membuat data baru).
+function formatFullPrompt(data){
+  const proj = data.project || {};
+  const cam = data.camera || {};
+  const light = data.lighting || {};
+  const comp = data.composition || {};
+  const sty = data.style || {};
+  const out = data.output || {};
+  const prm = data.prompt || {};
+
+  const title = proj.name || 'Video Produk';
+  const mainBody = (typeof prm.main === 'string' && prm.main) ? prm.main : '(main prompt kosong)';
+  const negative = (typeof prm.negative === 'string' && prm.negative) ? prm.negative : '-';
+
+  const cameraLine = [cam.shot_type, cam.lens, cam.focal_length, cam.aperture, cam.depth_of_field, cam.focus].filter(Boolean).join(', ') || (comp.camera_angle || '-');
+  const lightingLine = [light.type, light.direction, light.intensity, light.shadow, light.highlight].filter(Boolean).join(', ') || '-';
+  const compositionLine = [comp.framing, comp.camera_angle, comp.perspective, comp.subject_position, comp.negative_space].filter(Boolean).join(', ') || '-';
+  const styleLine = [sty.visual_style, sty.photography_style, sty.realism].filter(Boolean).join(', ') || '-';
+  const aspectLine = [out.aspect_ratio, out.resolution].filter(Boolean).join(', ') || '-';
+  const qualityLine = out.quality || '-';
+
+  return `TITLE: ${title}
+
+MAIN PROMPT:
+${mainBody}
+
+NEGATIVE PROMPT: ${negative}
+
+CAMERA: ${cameraLine}
+LIGHTING: ${lightingLine}
+COMPOSITION: ${compositionLine}
+STYLE: ${styleLine}
+ASPECT RATIO: ${aspectLine}
+QUALITY: ${qualityLine}`;
+}
+
 function render(){
   const catObj = CATEGORIES.find(c=>c.id===selectedCategory) || CATEGORIES[0];
   const catLabel = selectedCategory === 'custom' ? (document.getElementById('categoryCustomText').value.trim() || 'produk custom') : catObj.label;
@@ -1833,41 +2005,123 @@ function render(){
     lightingText = selectedLighting;
   }
 
-  const preservasi = `PRODUCT CONSISTENCY: maintain exact product consistency throughout — do not alter the product shape, proportions, color, design, logo, material, texture, or visible details. Pertahankan bentuk, ukuran, proporsi, warna, motif, logo, tulisan, desain, material, tekstur, jahitan, dan aksesori produk agar identik dengan foto referensi (${garmentDescription})${detectedProductDetails ? '. Detail spesifik dari foto: ' + detectedProductDetails : ''}. Jangan menambahkan detail yang tidak terlihat pada referensi. Gerakan tangan harus realistis dan konsisten (posisi stabil, jangan menembus produk, jangan berpindah tangan tiba-tiba).`;
+  const materialColorBits = [detectedProductMaterial, detectedProductColor, detectedProductTexture].filter(Boolean).join(', ');
+  const preservasi = `PRODUCT CONSISTENCY: maintain exact product consistency throughout — do not alter the product shape, proportions, color, design, logo, material, texture, or visible details. Pertahankan bentuk, ukuran, proporsi, warna, motif, logo, tulisan, desain, material, tekstur, jahitan, dan aksesori produk agar identik dengan foto referensi (${garmentDescription})${materialColorBits ? '. Material/warna/tekstur dari foto: ' + materialColorBits : ''}${detectedProductLogo ? '. Logo/label: ' + detectedProductLogo : ''}${detectedProductDetails ? '. Detail spesifik dari foto: ' + detectedProductDetails : ''}. Jangan menambahkan detail yang tidak terlihat pada referensi. Gerakan tangan harus realistis dan konsisten (posisi stabil, jangan menembus produk, jangan berpindah tangan tiba-tiba).`;
 
   const ctaText = document.getElementById('ctaText').value.trim() || 'Cek keranjang di bawah!';
   const hookSection = autoHook ? `\nHOOK: ${autoHook}` : '';
   const storySection = autoStorytelling ? `\nSTORYTELLING: ${autoStorytelling}` : '';
+  const subjectExtra = fotoSubjek === 'model'
+    ? [detectedSubjectPose, detectedSubjectExpression].filter(Boolean).map(t=>' ' + t).join('')
+    : '';
 
-  const promptText = `SUBJECT: ${subjekText}.${modelBlock}
-LOCATION: ${lokasi.label}.${lokasiNote}
-LIGHTING: ${lightingText}.
+  // Ini narasi inti video (tetap semua detail lama: subjek, lokasi, gerakan, transisi, interaksi produk, cta, ending, hook/story, konsistensi produk)
+  const mainPromptBody = `SUBJECT: ${subjekText}.${modelBlock}${subjectExtra ? ' Detail dari foto:' + subjectExtra : ''}
+LOCATION: ${lokasi.label}.${lokasiNote}${detectedEnvironment ? ' Detail lingkungan dari foto: ' + detectedEnvironment + '.' : ''}
 STARTING POSITION: ${fotoSubjek === 'model' ? 'model dalam posisi santai natural, siap memulai gerakan' : 'produk dalam posisi awal yang stabil dan jelas terlihat kamera'}.
 MAIN ACTION: ${gerakanText}, dilakukan halus, satu aksi utama, tidak terburu-buru.
 NATURAL TRANSITION: perpindahan antar gerakan dilakukan halus dan berkesinambungan, hindari perubahan pose atau posisi yang ekstrem/tiba-tiba.
-PRODUCT INTERACTION: ${reviewBlock ? reviewBlock.trim() : 'produk ditampilkan konsisten mengikuti gerakan utama tanpa interaksi tambahan yang rumit'}
-CAMERA: ${camText}.${hookSection}${storySection}
+PRODUCT INTERACTION: ${reviewBlock ? reviewBlock.trim() : 'produk ditampilkan konsisten mengikuti gerakan utama tanpa interaksi tambahan yang rumit'}${hookSection}${storySection}
 CTA: ${ctaText}
 ENDING: kembali ke posisi stabil dan natural, produk tetap jelas terlihat di frame terakhir.
 
 ${preservasi}` + (notes ? `\nInstruksi tambahan: ${notes}.` : '');
 
+  // ===== Field baru: negative prompt, title, style, aspect ratio, quality, composition — semua lokal & instan, tanpa AI =====
+  const negativePrompt = buildNegativePrompt();
+  const title = buildTitle(subjekText, lokasi.label, gerakanText);
+  const styleText = buildStyleText();
+  const aspectRatioText = buildAspectRatioText();
+  const qualityText = buildQualityText();
+  const compositionText = buildCompositionText(camText, lokasi.label);
+
+  // ===== Struktur JSON baru (sesuai skema yang diminta) + field lama tetap dipertahankan agar fitur lain tidak rusak =====
   const data = {
-    subjek: subjekText,
-    jenis_produk: fotoSubjek === 'produk' ? catLabel : null,
+    project: {
+      name: title,
+      type: fotoSubjek === 'model' ? 'video model/lifestyle' : 'video produk',
+      purpose: 'konten video produk untuk media sosial'
+    },
+    subject: {
+      main_subject: subjekText,
+      description: fotoSubjek === 'model' ? (garmentDescription !== 'produk' ? garmentDescription : 'model tampil natural sesuai foto referensi') : garmentDescription,
+      position: fotoSubjek === 'model' ? 'mengikuti pose pada foto referensi, gerakan halus dan natural' : 'diposisikan stabil sesuai gerakan utama yang dipilih',
+      pose: detectedSubjectPose || '',
+      expression: detectedSubjectExpression || ''
+    },
+    product: {
+      is_product: fotoSubjek === 'produk',
+      category: fotoSubjek === 'produk' ? catLabel : '',
+      name: garmentDescription || '',
+      material: detectedProductMaterial || '',
+      color: detectedProductColor || '',
+      texture: detectedProductTexture || '',
+      details: detectedProductDetails || '',
+      logo: detectedProductLogo || '',
+      preserve_original_design: true
+    },
+    environment: {
+      location: lokasi.label,
+      background: detectedEnvironment || lokasi.label,
+      foreground: fotoSubjek === 'model' ? 'model/subjek utama' : 'produk utama',
+      atmosphere: detectedEnvironment || (lokasi.isOutdoor ? 'suasana outdoor natural' : 'suasana indoor natural')
+    },
+    composition: {
+      framing: camText,
+      camera_angle: camText,
+      perspective: detectedComposition || 'eye-level natural, fokus pada subjek utama',
+      subject_position: fotoSubjek === 'model' ? 'tengah frame, ruang kepala natural' : 'tengah frame, produk sebagai focal point',
+      negative_space: 'ruang natural di sekitar subjek, tidak terlalu padat'
+    },
+    lighting: {
+      type: lightingText,
+      direction: detectedLighting || (lokasi.isOutdoor ? 'mengikuti arah cahaya matahari/lokasi' : 'cahaya merata dari depan/samping'),
+      intensity: 'sedang, natural, tidak berlebihan',
+      shadow: 'bayangan lembut dan natural',
+      highlight: 'highlight halus pada subjek utama, tidak overexposed'
+    },
+    camera: {
+      shot_type: 'medium shot',
+      lens: '35mm - 50mm (setara)',
+      focal_length: 'normal, tidak wide distortif',
+      aperture: fotoSubjek === 'produk' ? 'f/2.8 - f/4 (produk tetap tajam menyeluruh)' : 'f/2.0 - f/2.8 (subjek tajam, background sedikit lembut)',
+      depth_of_field: fotoSubjek === 'produk' ? 'dangkal-sedang, produk tetap tajam menyeluruh' : 'dangkal, subjek tajam dan terpisah dari background',
+      focus: `fokus utama pada ${fotoSubjek === 'model' ? 'model' : 'produk'}, tidak berpindah fokus tiba-tiba`
+    },
+    color: {
+      dominant_colors: detectedColors,
+      tone: 'natural, warm-neutral',
+      contrast: 'sedang, tidak over-contrast',
+      color_grading: 'natural commercial look, warna tetap akurat sesuai referensi'
+    },
+    style: {
+      visual_style: styleText,
+      photography_style: fotoSubjek === 'model' ? 'lifestyle commercial' : 'product commercial',
+      realism: 'photorealistic, tidak berlebihan/tidak seperti ilustrasi'
+    },
+    prompt: {
+      main: mainPromptBody,
+      negative: negativePrompt
+    },
+    output: {
+      aspect_ratio: '9:16',
+      resolution: '1080x1920 (Full HD vertical)',
+      quality: qualityText
+    },
+
+    // Field tambahan (spesifik video) — tetap dipertahankan supaya fitur Hook/Storytelling, CTA, durasi, dan review produk tidak hilang
     gerakan: gerakanText,
     review_produk: gerakanUtama === 'Review Produk' ? (reviewBlock || 'belum diisi') : null,
-    lokasi: lokasi.label,
-    posisi_kamera: camText,
-    pencahayaan: lightingText,
     hook: autoHook || "belum dibuat — tap Generate Prompt",
     storytelling: autoStorytelling || "belum dibuat — tap Generate Prompt",
     cta: ctaText,
     durasi_detik: duration,
     instruksi_tambahan: notes || null,
     ai_provider: activeProvider === 'gemini' ? 'Google Gemini' : 'Anthropic Claude',
-    prompt: promptText
+    platform_target: document.getElementById('platformSelect')?.value || 'Generic / Lainnya'
   };
+
+  const promptText = formatFullPrompt(data);
 
   document.getElementById('jsonOutput').innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
   const promptBox = document.getElementById('promptBox');
@@ -1875,21 +2129,52 @@ ${preservasi}` + (notes ? `\nInstruksi tambahan: ${notes}.` : '');
 }
 
 async function onGenerateTap(){
+  if(mainGenerating) return; // cegah request ganda kalau tombol sempat tertekan lagi
+  mainGenerating = true;
+
   const btn = document.getElementById('mainGenBtn');
-  if(btn){ btn.disabled = true; btn.textContent = '✨ Membuat Hook & Storytelling...'; }
-  if(geminiKey || claudeKey){
-    await generateHookStory(false);
+  if(btn){ btn.disabled = true; btn.textContent = '⏳ Generating Prompt...'; }
+
+  let timeoutId = null;
+  let timedOut = false;
+  const controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+
+  try{
+    if(geminiKey || claudeKey){
+      if(controller){
+        timeoutId = setTimeout(() => { timedOut = true; controller.abort(); }, GENERATE_TIMEOUT_MS);
+      }
+      await generateHookStory(false, controller ? controller.signal : undefined);
+    }
+    // Fetch di atas cuma dipanggil sekali per tap; mainGenerating + tombol disabled
+    // mencegah tap kedua memicu request baru selagi ini masih berjalan.
+    render();
+    // Jangan paksa halaman scroll ke output. Pengguna tetap di posisi terakhir.
+    showToast('Prompt siap!');
+    const inner = document.getElementById('stickyBarInner');
+    inner.innerHTML = `
+      <button class="btn-outline" onclick="copyPrompt()">📋 Copy</button>
+      <button class="btn-outline" onclick="toggleEdit()">✏️ Edit</button>
+      <button class="btn-outline" onclick="generateUlang()">🔄 Ulang</button>
+    `;
+  }catch(err){
+    console.error(err);
+    // Hook/storytelling gagal atau timeout — prompt utama tetap dibuat dari data yang ada,
+    // supaya fitur Copy/Edit/JSON tidak ikut macet.
+    render();
+    const message = timedOut ? 'Proses terlalu lama. Silakan coba lagi.' : ('Gagal membuat prompt: ' + (err.message || 'kesalahan tidak diketahui'));
+    showToast(message);
+    const inner = document.getElementById('stickyBarInner');
+    inner.innerHTML = `
+      <button class="btn-outline" onclick="copyPrompt()">📋 Copy</button>
+      <button class="btn-outline" onclick="toggleEdit()">✏️ Edit</button>
+      <button class="btn-outline" onclick="onGenerateTap()">🔁 Coba Lagi</button>
+    `;
+  }finally{
+    if(timeoutId) clearTimeout(timeoutId);
+    mainGenerating = false;
+    if(btn){ btn.disabled = false; btn.textContent = '✨ Generate Prompt'; }
   }
-  if(btn){ btn.disabled = false; btn.textContent = '✨ Generate Prompt'; }
-  render();
-  // Jangan paksa halaman scroll ke output. Pengguna tetap di posisi terakhir.
-  showToast('Prompt siap!');
-  const inner = document.getElementById('stickyBarInner');
-  inner.innerHTML = `
-    <button class="btn-outline" onclick="copyPrompt()">📋 Copy</button>
-    <button class="btn-outline" onclick="toggleEdit()">✏️ Edit</button>
-    <button class="btn-outline" onclick="generateUlang()">🔄 Ulang</button>
-  `;
 }
 
 function switchMainTab(tab){
