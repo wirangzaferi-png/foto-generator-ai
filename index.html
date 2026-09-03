@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#07111f">
+<meta name="theme-color" content="#05060d">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -331,132 +331,146 @@ input, textarea, select, [contenteditable="true"] {
 * { scrollbar-width:none; }
 *::-webkit-scrollbar { width:0 !important; height:0 !important; display:none !important; }
 
-/* ===== WIRANZA AI SPLASH SCREEN — animasi 9 fase, ~3 detik total ===== */
+/* ===== WIRANZA AI SPLASH SCREEN — logo presisi + urutan sparkle→V→sisi ===== */
 #wiranzaSplash{
   position:fixed; inset:0; z-index:999999;
   display:flex; align-items:center; justify-content:center;
   overflow:hidden;
-  background:#07111f;
+  background:#05060d;
   transition:opacity .5s ease, visibility .5s ease;
 }
 #wiranzaSplash.hide{opacity:0;visibility:hidden;pointer-events:none}
 
-/* FASE 1 (0 - 0.4s): background + cahaya radial lembut muncul halus */
-.wz-bg-glow{
-  position:absolute; inset:0;
+#wiranzaSplash .wz-aura{
+  position:absolute; inset:-20%;
   background:
-    radial-gradient(circle at 50% 42%, rgba(71,88,255,.15), transparent 30%),
-    radial-gradient(circle at 50% 55%, rgba(255,45,149,.08), transparent 38%);
+    radial-gradient(28% 22% at 30% 30%, rgba(47,107,255,0.18), transparent 60%),
+    radial-gradient(28% 22% at 72% 60%, rgba(255,79,216,0.14), transparent 60%);
+  filter:blur(40px);
   opacity:0;
-  animation:wzBgIn .4s ease-out forwards;
+  animation:wzAuraIn 1.5s ease .4s forwards, wzDrift 9s ease-in-out 1.9s infinite alternate;
 }
+@keyframes wzAuraIn{ to{opacity:1} }
+@keyframes wzDrift{ 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(2%,-3%) scale(1.06)} }
 
-.wz-splash-inner{text-align:center;width:min(88vw,420px);position:relative}
-.wz-logo-wrap{width:190px;height:170px;margin:0 auto 20px;position:relative;display:grid;place-items:center;
-  animation:wzPulse .5s 1s ease-out both; /* FASE 4: glow pulse 1x, 1.0 - 1.5s */
+#wiranzaSplash .wz-particles{ position:absolute; inset:0; overflow:hidden; opacity:0; animation:wzAuraIn 1.5s ease .6s forwards; }
+#wiranzaSplash .wz-dot{
+  position:absolute; width:3px; height:3px; border-radius:50%;
+  background:#9a4fff; box-shadow:0 0 8px 1px rgba(154,79,255,.8);
+  animation:wzFloaty 6s ease-in-out infinite;
 }
+@keyframes wzFloaty{ 0%,100%{transform:translateY(0); opacity:.5} 50%{transform:translateY(-18px); opacity:1} }
 
-/* FASE 2 (0.3 - 0.9s): sparkle muncul dari kecil+transparan ke normal, glow lembut */
-.wz-spark{
-  position:absolute; top:2px; right:14px; width:34px; height:34px;
-  opacity:0; transform:rotate(45deg) scale(.25);
-  filter:drop-shadow(0 0 6px rgba(0,178,255,.55)) drop-shadow(0 0 10px rgba(255,45,149,.35));
-  animation:wzSpark .6s .3s cubic-bezier(.2,.8,.2,1) forwards;
+.wz-splash-inner{ position:relative; text-align:center; width:min(88vw,420px); padding:24px; box-sizing:border-box; }
+
+.wz-mark{ width:168px; height:auto; margin:0 auto 14px; overflow:visible; display:block; }
+.wz-mark polygon, .wz-mark path{ opacity:0; }
+
+.wz-spark{ transform-origin:96px 70px;
+  animation:wzSparkIn .7s cubic-bezier(.2,.8,.2,1) .15s forwards, wzSparkPulse 2.4s ease-in-out 1.4s infinite;
 }
-.wz-spark::before,.wz-spark::after{content:"";position:absolute;left:50%;top:50%;background:linear-gradient(180deg,#00d9ff,#ff39c8);transform:translate(-50%,-50%);border-radius:999px}
-.wz-spark::before{width:4px;height:34px}
-.wz-spark::after{width:34px;height:4px}
+@keyframes wzSparkIn{ 0%{opacity:0; transform:scale(.2) rotate(-25deg)} 60%{opacity:1; transform:scale(1.25) rotate(4deg)} 100%{opacity:1; transform:scale(1) rotate(0)} }
+@keyframes wzSparkPulse{ 0%,100%{filter:drop-shadow(0 0 6px rgba(154,79,255,.5))} 50%{filter:drop-shadow(0 0 15px rgba(154,79,255,.9))} }
 
-/* FASE 3 (0.5 - 1.2s): huruf W "digambar" oleh cahaya (stroke reveal) */
-.wz-logo{width:150px;height:118px;position:relative}
-.wz-logo .bar{
-  stroke:url(#wzGrad); stroke-width:15; stroke-linecap:round; stroke-linejoin:round; fill:none;
-  filter:drop-shadow(0 0 8px rgba(0,178,255,.6)) drop-shadow(0 0 16px rgba(255,45,149,.35));
-  stroke-dasharray:1; stroke-dashoffset:1;
-  animation:wzDraw .7s .5s cubic-bezier(.3,.7,.2,1) forwards;
-}
+.wz-blade-mid{ animation:wzStrokeIn .85s ease-out .55s forwards; transform-origin:96px 92px; }
+.wz-blade-left{ animation:wzStrokeIn .85s ease-out .85s forwards; transform-origin:55px 76px; }
+.wz-blade-right{ animation:wzStrokeIn .85s ease-out .85s forwards; transform-origin:140px 76px; }
+@keyframes wzStrokeIn{ 0%{opacity:0; transform:translateY(14px) scale(.92)} 100%{opacity:1; transform:translateY(0) scale(1)} }
 
-/* FASE 5 (1.3 - 1.9s): judul WIRANZA AI */
 .wz-title{
-  margin:0;font:800 clamp(30px,9vw,44px)/1.05 'Space Grotesk',sans-serif;letter-spacing:.06em;
-  background:linear-gradient(100deg,#00b2ff,#7a5cff 52%,#ff2d95);
-  -webkit-background-clip:text;background-clip:text;color:transparent;
-  opacity:0; transform:translateY(10px);
-  animation:wzTextUp .6s 1.3s cubic-bezier(.2,.7,.2,1) forwards;
+  margin:0; font:800 clamp(26px,7.5vw,42px)/1 'Space Grotesk',sans-serif; letter-spacing:.06em;
+  background:linear-gradient(90deg,#2f6bff,#9a4fff 55%,#ff4fd8);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  opacity:0; filter:blur(6px);
+  animation:wzTextReveal .8s ease-out 1.25s forwards;
 }
-/* FASE 6 (1.7 - 2.2s): subjudul, fade-in halus saja */
+@keyframes wzTextReveal{ 0%{opacity:0; filter:blur(6px); transform:translateY(6px)} 100%{opacity:1; filter:blur(0); transform:translateY(0)} }
+
 .wz-sub{
-  margin:10px 0 0;color:#b9c1d2;font:500 11px/1.4 'Space Grotesk',sans-serif;letter-spacing:.22em;
-  opacity:0;
-  animation:wzFadeOnly .5s 1.7s ease-out forwards;
+  margin-top:10px; font-size:12px; letter-spacing:.28em; color:#9aa0b4;
+  font-family:'Space Grotesk',sans-serif;
+  opacity:0; animation:wzFadeUp .6s ease-out 1.65s forwards;
 }
-.wz-line{height:2px;width:130px;margin:18px auto 0;background:linear-gradient(90deg,#00b2ff,#7a5cff,#ff2d95);border-radius:99px;
-  opacity:0; width:0;
-  animation:wzLine .5s 1.7s ease-out forwards;
-}
-/* FASE 7 (2.0 - 2.5s): nama pembuat, putih/abu, kecil, elegan */
+.wz-divider{ display:flex; align-items:center; justify-content:center; gap:14px; margin-top:26px; opacity:0; animation:wzFadeUp .6s ease-out 1.9s forwards; }
+.wz-divider-line{ height:1px; width:36px; background:linear-gradient(90deg,transparent,#2f6bff); }
+.wz-divider-line.right{ background:linear-gradient(90deg,#ff4fd8,transparent); }
+.wz-divider-glow{ height:2px; width:60px; border-radius:2px; background:linear-gradient(90deg,#2f6bff,#9a4fff,#ff4fd8); box-shadow:0 0 10px rgba(122,92,255,.7); }
 .wz-author{
-  margin:26px 0 0;color:#e8ebf2;font:500 12px/1.4 'Space Grotesk',sans-serif;letter-spacing:.28em;
-  opacity:0;
-  animation:wzFadeOnly .5s 2.0s ease-out forwards;
+  margin-top:16px; font-size:13px; letter-spacing:.24em; color:#e6e8f0;
+  font-family:'Space Grotesk',sans-serif;
+  opacity:0; animation:wzFadeUp .6s ease-out 2.1s forwards;
 }
-
-/* FASE 8 (2.2 - 2.8s): light sweep, sekali saja, melewati logo */
-.wz-light-sweep{
-  position:absolute; left:-30%; top:38%; width:40%; height:2px;
-  background:linear-gradient(90deg,transparent,#fff,transparent);
-  filter:blur(1px); opacity:0;
-  animation:wzSweep .6s 2.2s ease-in-out forwards;
-}
-
-@keyframes wzBgIn{ from{opacity:0} to{opacity:1} }
-@keyframes wzSpark{ from{opacity:0; transform:rotate(45deg) scale(.25)} to{opacity:1; transform:rotate(45deg) scale(1)} }
-@keyframes wzDraw{ to{ stroke-dashoffset:0 } }
-@keyframes wzPulse{ 0%{transform:scale(1)} 50%{transform:scale(1.025)} 100%{transform:scale(1)} }
-@keyframes wzTextUp{ to{opacity:1; transform:translateY(0)} }
-@keyframes wzFadeOnly{ to{opacity:1} }
-@keyframes wzLine{ to{opacity:1; width:130px} }
-@keyframes wzSweep{ 0%{left:-30%; opacity:0} 25%{opacity:.9} 100%{left:110%; opacity:0} }
+@keyframes wzFadeUp{ 0%{opacity:0; transform:translateY(8px)} 100%{opacity:1; transform:translateY(0)} }
 
 @media (prefers-reduced-motion:reduce){
   #wiranzaSplash *{animation:none!important}
-  .wz-title,.wz-sub,.wz-author,.wz-line,.wz-spark,.wz-bg-glow{opacity:1}
-  .wz-logo .bar{stroke-dashoffset:0}
-  .wz-line{width:130px}
+  .wz-mark polygon, .wz-mark path, .wz-title, .wz-sub, .wz-divider, .wz-author, .wz-aura, .wz-particles{opacity:1}
 }
 
 </style>
 </head>
 <body>
 <div id="wiranzaSplash" aria-label="Memuat Wiranza AI">
-  <div class="wz-bg-glow"></div>
+  <div class="wz-aura"></div>
+  <div class="wz-particles" id="wzParticles"></div>
   <div class="wz-splash-inner">
-    <div class="wz-logo-wrap">
-      <svg class="wz-logo" viewBox="0 0 180 140" aria-hidden="true">
-        <defs>
-          <linearGradient id="wzGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stop-color="#00d9ff">
-              <animate attributeName="stop-color" values="#00d9ff;#635bff;#00d9ff" dur="2.4s" begin="0.5s" fill="freeze"/>
-            </stop>
-            <stop offset=".5" stop-color="#635bff">
-              <animate attributeName="stop-color" values="#635bff;#a24bff;#635bff" dur="2.4s" begin="0.5s" fill="freeze"/>
-            </stop>
-            <stop offset="1" stop-color="#ff2d95">
-              <animate attributeName="stop-color" values="#ff2d95;#ff6bb3;#ff2d95" dur="2.4s" begin="0.5s" fill="freeze"/>
-            </stop>
-          </linearGradient>
-        </defs>
-        <path class="bar" pathLength="1" d="M20 25 L58 108 L78 67 L100 108 L145 25"/>
-      </svg>
-      <div class="wz-spark"></div>
-      <div class="wz-light-sweep"></div>
-    </div>
+    <svg class="wz-mark" viewBox="20 40 150 115" aria-hidden="true">
+      <defs>
+        <linearGradient id="wzLeft" x1="0" y1="0" x2="0.5" y2="1">
+          <stop offset="0%" stop-color="#4fd8ff"/><stop offset="100%" stop-color="#2f6bff"/>
+        </linearGradient>
+        <linearGradient id="wzMidFull" x1="0" y1="0" x2="1" y2="0.2">
+          <stop offset="0%" stop-color="#4f7dff"/><stop offset="50%" stop-color="#8a5bff"/><stop offset="100%" stop-color="#c04fff"/>
+        </linearGradient>
+        <linearGradient id="wzRight" x1="1" y1="0" x2="0.4" y2="1">
+          <stop offset="0%" stop-color="#ff4fd8"/><stop offset="100%" stop-color="#a24fff"/>
+        </linearGradient>
+        <linearGradient id="wzSpark" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#4fd8ff"/><stop offset="50%" stop-color="#7a6bff"/><stop offset="100%" stop-color="#ff4fd8"/>
+        </linearGradient>
+        <filter id="wzGlow" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="2.6" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <g filter="url(#wzGlow)">
+        <polygon class="wz-spark" fill="url(#wzSpark)" points="95.8,52.0 95.3,52.5 94.1,61.2 91.9,65.2 88.0,68.0 81.4,69.3 80.4,70.4 87.0,71.8 91.7,74.7 94.1,78.9 95.3,87.2 96.4,87.9 97.8,79.4 100.1,75.1 103.2,72.6 108.1,71.1 111.2,70.8 111.6,69.8 110.8,69.2 104.2,68.0 100.3,65.2 97.9,61.0 97.0,56.9 96.8,52.6"/>
+
+        <path class="wz-blade-mid" fill="url(#wzMidFull)" d="M 67.4,87.5 L 89.4,138.1 L 96,144.7 L 102.6,138.1 L 124.6,87.5 L 104.8,87.5 L 96,118.3 L 87.2,87.5 Z"/>
+
+        <polygon class="wz-blade-left" fill="url(#wzLeft)" points="31,76.3 30.5,77.8 65.7,145.2 68.2,145.7 77.8,126.0 54.2,78.8 51.2,76.7"/>
+
+        <polygon class="wz-blade-right" fill="url(#wzRight)" points="161.0,76.3 161.5,77.8 126.3,145.2 123.8,145.7 114.2,126.0 137.8,78.8 140.8,76.7"/>
+      </g>
+    </svg>
+
     <h1 class="wz-title">WIRANZA AI</h1>
     <div class="wz-sub">AI PHOTO &amp; CONTENT GENERATOR</div>
-    <div class="wz-line"></div>
+    <div class="wz-divider">
+      <div class="wz-divider-line"></div>
+      <div class="wz-divider-glow"></div>
+      <div class="wz-divider-line right"></div>
+    </div>
     <div class="wz-author">VERRY WIRANZA</div>
   </div>
 </div>
+<script>
+(function(){
+  var wrap = document.getElementById('wzParticles');
+  if(!wrap) return;
+  for(var i=0;i<14;i++){
+    var d = document.createElement('div');
+    d.className = 'wz-dot';
+    d.style.left = (Math.random()*100)+'%';
+    d.style.top = (Math.random()*100)+'%';
+    d.style.animationDelay = (Math.random()*4)+'s';
+    d.style.animationDuration = (5+Math.random()*4)+'s';
+    d.style.opacity = (0.3+Math.random()*0.5);
+    wrap.appendChild(d);
+  }
+})();
+</script>
 
 
 
