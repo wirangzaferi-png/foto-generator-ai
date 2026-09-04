@@ -727,27 +727,14 @@ input, textarea, select, [contenteditable="true"] {
 
       <div class="acc" id="sec-lain">
         <div class="acc-head" onclick="toggleSection('sec-lain')">
-          <span class="num">⑨</span><span class="ttl">Instruksi Tambahan</span>
+          <span class="num">⑨</span><span class="ttl">Jenis Prompt</span>
           <span class="chev">▾</span>
         </div>
         <div class="acc-body"><div class="acc-body-inner">
           <div class="field">
             <label class="field-label">Jenis Prompt</label>
-            <select id="jenisPrompt">
-              <option value="video" selected>🎬 Video Produk (gerakan, transisi, CTA)</option>
-              <option value="foto">📸 Foto Produk (gambar statis, tanpa gerakan)</option>
-              <option value="ugc">📱 UGC / Konten Natural (gaya review organik, handheld)</option>
-              <option value="cinematic">🎥 Iklan Sinematik (dramatis, cinematic ad)</option>
-            </select>
-            <div class="hint">Menentukan gaya & struktur prompt yang dihasilkan — video dengan gerakan, foto statis, gaya UGC santai, atau iklan sinematik.</div>
-          </div>
-          <div class="field">
-            <label class="field-label">Durasi (detik)</label>
-            <input type="text" id="duration" value="8">
-          </div>
-          <div class="field">
-            <label class="field-label">Catatan Tambahan</label>
-            <textarea id="notes" placeholder="opsional"></textarea>
+            <select id="promptTypeSelect"></select>
+            <div class="hint" id="promptTypeHint"></div>
           </div>
           <div class="field" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
             <label class="field-label">⚙️ Pengaturan (API Key)</label>
@@ -756,7 +743,7 @@ input, textarea, select, [contenteditable="true"] {
               <button class="btn-mini" onclick="document.getElementById('importSettingsInput').click()">⬆️ Import Pengaturan</button>
               <input type="file" id="importSettingsInput" accept="application/json" style="display:none;">
             </div>
-            <div class="hint">Simpan/pulihkan API Key lewat file kecil di HP — key browser ini hilang saat halaman ditutup (batasan platform), jadi export dulu kalau mau pakai lagi nanti tanpa isi ulang.</div>
+            <div class="hint">API Key tersimpan otomatis di HP ini (sekali isi, tetap ada meski aplikasi ditutup). Export/Import tetap berguna kalau ganti HP atau pindah browser.</div>
           </div>
         </div></div>
       </div>
@@ -881,6 +868,32 @@ let selectedOutdoor = "Di Dalam Mobil";
 let locBgBase64 = null, locBgMediaType = null;
 let selectedCamPos = "dada";
 let selectedLighting = "Auto";
+/* ================= JENIS PROMPT — 16 gaya kreatif, lokal (tanpa API request tambahan) ================= */
+const PROMPT_TYPES = [
+  { id:'general', name:'GENERAL', objective:'Prompt fotografi/video natural dan profesional dengan mempertahankan foto asli semaksimal mungkin.', strategy:'Keep the treatment clean, natural, and professional. No stylistic exaggeration — just a well-composed, well-lit, true-to-reference presentation.' },
+  { id:'hook', name:'HOOK / BIKIN PENONTON PENASARAN', objective:'Membuat konsep visual yang menarik perhatian dan menimbulkan rasa penasaran.', strategy:'Open with a visually intriguing composition or angle that immediately grabs attention and creates curiosity, using framing and timing to tease before revealing.' },
+  { id:'stopscroll', name:'STOP SCROLL', objective:'Membuat visual lebih menarik secara komposisi, lighting, dan framing agar kuat saat dilihat di media sosial.', strategy:'Maximize visual impact for a fast-scrolling feed: bold composition, strong contrast lighting, and a framing choice that reads instantly and stands out in the first second.' },
+  { id:'storytelling', name:'STORYTELLING', objective:'Memberikan nuansa cerita pada foto tanpa mengubah subjek utama.', strategy:'Frame the shot to imply a small narrative moment — a sense of before/after or an implied action — using composition and mood rather than changing the subject itself.' },
+  { id:'product_selling', name:'PRODUCT SELLING', objective:'Jika terdapat produk, fokus pada produk agar terlihat menarik dan profesional.', strategy:"Push the product as the clear hero of the frame: tighter focus, clean background separation, and lighting that flatters the product's material and detail." },
+  { id:'soft_sell', name:'SOFT SELL', objective:'Promosi natural dan tidak terasa seperti iklan keras.', strategy:'Keep the mood relaxed and lifestyle-driven — the product/subject feels like a natural part of the scene, not a hard advertisement.' },
+  { id:'hard_sell', name:'HARD SELL', objective:'Promosi lebih kuat dengan fokus utama pada produk.', strategy:'Make the product unmistakably the focal point with confident, punchy lighting and a direct, commercial-ad style composition.' },
+  { id:'premium', name:'PREMIUM / LUXURY', objective:'Memberikan kesan premium, elegan, mahal, dan profesional.', strategy:'Use refined, elegant lighting with soft controlled shadows, a restrained color palette, and clean minimal framing to convey a premium, high-end feel.' },
+  { id:'cinematic', name:'CINEMATIC', objective:'Memberikan nuansa cinematic melalui lighting, depth, atmosphere, dan color grading.', strategy:'Apply cinematic depth: layered lighting, atmospheric mood, shallow depth of field, and a film-like color grade.' },
+  { id:'lifestyle', name:'LIFESTYLE', objective:'Membuat foto terasa natural seperti bagian dari kehidupan sehari-hari.', strategy:'Keep everything candid and everyday-natural — relaxed framing, natural light feel, as if captured in a real lifestyle moment.' },
+  { id:'aesthetic', name:'AESTHETIC', objective:'Memperkuat komposisi, warna, pencahayaan, dan keindahan visual.', strategy:'Emphasize visual beauty: balanced composition, harmonious color palette, and soft flattering light for an aesthetically pleasing result.' },
+  { id:'emotional', name:'EMOTIONAL', objective:'Memperkuat suasana dan emosi yang sudah ada dalam foto.', strategy:'Amplify the existing mood/emotion already present in the reference through lighting warmth/coolness and framing intimacy — do not invent a different emotion.' },
+  { id:'social_media', name:'SOCIAL MEDIA', objective:'Mengoptimalkan framing dan visual untuk tampilan layar HP/media sosial.', strategy:'Optimize framing and visual clarity specifically for a vertical mobile-feed viewing experience — clear subject silhouette, readable at small size.' },
+  { id:'curiosity', name:'CURIOSITY / MYSTERY', objective:'Membuat penonton penasaran tanpa membuat informasi palsu.', strategy:'Use partial reveals, framing, or angle choices that build intrigue and curiosity — without fabricating any detail not present in the reference.' },
+  { id:'viral', name:'VIRAL', objective:'Membuat konsep visual yang memiliki stopping power dan menarik perhatian.', strategy:'Prioritize maximum stopping power: a bold, memorable visual moment/composition that stands out and is highly shareable.' },
+  { id:'attention_story_cta', name:'ATTENTION + STORY + CTA', objective:'Menghasilkan konsep HOOK → STORY → VALUE → CTA.', strategy:'Structure the visual progression as Hook (grab attention) → Story (brief narrative moment) → Value (show the benefit) → CTA (clear closing direction), all through framing/pacing, not by altering the subject.' }
+];
+let selectedPromptType = localStorage.getItem('vw_promptType') || 'general';
+
+const NEGATIVE_PROMPT_BASE_EXTRA = ['face distortion','different person','identity change','different clothing','changed clothing color','product deformation','product redesign','changed logo','changed text','altered proportions','extra objects','missing objects','extra fingers','bad anatomy','unnatural skin','plastic skin','unrealistic texture','blurry subject','duplicate objects'];
+const NEGATIVE_PROMPT_PRODUCT_EXTRA = ['wrong product shape','incorrect branding','incorrect logo','incorrect label','incorrect text','altered material','altered color','deformed product'];
+const PRESERVE_ORIGINAL_TEXT = 'Preserve the original subject, identity, facial features, clothing, product design, colors, proportions, logos, text, and all important visual details from the reference image. Do not redesign or replace the original subject. Enhance presentation without changing the subject.';
+const PRESERVE_ORIGINAL_PRODUCT_TEXT = 'Preserve the exact original product design, shape, proportions, material, texture, color, branding, logo, label, and visible text.';
+
 let activeProvider = localStorage.getItem('vw_activeProvider') || "gemini";
 let geminiKey = localStorage.getItem('vw_geminiKey') || "";
 let claudeKey = localStorage.getItem('vw_claudeKey') || "";
@@ -920,61 +933,59 @@ function jumpToSection(id){
   openSection(id);
 }
 
-/* ================= KOMPRESI FOTO SEBELUM DIKIRIM KE AI (akar masalah delay: foto HP mentah bisa 3-10MB) =================
-   Semua foto di-downscale + di-encode ulang jadi JPEG kecil di sisi browser sebelum disimpan/dikirim ke API,
-   supaya upload ke Gemini/Claude cepat walau koneksi HP pas-pasan. Ini TIDAK memengaruhi tampilan (preview tetap
-   memakai hasil kompresi yang sudah cukup tajam untuk dilihat), hanya mengecilkan ukuran data yang dikirim. */
-function compressImageForAI(file, maxDim, quality){
-  return new Promise((resolve, reject)=>{
-    if(!file || !file.type || file.type.indexOf('image/') !== 0){ reject(new Error('File bukan gambar')); return; }
-    const reader = new FileReader();
-    reader.onerror = ()=>reject(new Error('Gagal membaca file foto'));
-    reader.onload = function(evt){
-      const img = new Image();
-      img.onerror = ()=>reject(new Error('Gagal memuat gambar (format tidak didukung?)'));
-      img.onload = function(){
-        let width = img.naturalWidth || img.width;
-        let height = img.naturalHeight || img.height;
-        if(width > maxDim || height > maxDim){
-          if(width >= height){ height = Math.round(height * (maxDim / width)); width = maxDim; }
-          else { width = Math.round(width * (maxDim / height)); height = maxDim; }
+/* ================= Kompresi foto sebelum dikirim ke AI (mempercepat generate) ================= */
+function resizeImageForAI(dataUrl, maxDim, quality){
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = function(){
+      try{
+        let w = img.width, h = img.height;
+        if(w <= maxDim && h <= maxDim){
+          // Sudah cukup kecil, tidak perlu diperkecil lagi — cukup re-encode ringan.
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', quality).split(',')[1]);
+          return;
         }
+        if(w > h){ h = Math.round(h * (maxDim / w)); w = maxDim; }
+        else { w = Math.round(w * (maxDim / h)); h = maxDim; }
         const canvas = document.createElement('canvas');
-        canvas.width = width; canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,width,height); // hindari latar hitam kalau PNG transparan
-        ctx.drawImage(img, 0, 0, width, height);
-        let dataUrl;
-        try{ dataUrl = canvas.toDataURL('image/jpeg', quality); }
-        catch(e){ reject(new Error('Gagal mengompres gambar')); return; }
-        resolve({ dataUrl, base64: dataUrl.split(',')[1], mediaType: 'image/jpeg' });
-      };
-      img.src = evt.target.result;
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality).split(',')[1]);
+      }catch(e){
+        resolve(dataUrl.split(',')[1]); // fallback: pakai foto asli kalau resize gagal
+      }
     };
-    reader.readAsDataURL(file);
+    img.onerror = function(){ resolve(dataUrl.split(',')[1]); };
+    img.src = dataUrl;
   });
 }
 
 /* ================= ① REFERENSI (upload produk + deteksi AI) ================= */
-document.getElementById('fileInput').addEventListener('change', async function(e){
+document.getElementById('fileInput').addEventListener('change', function(e){
   const file = e.target.files[0]; if(!file) return;
-  try{
-    const { dataUrl, base64, mediaType } = await compressImageForAI(file, 1280, 0.85);
-    uploadedBase64 = base64; uploadedMediaType = mediaType;
+  const reader = new FileReader();
+  reader.onload = async function(evt){
     const img = document.getElementById('previewImg');
-    img.src = dataUrl; img.style.display = 'block';
+    img.src = evt.target.result; img.style.display = 'block'; // preview tetap kualitas asli
     document.getElementById('uploadPlaceholder').style.display = 'none';
     document.getElementById('uploadBox').classList.add('has-image');
     document.getElementById('photoActions-produk').classList.add('show');
     document.getElementById('detectBtn').disabled = false;
     document.getElementById('detectStatus').textContent = '';
     document.getElementById('detectStatus').className = 'detect-status';
+
+    // Foto yang dikirim ke AI dikompres dulu (maks 1280px, JPEG kualitas 0.85) —
+    // foto kamera HP bisa 5-15MB tanpa ini, yang bikin proses generate lambat
+    // terutama di koneksi seluler. Kualitas visual untuk analisis AI tetap cukup.
+    uploadedBase64 = await resizeImageForAI(evt.target.result, 1280, 0.85);
+    uploadedMediaType = 'image/jpeg';
     updateSummaries();
     autoAdvance('sec-foto','sec-subjek');
-  }catch(err){
-    console.error(err);
-    showToast('Gagal memproses foto, coba foto lain');
-  }
+  };
+  reader.readAsDataURL(file);
 });
 
 /* ================= ② SUBJEK ================= */
@@ -1034,21 +1045,19 @@ function renderModelStyleChips(){
     wrap.appendChild(el);
   });
 }
-document.getElementById('modelFileInput').addEventListener('change', async function(e){
+document.getElementById('modelFileInput').addEventListener('change', function(e){
   const file = e.target.files[0]; if(!file) return;
-  try{
-    const { dataUrl, base64, mediaType } = await compressImageForAI(file, 1280, 0.85);
-    modelBase64 = base64; modelMediaType = mediaType;
+  const reader = new FileReader();
+  reader.onload = function(evt){
+    modelBase64 = evt.target.result.split(',')[1]; modelMediaType = file.type;
     const img = document.getElementById('modelPreviewImg');
-    img.src = dataUrl; img.style.display = 'block';
+    img.src = evt.target.result; img.style.display = 'block';
     document.getElementById('modelUploadPlaceholder').style.display = 'none';
     document.getElementById('modelUploadBox').classList.add('has-image');
     document.getElementById('photoActions-model').classList.add('show');
     render();
-  }catch(err){
-    console.error(err);
-    showToast('Gagal memproses foto, coba foto lain');
-  }
+  };
+  reader.readAsDataURL(file);
 });
 
 /* ================= ③ JENIS PRODUK ================= */
@@ -1212,21 +1221,19 @@ function initLokasiSelects(){
 document.getElementById('indoorCustomText').addEventListener('input', render);
 document.getElementById('outdoorCustomText').addEventListener('input', render);
 document.getElementById('lokasiCustomText').addEventListener('input', render);
-document.getElementById('locBgFileInput').addEventListener('change', async function(e){
+document.getElementById('locBgFileInput').addEventListener('change', function(e){
   const file = e.target.files[0]; if(!file) return;
-  try{
-    const { dataUrl, base64, mediaType } = await compressImageForAI(file, 1280, 0.85);
-    locBgBase64 = base64; locBgMediaType = mediaType;
+  const reader = new FileReader();
+  reader.onload = function(evt){
+    locBgBase64 = evt.target.result.split(',')[1]; locBgMediaType = file.type;
     const img = document.getElementById('locBgPreview');
-    img.src = dataUrl; img.style.display = 'block';
+    img.src = evt.target.result; img.style.display = 'block';
     document.getElementById('locBgUploadPlaceholder').style.display = 'none';
     document.getElementById('locBgUploadBox').classList.add('has-image');
     document.getElementById('photoActions-locBg').classList.add('show');
     render();
-  }catch(err){
-    console.error(err);
-    showToast('Gagal memproses foto, coba foto lain');
-  }
+  };
+  reader.readAsDataURL(file);
 });
 
 function resolveLokasi(){
@@ -1271,9 +1278,26 @@ document.getElementById('lightingSelect').addEventListener('change', function(){
 });
 document.getElementById('lightingCustomText').addEventListener('input', render);
 
-/* ================= ⑧ INSTRUKSI TAMBAHAN ================= */
-document.getElementById('duration').addEventListener('input', render);
-document.getElementById('notes').addEventListener('input', render);
+/* ================= ⑨ JENIS PROMPT ================= */
+function renderPromptTypeOptions(){
+  const sel = document.getElementById('promptTypeSelect');
+  if(!sel) return;
+  sel.innerHTML = PROMPT_TYPES.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  sel.value = selectedPromptType;
+  updatePromptTypeHint();
+}
+function updatePromptTypeHint(){
+  const hint = document.getElementById('promptTypeHint');
+  const pt = PROMPT_TYPES.find(p => p.id === selectedPromptType) || PROMPT_TYPES[0];
+  if(hint) hint.textContent = pt.objective;
+}
+document.getElementById('promptTypeSelect').addEventListener('change', function(){
+  selectedPromptType = this.value;
+  localStorage.setItem('vw_promptType', selectedPromptType);
+  updatePromptTypeHint();
+  render();
+});
+renderPromptTypeOptions();
 document.getElementById('ctaText').addEventListener('input', render);
 
 /* ================= HOOK & STORYTELLING (AI) ================= */
@@ -1283,7 +1307,7 @@ function buildHookStoryInstruction(){
   const subjekText = fotoSubjek === 'model' ? 'Model / manusia' : `Produk (${catLabel})`;
   const gerakanText = gerakanUtama === 'Custom' ? (document.getElementById('gerakanCustomText').value.trim()||'gerakan custom') : gerakanUtama;
   const lokasi = resolveLokasi();
-  const notes = document.getElementById('notes').value.trim();
+  const pt = PROMPT_TYPES.find(p => p.id === selectedPromptType) || PROMPT_TYPES[0];
 
   return `Kamu adalah copywriter video pendek (TikTok/Reels/Shorts) yang ahli membuat hook & storytelling natural yang tidak terdengar seperti iklan.
 
@@ -1293,7 +1317,9 @@ Konteks video:
 - Detail produk yang terlihat (jangan mengarang di luar ini): ${detectedProductDetails || 'tidak ada detail spesifik terdeteksi'}
 - Gerakan: ${gerakanText}
 - Lokasi: ${lokasi.label}
-- Instruksi tambahan dari pengguna: ${notes || 'tidak ada'}
+- Jenis Prompt terpilih: ${pt.name} — ${pt.objective} Arahan gaya: ${pt.strategy}
+
+PENTING: Subjek utama, produk, wajah, pakaian, dan semua detail dari foto asli TIDAK BOLEH diubah/dikarang. Jenis Prompt di atas hanya menentukan gaya penyampaian (hook/storytelling), bukan mengubah apa yang ada di foto.
 
 Buat:
 1. HOOK — satu kalimat pembuka singkat yang menarik perhatian dan membuat penasaran, natural, TIDAK terdengar seperti iklan yang memaksa. Jangan mulai dengan "Halo guys, hari ini...".
@@ -1604,7 +1630,7 @@ function explainNetworkError(err, providerLabel){
   }
   return err.message || 'Kesalahan tidak diketahui';
 }
-const GEMINI_MODEL_FALLBACKS = ["gemini-3.7-flash", "gemini-flash-latest", "gemini-2.5-flash"];
+const GEMINI_MODEL_FALLBACKS = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-flash", "gemini-flash-latest"];
 
 async function callGemini(promptText, imagePart, signal){
   if(!geminiKey) throw new Error('API key Gemini belum diisi. Isi lewat tombol 🔑 AI.');
@@ -1913,14 +1939,14 @@ function syntaxHighlight(json){
 /* ================= RENDER PROMPT FINAL ================= */
 /* ================= UPGRADE: NEGATIVE PROMPT, TITLE, STYLE, DLL (LOKAL, TANPA AI, INSTAN) ================= */
 function buildNegativePrompt(){
-  const base = ['blurry','low quality','distorted object','duplicate object','incorrect logo','unreadable text','oversaturated','unnatural lighting','artifacts','watermark','extra text overlay','jpeg artifacts'];
+  const base = ['blurry','low quality','distorted object','duplicate object','incorrect logo','unreadable text','oversaturated','unnatural lighting','artifacts','watermark','extra text overlay','jpeg artifacts', ...NEGATIVE_PROMPT_BASE_EXTRA];
   if(fotoSubjek === 'model'){
     base.push('malformed hands','extra fingers','missing fingers','deformed face','asymmetrical face','extra limbs','unnatural pose','bad anatomy');
   }
   if(fotoSubjek === 'produk'){
-    base.push('warped product','product shape changed','wrong product color','floating product','product clipping through hand','melted product edges');
+    base.push('warped product','product shape changed','wrong product color','floating product','product clipping through hand','melted product edges', ...NEGATIVE_PROMPT_PRODUCT_EXTRA);
   }
-  return base.join(', ');
+  return [...new Set(base)].join(', ');
 }
 
 function buildTitle(subjekLabel, lokasiLabel, gerakanLabel){
@@ -1928,26 +1954,15 @@ function buildTitle(subjekLabel, lokasiLabel, gerakanLabel){
   return t.length > 90 ? t.slice(0,87) + '...' : t;
 }
 
-function buildStyleText(jenisPromptVal){
+function buildStyleText(){
   const platform = document.getElementById('platformSelect')?.value || 'Generic / Lainnya';
   const cinematicPlatforms = ['Runway Gen-3','Luma Dream Machine'];
-
-  let base;
-  if(jenisPromptVal === 'foto'){
-    base = 'clean static product/catalog photography, tajam dan detail menyeluruh';
-  } else if(jenisPromptVal === 'ugc'){
-    base = 'gaya UGC (user-generated content) — terasa seperti direkam dengan HP oleh pengguna asli, natural, tidak terlalu polished';
-  } else if(jenisPromptVal === 'cinematic'){
-    base = 'cinematic commercial advertisement, dramatis, penuh mood, seperti iklan campaign premium';
-  } else {
-    base = fotoSubjek === 'model'
-      ? 'natural lifestyle photography, authentic dan tidak berlebihan'
-      : 'professional commercial product photography, bersih dan fokus pada produk';
-  }
-
-  const platformNote = (jenisPromptVal === 'cinematic' || cinematicPlatforms.includes(platform))
+  const base = fotoSubjek === 'model'
+    ? 'natural lifestyle photography, authentic dan tidak berlebihan'
+    : 'professional commercial product photography, bersih dan fokus pada produk';
+  const platformNote = cinematicPlatforms.includes(platform)
     ? ', cinematic film-look, shallow depth of field'
-    : (jenisPromptVal === 'ugc' ? ', sedikit grain/imperfection natural khas rekaman HP' : ', tampilan tajam dan jelas untuk media sosial');
+    : ', tampilan tajam dan jelas untuk media sosial';
   return (detectedStyle ? detectedStyle + '. ' : '') + base + platformNote + ` (dioptimalkan untuk ${platform}).`;
 }
 
@@ -2006,8 +2021,7 @@ QUALITY: ${qualityLine}`;
 function render(){
   const catObj = CATEGORIES.find(c=>c.id===selectedCategory) || CATEGORIES[0];
   const catLabel = selectedCategory === 'custom' ? (document.getElementById('categoryCustomText').value.trim() || 'produk custom') : catObj.label;
-  const duration = parseInt(document.getElementById('duration').value) || 8;
-  const notes = document.getElementById('notes').value.trim();
+  const promptType = PROMPT_TYPES.find(p=>p.id===selectedPromptType) || PROMPT_TYPES[0];
 
   const subjekText = fotoSubjek === 'model' ? 'Model / manusia' : `Produk (${catLabel})`;
 
@@ -2081,17 +2095,8 @@ function render(){
     lightingText = selectedLighting;
   }
 
-  const jenisPromptVal = document.getElementById('jenisPrompt')?.value || 'video';
-  const JENIS_PROMPT_META = {
-    video: { label: 'Video Produk', type: 'video produk', purpose: 'konten video produk untuk media sosial (TikTok/Reels/Shorts)' },
-    foto: { label: 'Foto Produk', type: 'foto produk (statis)', purpose: 'konten foto produk statis untuk katalog/media sosial' },
-    ugc: { label: 'UGC / Konten Natural', type: 'video UGC', purpose: 'konten gaya UGC (user-generated content) — terasa organik dan autentik seperti review asli pengguna, bukan iklan formal' },
-    cinematic: { label: 'Iklan Sinematik', type: 'iklan sinematik', purpose: 'iklan produk bergaya sinematik/dramatis untuk campaign' }
-  };
-  const jpMeta = JENIS_PROMPT_META[jenisPromptVal] || JENIS_PROMPT_META.video;
-
   const materialColorBits = [detectedProductMaterial, detectedProductColor, detectedProductTexture].filter(Boolean).join(', ');
-  const preservasi = `PRODUCT CONSISTENCY: maintain exact product consistency throughout — do not alter the product shape, proportions, color, design, logo, material, texture, or visible details. Pertahankan bentuk, ukuran, proporsi, warna, motif, logo, tulisan, desain, material, tekstur, jahitan, dan aksesori produk agar identik dengan foto referensi (${garmentDescription})${materialColorBits ? '. Material/warna/tekstur dari foto: ' + materialColorBits : ''}${detectedProductLogo ? '. Logo/label: ' + detectedProductLogo : ''}${detectedProductDetails ? '. Detail spesifik dari foto: ' + detectedProductDetails : ''}. Jangan menambahkan detail yang tidak terlihat pada referensi. Gerakan tangan harus realistis dan konsisten (posisi stabil, jangan menembus produk, jangan berpindah tangan tiba-tiba).`;
+  const preservasi = `${PRESERVE_ORIGINAL_TEXT}${fotoSubjek === 'produk' ? ' ' + PRESERVE_ORIGINAL_PRODUCT_TEXT : ''} PRODUCT CONSISTENCY: maintain exact product consistency throughout — do not alter the product shape, proportions, color, design, logo, material, texture, or visible details. Pertahankan bentuk, ukuran, proporsi, warna, motif, logo, tulisan, desain, material, tekstur, jahitan, dan aksesori produk agar identik dengan foto referensi (${garmentDescription})${materialColorBits ? '. Material/warna/tekstur dari foto: ' + materialColorBits : ''}${detectedProductLogo ? '. Logo/label: ' + detectedProductLogo : ''}${detectedProductDetails ? '. Detail spesifik dari foto: ' + detectedProductDetails : ''}. Jangan menambahkan detail yang tidak terlihat pada referensi. Gerakan tangan harus realistis dan konsisten (posisi stabil, jangan menembus produk, jangan berpindah tangan tiba-tiba).`;
 
   const ctaText = document.getElementById('ctaText').value.trim() || 'Cek keranjang di bawah!';
   const hookSection = autoHook ? `\nHOOK: ${autoHook}` : '';
@@ -2099,62 +2104,24 @@ function render(){
   const subjectExtra = fotoSubjek === 'model'
     ? [detectedSubjectPose, detectedSubjectExpression].filter(Boolean).map(t=>' ' + t).join('')
     : '';
-  const productInteractionText = reviewBlock ? reviewBlock.trim() : 'produk ditampilkan konsisten mengikuti gerakan utama tanpa interaksi tambahan yang rumit';
 
-  // Ini narasi inti (tetap semua detail lama: subjek, lokasi, gerakan, transisi, interaksi produk, cta, ending, hook/story, konsistensi produk)
-  // — bentuknya menyesuaikan Jenis Prompt yang dipilih di Instruksi Tambahan.
-  let mainPromptBody;
-  if(jenisPromptVal === 'foto'){
-    // Foto Produk: gambar statis, tanpa gerakan/transisi/durasi — cukup pose/tampilan akhir yang ingin dihasilkan.
-    mainPromptBody = `SUBJECT: ${subjekText}.${modelBlock}${subjectExtra ? ' Detail dari foto:' + subjectExtra : ''}
-LOCATION: ${lokasi.label}.${lokasiNote}${detectedEnvironment ? ' Detail lingkungan dari foto: ' + detectedEnvironment + '.' : ''}
-POSE / DISPLAY: ${fotoSubjek === 'model' ? 'model dalam satu pose statis yang natural dan menarik, sesuai referensi' : 'produk ditampilkan diam pada satu sudut terbaik yang memperlihatkan bentuk dan detail utamanya'}.
-PRODUCT DISPLAY DETAIL: ${productInteractionText}${hookSection}${storySection}
-CAPTION/CTA (opsional, untuk keterangan foto): ${ctaText}
-
-${preservasi}` + (notes ? `\nInstruksi tambahan: ${notes}.` : '');
-  } else if(jenisPromptVal === 'ugc'){
-    // UGC: gaya handheld, natural, tidak terlalu rapi/formal seperti iklan studio.
-    mainPromptBody = `SUBJECT: ${subjekText}.${modelBlock}${subjectExtra ? ' Detail dari foto:' + subjectExtra : ''}
-LOCATION: ${lokasi.label}, suasana kasual sehari-hari.${lokasiNote}${detectedEnvironment ? ' Detail lingkungan dari foto: ' + detectedEnvironment + '.' : ''}
-STARTING POSITION: ${fotoSubjek === 'model' ? 'model dalam posisi santai, seperti sedang merekam sendiri (selfie-style/handheld)' : 'produk dipegang dekat kamera seperti gaya unboxing/review natural'}.
-MAIN ACTION: ${gerakanText}, dilakukan santai dan tidak terlalu sempurna — gerakan sedikit tidak simetris/alami seperti rekaman asli pengguna, bukan produksi studio.
-NATURAL TRANSITION: perpindahan gerakan terasa natural dan sedikit "kasar" khas video handheld, hindari transisi yang terlalu halus/sinematik.
-PRODUCT INTERACTION: ${productInteractionText}${hookSection}${storySection}
-CTA: ${ctaText} (diucapkan/ditampilkan dengan gaya santai, seperti rekomendasi teman, bukan skrip iklan formal).
-ENDING: kembali ke posisi santai, tanpa gerakan penutup yang terlalu rapi/dibuat-buat.
-
-${preservasi}` + (notes ? `\nInstruksi tambahan: ${notes}.` : '');
-  } else if(jenisPromptVal === 'cinematic'){
-    // Iklan Sinematik: lebih dramatis, ritme lebih lambat, penekanan visual.
-    mainPromptBody = `SUBJECT: ${subjekText}.${modelBlock}${subjectExtra ? ' Detail dari foto:' + subjectExtra : ''}
-LOCATION: ${lokasi.label}, ditata dengan nuansa sinematik dan dramatis.${lokasiNote}${detectedEnvironment ? ' Detail lingkungan dari foto: ' + detectedEnvironment + '.' : ''}
-STARTING POSITION: ${fotoSubjek === 'model' ? 'model dalam posisi tenang dan penuh percaya diri, seperti adegan pembuka iklan' : 'produk diposisikan seperti "hero shot", jadi pusat perhatian penuh drama'}.
-MAIN ACTION: ${gerakanText}, dilakukan perlahan dan penuh penekanan (deliberate pacing), seolah tiap gerakan punya makna sinematik.
-NATURAL TRANSITION: transisi halus dan sinematik, bisa memakai jeda dramatis singkat antar gerakan, tetap logis dan tidak dipaksakan.
-PRODUCT INTERACTION: ${productInteractionText}${hookSection}${storySection}
-CTA: ${ctaText} (disampaikan dengan nada premium/emosional, khas iklan campaign, bukan hard-selling).
-ENDING: closing shot dramatis, produk sebagai fokus akhir dengan pencahayaan yang menonjolkan siluet/detailnya.
-
-${preservasi}` + (notes ? `\nInstruksi tambahan: ${notes}.` : '');
-  } else {
-    // Default: Video Produk standar (perilaku asli, tidak berubah)
-    mainPromptBody = `SUBJECT: ${subjekText}.${modelBlock}${subjectExtra ? ' Detail dari foto:' + subjectExtra : ''}
+  // Ini narasi inti video (tetap semua detail lama: subjek, lokasi, gerakan, transisi, interaksi produk, cta, ending, hook/story, konsistensi produk)
+  const mainPromptBody = `SUBJECT: ${subjekText}.${modelBlock}${subjectExtra ? ' Detail dari foto:' + subjectExtra : ''}
 LOCATION: ${lokasi.label}.${lokasiNote}${detectedEnvironment ? ' Detail lingkungan dari foto: ' + detectedEnvironment + '.' : ''}
 STARTING POSITION: ${fotoSubjek === 'model' ? 'model dalam posisi santai natural, siap memulai gerakan' : 'produk dalam posisi awal yang stabil dan jelas terlihat kamera'}.
 MAIN ACTION: ${gerakanText}, dilakukan halus, satu aksi utama, tidak terburu-buru.
 NATURAL TRANSITION: perpindahan antar gerakan dilakukan halus dan berkesinambungan, hindari perubahan pose atau posisi yang ekstrem/tiba-tiba.
-PRODUCT INTERACTION: ${productInteractionText}${hookSection}${storySection}
+PRODUCT INTERACTION: ${reviewBlock ? reviewBlock.trim() : 'produk ditampilkan konsisten mengikuti gerakan utama tanpa interaksi tambahan yang rumit'}${hookSection}${storySection}
 CTA: ${ctaText}
 ENDING: kembali ke posisi stabil dan natural, produk tetap jelas terlihat di frame terakhir.
+CREATIVE DIRECTION (${promptType.name}): ${promptType.strategy}
 
-${preservasi}` + (notes ? `\nInstruksi tambahan: ${notes}.` : '');
-  }
+${preservasi}`;
 
   // ===== Field baru: negative prompt, title, style, aspect ratio, quality, composition — semua lokal & instan, tanpa AI =====
   const negativePrompt = buildNegativePrompt();
   const title = buildTitle(subjekText, lokasi.label, gerakanText);
-  const styleText = buildStyleText(jenisPromptVal);
+  const styleText = buildStyleText();
   const aspectRatioText = buildAspectRatioText();
   const qualityText = buildQualityText();
   const compositionText = buildCompositionText(camText, lokasi.label);
@@ -2163,8 +2130,8 @@ ${preservasi}` + (notes ? `\nInstruksi tambahan: ${notes}.` : '');
   const data = {
     project: {
       name: title,
-      type: jpMeta.type,
-      purpose: jpMeta.purpose
+      type: fotoSubjek === 'model' ? 'video model/lifestyle' : 'video produk',
+      purpose: 'konten video produk untuk media sosial'
     },
     subject: {
       main_subject: subjekText,
@@ -2205,11 +2172,11 @@ ${preservasi}` + (notes ? `\nInstruksi tambahan: ${notes}.` : '');
       highlight: 'highlight halus pada subjek utama, tidak overexposed'
     },
     camera: {
-      shot_type: jenisPromptVal === 'ugc' ? 'handheld POV / selfie-style shot' : (jenisPromptVal === 'cinematic' ? 'hero shot, medium-to-close up dramatis' : 'medium shot'),
-      lens: jenisPromptVal === 'ugc' ? 'kamera smartphone (setara 26mm)' : (jenisPromptVal === 'cinematic' ? '50mm - 85mm (setara), karakter lensa cinematic' : '35mm - 50mm (setara)'),
-      focal_length: jenisPromptVal === 'ugc' ? 'wide natural khas kamera depan/belakang HP' : 'normal, tidak wide distortif',
+      shot_type: 'medium shot',
+      lens: '35mm - 50mm (setara)',
+      focal_length: 'normal, tidak wide distortif',
       aperture: fotoSubjek === 'produk' ? 'f/2.8 - f/4 (produk tetap tajam menyeluruh)' : 'f/2.0 - f/2.8 (subjek tajam, background sedikit lembut)',
-      depth_of_field: jenisPromptVal === 'cinematic' ? 'dangkal, background blur kuat untuk kesan sinematik' : (fotoSubjek === 'produk' ? 'dangkal-sedang, produk tetap tajam menyeluruh' : 'dangkal, subjek tajam dan terpisah dari background'),
+      depth_of_field: fotoSubjek === 'produk' ? 'dangkal-sedang, produk tetap tajam menyeluruh' : 'dangkal, subjek tajam dan terpisah dari background',
       focus: `fokus utama pada ${fotoSubjek === 'model' ? 'model' : 'produk'}, tidak berpindah fokus tiba-tiba`
     },
     color: {
@@ -2227,21 +2194,33 @@ ${preservasi}` + (notes ? `\nInstruksi tambahan: ${notes}.` : '');
       main: mainPromptBody,
       negative: negativePrompt
     },
+    prompt_type: {
+      id: promptType.id,
+      name: promptType.name,
+      objective: promptType.objective,
+      strategy: promptType.strategy
+    },
+    fidelity: {
+      preserve_original: true,
+      preserve_identity: true,
+      preserve_product: true,
+      preserve_colors: true,
+      preserve_clothing: true,
+      preserve_logo: true,
+      preserve_text: true
+    },
     output: {
       aspect_ratio: '9:16',
       resolution: '1080x1920 (Full HD vertical)',
       quality: qualityText
     },
 
-    // Field tambahan (spesifik video) — tetap dipertahankan supaya fitur Hook/Storytelling, CTA, durasi, dan review produk tidak hilang
+    // Field tambahan (spesifik video) — tetap dipertahankan supaya fitur Hook/Storytelling, CTA, dan review produk tidak hilang
     gerakan: gerakanText,
-    jenis_prompt: jpMeta.label,
     review_produk: gerakanUtama === 'Review Produk' ? (reviewBlock || 'belum diisi') : null,
     hook: autoHook || "belum dibuat — tap Generate Prompt",
     storytelling: autoStorytelling || "belum dibuat — tap Generate Prompt",
     cta: ctaText,
-    durasi_detik: duration,
-    instruksi_tambahan: notes || null,
     ai_provider: activeProvider === 'gemini' ? 'Google Gemini' : 'Anthropic Claude',
     platform_target: document.getElementById('platformSelect')?.value || 'Generic / Lainnya'
   };
