@@ -1,7 +1,7 @@
 /* ================= SERVICE WORKER — VERRY WIRANZA AI ================= */
 /* Naikkan versi ini setiap kali ada update besar di index.html/manifest/icon,
    supaya cache lama otomatis dibersihkan dan pengguna dapat versi terbaru. */
-const CACHE_VERSION = 'v18';
+const CACHE_VERSION = 'v1';
 const CACHE_NAME = `wiranza-ai-${CACHE_VERSION}`;
 
 /* App shell minimal — semua yang dibutuhkan agar app tetap bisa dibuka saat offline. */
