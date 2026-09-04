@@ -693,7 +693,7 @@ input, textarea, select, [contenteditable="true"] {
 
       <div class="acc" id="sec-hook">
         <div class="acc-head" onclick="toggleSection('sec-hook')">
-          <span class="num">⑧</span><span class="ttl">Hook & Storytelling</span>
+          <span class="num">⑧</span><span class="ttl">Hook, Storytelling & CTA</span>
           <span class="summary" id="sum-hook"></span><span class="chev">▾</span>
         </div>
         <div class="acc-body"><div class="acc-body-inner">
@@ -711,16 +711,17 @@ input, textarea, select, [contenteditable="true"] {
           </div>
           <textarea class="hookstory-preview" id="storyPreview" rows="3" placeholder="Belum dibuat — tap Generate Prompt di bawah, atau ketik storytelling secara manual di sini." oninput="onHookStoryManualInput('story', this.value)"></textarea>
 
-          <button class="btn-mini" style="margin-top:10px;" id="regenHookBtn" onclick="generateHookStory(true).catch(()=>{})">🔄 Buat Ulang Hook & Storytelling (AI)</button>
+          <div class="hookstory-row" style="margin-top:10px;">
+            <span class="hookstory-label">🎯 CTA</span>
+            <span class="hookstory-badge" id="ctaBadge">Otomatis</span>
+          </div>
+          <textarea class="hookstory-preview" id="ctaPreview" rows="2" placeholder="Belum dibuat — tap Generate Prompt di bawah, atau ketik CTA secara manual di sini." oninput="onHookStoryManualInput('cta', this.value)"></textarea>
+
+          <button class="btn-mini" style="margin-top:10px;" id="regenHookBtn" onclick="generateHookStory(true).catch(()=>{})">🔄 Buat Ulang Hook, Storytelling & CTA (AI)</button>
 
           <div class="prompt-actions" style="margin-top:8px;">
             <button class="btn-outline" id="hookCopyBtn" onclick="copyHookStory()" type="button">📋 Copy</button>
             <button class="btn-outline" id="hookRenderBtn" onclick="renderHookStory()" type="button">▶️ Render</button>
-          </div>
-
-          <div class="field" style="margin-top:12px;">
-            <label class="field-label">🎯 CTA</label>
-            <input type="text" id="ctaText" value="Cek keranjang di bawah!">
           </div>
         </div></div>
       </div>
@@ -913,6 +914,9 @@ let detectedStyle = "";
 let promptManuallyEdited = false;
 let autoHook = "";
 let autoStorytelling = "";
+let autoCta = "";
+const DEFAULT_CTA_OBJECTIVE = "Mengarahkan penonton untuk melihat produk di keranjang bawah."; // ctaObjective internal, bukan kalimat tetap
+const DEFAULT_CTA_FALLBACK = "Cek keranjang di bawah ya!"; // dipakai hanya kalau AI gagal & belum diisi manual
 let hookGenerating = false;
 let mainGenerating = false; // extra lock so Generate Prompt can never fire twice at once
 const GENERATE_TIMEOUT_MS = 30000; // 30s hard timeout for the whole Generate Prompt flow
@@ -1298,7 +1302,6 @@ document.getElementById('promptTypeSelect').addEventListener('change', function(
   render();
 });
 renderPromptTypeOptions();
-document.getElementById('ctaText').addEventListener('input', render);
 
 /* ================= HOOK & STORYTELLING (AI) ================= */
 function buildHookStoryInstruction(){
@@ -1321,13 +1324,14 @@ Konteks video:
 
 PENTING: Subjek utama, produk, wajah, pakaian, dan semua detail dari foto asli TIDAK BOLEH diubah/dikarang. Jenis Prompt di atas hanya menentukan gaya penyampaian (hook/storytelling), bukan mengubah apa yang ada di foto.
 
-Buat:
+Buat secara berurutan — HOOK dulu, baru STORYTELLING yang mengalir dari hook, baru CTA yang menutup dari storytelling:
 1. HOOK — satu kalimat pembuka singkat yang menarik perhatian dan membuat penasaran, natural, TIDAK terdengar seperti iklan yang memaksa. Jangan mulai dengan "Halo guys, hari ini...".
 2. STORYTELLING — 2-3 kalimat singkat yang mengalir dari hook, menunjukkan/mereview produk secara natural sesuai gerakan yang dipilih, lalu menyebutkan detail atau kegunaan produk. Gunakan HANYA informasi yang tersedia di atas — jangan membuat klaim atau fitur yang tidak diketahui dari detail produk.
+3. CTA — kalimat penutup 1 kalimat pendek (maksimal 2 kalimat jika benar-benar perlu) yang menjadi kelanjutan alami dari storytelling. Tujuan CTA SELALU mengarahkan penonton untuk mengecek produk di keranjang bawah (jangan mengarahkan ke follow/like/subscribe/klik link/kirim pesan). CTA harus terdengar natural, santai, sesuai bahasa konten, tidak memaksa, tidak seperti robot, dan JANGAN memakai frasa berlebihan seperti "buruan sebelum kehabisan", "wajib beli sekarang", "jangan sampai rugi", atau klaim yang tidak bisa dibuktikan. Variasikan kalimat CTA setiap kali dibuat — jangan selalu memakai kalimat yang sama.
 
-Hook dan storytelling harus satu konsep yang konsisten dan saling berhubungan — jangan hook tentang satu hal tapi storytelling membahas hal lain.
+Hook, storytelling, dan CTA harus satu konsep yang konsisten dan saling berhubungan — jangan hook tentang satu hal tapi storytelling atau CTA membahas hal lain.
 
-Balas HANYA dengan objek JSON mentah (tanpa markdown fences, tanpa penjelasan): {"hook": "...", "storytelling": "..."}`;
+Balas HANYA dengan objek JSON mentah (tanpa markdown fences, tanpa penjelasan): {"hook": "...", "storytelling": "...", "cta": "..."}`;
 }
 
 async function generateHookStory(isManualRegen, signal){
@@ -1336,13 +1340,16 @@ async function generateHookStory(isManualRegen, signal){
   const regenBtn = document.getElementById('regenHookBtn');
   const hookPrev = document.getElementById('hookPreview');
   const storyPrev = document.getElementById('storyPreview');
+  const ctaPrev = document.getElementById('ctaPreview');
   const hookBadge = document.getElementById('hookBadge');
   const storyBadge = document.getElementById('storyBadge');
+  const ctaBadge = document.getElementById('ctaBadge');
   if(regenBtn){ regenBtn.disabled = true; regenBtn.textContent = 'Membuat...'; }
   // Kunci textarea sesaat supaya ketikan manual tidak tertimpa/tabrakan saat AI sedang menulis
-  hookPrev.readOnly = true; storyPrev.readOnly = true;
+  hookPrev.readOnly = true; storyPrev.readOnly = true; ctaPrev.readOnly = true;
   hookPrev.value = 'AI sedang membuat hook...'; hookPrev.className = 'hookstory-preview';
   storyPrev.value = 'AI sedang membuat storytelling...'; storyPrev.className = 'hookstory-preview';
+  ctaPrev.value = 'AI sedang membuat CTA...'; ctaPrev.className = 'hookstory-preview';
 
   try{
     const instruction = buildHookStoryInstruction();
@@ -1352,33 +1359,39 @@ async function generateHookStory(isManualRegen, signal){
     const parsed = JSON.parse(rawText);
     autoHook = parsed.hook || '';
     autoStorytelling = parsed.storytelling || '';
+    autoCta = parsed.cta || '';
     hookPrev.value = autoHook; hookPrev.classList.toggle('filled', !!autoHook);
     storyPrev.value = autoStorytelling; storyPrev.classList.toggle('filled', !!autoStorytelling);
+    ctaPrev.value = autoCta; ctaPrev.classList.toggle('filled', !!autoCta);
     if(hookBadge){ hookBadge.textContent = 'Auto'; hookBadge.classList.remove('manual'); }
     if(storyBadge){ storyBadge.textContent = 'Auto'; storyBadge.classList.remove('manual'); }
+    if(ctaBadge){ ctaBadge.textContent = 'Otomatis'; ctaBadge.classList.remove('manual'); }
     updateSummaries();
     if(isManualRegen) render();
   }catch(err){
     console.error(err);
-    autoHook = ''; autoStorytelling = '';
+    autoHook = ''; autoStorytelling = ''; autoCta = '';
     const timedOut = err && err.name === 'AbortError';
     const msg = timedOut ? 'Proses terlalu lama. Silakan coba lagi, atau ketik hook manual di sini.' : ('Gagal membuat hook: ' + (err.message || 'kesalahan tidak diketahui') + ' — bisa diketik manual di sini.');
     hookPrev.value = msg;
     hookPrev.className = 'hookstory-preview';
     storyPrev.value = 'Storytelling dilewati karena hook gagal dibuat — bisa diketik manual di sini.';
     storyPrev.className = 'hookstory-preview';
+    ctaPrev.value = `CTA dilewati karena gagal dibuat — bisa diketik manual, atau nanti pakai fallback "${DEFAULT_CTA_FALLBACK}" di prompt akhir.`;
+    ctaPrev.className = 'hookstory-preview';
     if(hookBadge){ hookBadge.textContent = 'Gagal'; hookBadge.classList.add('manual'); }
     if(storyBadge){ storyBadge.textContent = 'Gagal'; storyBadge.classList.add('manual'); }
+    if(ctaBadge){ ctaBadge.textContent = 'Gagal'; ctaBadge.classList.add('manual'); }
     throw err; // biar onGenerateTap tahu ini gagal/timeout dan bisa tampilkan tombol Coba Lagi
   }finally{
     hookGenerating = false;
-    hookPrev.readOnly = false; storyPrev.readOnly = false;
-    if(regenBtn){ regenBtn.disabled = false; regenBtn.textContent = '🔄 Buat Ulang Hook & Storytelling (AI)'; }
+    hookPrev.readOnly = false; storyPrev.readOnly = false; ctaPrev.readOnly = false;
+    if(regenBtn){ regenBtn.disabled = false; regenBtn.textContent = '🔄 Buat Ulang Hook, Storytelling & CTA (AI)'; }
   }
 }
 
 function onHookStoryManualInput(which, value){
-  // Dipanggil saat pengguna mengetik langsung di kotak Hook/Storytelling.
+  // Dipanggil saat pengguna mengetik langsung di kotak Hook/Storytelling/CTA.
   // Isi manual ini dipakai apa adanya ke prompt akhir, tidak akan ditimpa AI kecuali tap "Buat Ulang" lagi.
   if(which === 'hook'){
     autoHook = value;
@@ -1386,6 +1399,12 @@ function onHookStoryManualInput(which, value){
     const hookBadge = document.getElementById('hookBadge');
     hookPrev.classList.toggle('filled', !!value);
     if(hookBadge){ hookBadge.textContent = 'Manual'; hookBadge.classList.add('manual'); }
+  } else if(which === 'cta'){
+    autoCta = value;
+    const ctaPrev = document.getElementById('ctaPreview');
+    const ctaBadge = document.getElementById('ctaBadge');
+    ctaPrev.classList.toggle('filled', !!value);
+    if(ctaBadge){ ctaBadge.textContent = 'Manual'; ctaBadge.classList.add('manual'); }
   } else {
     autoStorytelling = value;
     const storyPrev = document.getElementById('storyPreview');
@@ -1435,7 +1454,7 @@ function updateSummaries(){
   document.getElementById('sum-lokasi').textContent = resolveLokasi().label.slice(0,22);
   document.getElementById('sum-kamera').textContent = (CAM_POS_OPTIONS.find(c=>c.id===selectedCamPos)||{}).label || '';
   document.getElementById('sum-cahaya').textContent = selectedLighting;
-  document.getElementById('sum-hook').textContent = autoHook ? '✓ Dibuat' : '';
+  document.getElementById('sum-hook').textContent = (autoHook || autoStorytelling || autoCta) ? '✓ Dibuat' : '';
 }
 
 /* ================= AI PROVIDER MODAL, LIGHTBOX, COPY HELPERS (dipertahankan) ================= */
@@ -1864,11 +1883,11 @@ function renderFromJSON(){
 }
 
 async function copyHookStory(){
-  if(!autoHook && !autoStorytelling){
-    showToast('Hook & Storytelling belum dibuat — tap Generate Prompt dulu');
+  if(!autoHook && !autoStorytelling && !autoCta){
+    showToast('Hook, Storytelling & CTA belum dibuat — tap Generate Prompt dulu');
     return;
   }
-  const combined = `HOOK:\n${autoHook || '(kosong)'}\n\nSTORYTELLING:\n${autoStorytelling || '(kosong)'}`;
+  const combined = `HOOK:\n${autoHook || '(kosong)'}\n\nSTORYTELLING:\n${autoStorytelling || '(kosong)'}\n\nCTA:\n${autoCta || '(kosong)'}`;
   const ok = await copyText(combined);
   const btn = document.getElementById('hookCopyBtn');
   if(btn && ok){
@@ -1880,11 +1899,11 @@ async function copyHookStory(){
 }
 
 function renderHookStory(){
-  if(!autoHook && !autoStorytelling){
-    showToast('Hook & Storytelling belum dibuat — tap Generate Prompt dulu');
+  if(!autoHook && !autoStorytelling && !autoCta){
+    showToast('Hook, Storytelling & CTA belum dibuat — tap Generate Prompt dulu');
     return;
   }
-  const combined = `${autoHook || ''}\n\n${autoStorytelling || ''}`.trim();
+  const combined = `${autoHook || ''}\n\n${autoStorytelling || ''}\n\n${autoCta || ''}`.trim();
   const box = document.getElementById('promptBox');
   if(box){
     box.value = combined;
@@ -1896,7 +1915,7 @@ function renderHookStory(){
     btn.textContent = 'RENDERED ✓';
     setTimeout(()=>{ btn.textContent = original; }, 1500);
   }
-  showToast('Hook & Storytelling diterapkan ke Prompt di atas');
+  showToast('Hook, Storytelling & CTA diterapkan ke Prompt di atas');
 }
 
 function toggleEdit(){
@@ -2098,7 +2117,7 @@ function render(){
   const materialColorBits = [detectedProductMaterial, detectedProductColor, detectedProductTexture].filter(Boolean).join(', ');
   const preservasi = `${PRESERVE_ORIGINAL_TEXT}${fotoSubjek === 'produk' ? ' ' + PRESERVE_ORIGINAL_PRODUCT_TEXT : ''} PRODUCT CONSISTENCY: maintain exact product consistency throughout — do not alter the product shape, proportions, color, design, logo, material, texture, or visible details. Pertahankan bentuk, ukuran, proporsi, warna, motif, logo, tulisan, desain, material, tekstur, jahitan, dan aksesori produk agar identik dengan foto referensi (${garmentDescription})${materialColorBits ? '. Material/warna/tekstur dari foto: ' + materialColorBits : ''}${detectedProductLogo ? '. Logo/label: ' + detectedProductLogo : ''}${detectedProductDetails ? '. Detail spesifik dari foto: ' + detectedProductDetails : ''}. Jangan menambahkan detail yang tidak terlihat pada referensi. Gerakan tangan harus realistis dan konsisten (posisi stabil, jangan menembus produk, jangan berpindah tangan tiba-tiba).`;
 
-  const ctaText = document.getElementById('ctaText').value.trim() || 'Cek keranjang di bawah!';
+  const ctaText = (autoCta || '').trim() || DEFAULT_CTA_FALLBACK;
   const hookSection = autoHook ? `\nHOOK: ${autoHook}` : '';
   const storySection = autoStorytelling ? `\nSTORYTELLING: ${autoStorytelling}` : '';
   const subjectExtra = fotoSubjek === 'model'
