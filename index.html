@@ -44,7 +44,7 @@
     font-family:'Space Grotesk',sans-serif;
     min-height:100vh;
   }
-  .wrap{max-width:1000px; margin:0 auto; padding:0 16px 100px;}
+  .wrap{max-width:1000px; margin:0 auto; padding:0 16px 170px;}
 
   .topbar{
     position:sticky; top:0; z-index:60;
@@ -167,17 +167,26 @@
   .hookstory-badge.manual{background:var(--bg-input); border:1px solid var(--line); color:var(--ink-dim);}
 
   .main-tab-nav{
-    position:sticky; top:45px; z-index:55;
-    display:flex; gap:6px; padding:8px 16px;
-    background:rgba(12,12,18,.92); backdrop-filter:blur(10px);
-    border-bottom:1px solid var(--line);
+    position:fixed; left:0; right:0; bottom:0; z-index:80;
+    display:flex; gap:6px; padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+    background:rgba(12,12,18,.96); backdrop-filter:blur(12px);
+    border-top:1px solid var(--line);
   }
   .main-tab{
-    flex:1; text-align:center; padding:9px 4px; border-radius:10px;
-    font-family:'Space Grotesk',sans-serif; font-size:12px; font-weight:700;
+    flex:1; text-align:center; padding:9px 2px; border-radius:10px;
+    font-family:'Space Grotesk',sans-serif; font-size:11.5px; font-weight:700;
     background:var(--bg-panel); border:1px solid var(--line); color:var(--ink-dim); cursor:pointer;
   }
   .main-tab.active{background:var(--grad); color:#fff; border-color:transparent;}
+
+  .history-card{background:var(--bg-panel); border:1px solid var(--line); border-radius:12px; margin-bottom:10px; overflow:hidden;}
+  .history-card-head{display:flex; justify-content:space-between; align-items:center; gap:8px; padding:12px 14px; cursor:pointer;}
+  .history-title{font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:13px; color:var(--ink);}
+  .history-badge{margin-right:6px;}
+  .history-time{font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--ink-dim); white-space:nowrap;}
+  .history-card-body{display:none; padding:0 14px 14px;}
+  .history-card-body.open{display:block;}
+  .history-pre{white-space:pre-wrap; font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--ink-dim); background:var(--bg-input); border:1px solid var(--line); border-radius:9px; padding:10px 12px; max-height:260px; overflow-y:auto;}
 
   .hero{ padding:34px 0 22px; text-align:center; }
   .hero .kicker{font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:12px;}
@@ -301,8 +310,8 @@
   .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
 
   .sticky-bar{
-    position:fixed; left:0; right:0; bottom:0; z-index:70;
-    padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+    position:fixed; left:0; right:0; bottom:54px; z-index:70;
+    padding:10px 16px;
     background:rgba(12,12,18,.92);
     backdrop-filter:blur(12px);
     border-top:1px solid var(--line);
@@ -517,7 +526,6 @@ input, textarea, select, [contenteditable="true"] {
   <div class="topbar">
     <div class="brand-mini"><span class="logo">✨</span> VERRY WIRANZA AI</div>
     <div style="display:flex; gap:6px;">
-      <button class="provider-badge" onclick="openVideoGen()">🎬 Video</button>
       <button class="provider-badge" id="providerBadgeBtn" onclick="openAiModal()">
         <span id="aiMenuLabel">🔑 AI</span>
       </button>
@@ -541,6 +549,8 @@ input, textarea, select, [contenteditable="true"] {
 
 <div class="main-tab-nav">
   <button class="main-tab active" data-tab="foto" onclick="switchMainTab('foto')">📷 Foto</button>
+  <button class="main-tab" onclick="openVideoGen()">🎬 Video</button>
+  <button class="main-tab" data-tab="riwayat" onclick="switchMainTab('riwayat')">🕐 Riwayat</button>
   <button class="main-tab" data-tab="panduan" onclick="switchMainTab('panduan')">📖 Panduan</button>
 </div>
 
@@ -851,6 +861,18 @@ input, textarea, select, [contenteditable="true"] {
     </div></div>
   </div>
 </div><!-- /tabContent-panduan -->
+
+<div id="tabContent-riwayat" style="display:none;">
+  <section class="hero" style="padding:28px 0 16px;">
+    <div class="kicker">Riwayat</div>
+    <h1 style="font-size:clamp(22px,6vw,32px);">Prompt Tersimpan</h1>
+    <p class="subtitle">Otomatis tersimpan tiap kali Generate Prompt (Foto/Video) berhasil.</p>
+  </section>
+  <div style="display:flex; justify-content:flex-end; margin-bottom:12px;">
+    <button class="btn-mini" onclick="clearAllHistory()">🗑 Hapus Semua Riwayat</button>
+  </div>
+  <div id="historyList"></div>
+</div><!-- /tabContent-riwayat -->
 
 </div><!-- /wrap -->
 
@@ -2496,6 +2518,10 @@ async function onGenerateTap(){
     render();
     // Jangan paksa halaman scroll ke output. Pengguna tetap di posisi terakhir.
     showToast('Prompt siap!');
+    const promptBoxEl = document.getElementById('promptBox');
+    const catObj2 = CATEGORIES.find(c=>c.id===selectedCategory) || CATEGORIES[0];
+    const historyTitle = fotoSubjek === 'model' ? 'Model / Manusia' : `Produk (${selectedCategory==='custom' ? (document.getElementById('categoryCustomText').value.trim()||'custom') : catObj2.label})`;
+    if(promptBoxEl && promptBoxEl.value) saveHistoryEntry('foto', historyTitle, promptBoxEl.value);
     const inner = document.getElementById('stickyBarInner');
     inner.innerHTML = `
       <button class="btn-outline" onclick="copyPrompt()">📋 Copy</button>
@@ -2522,12 +2548,85 @@ async function onGenerateTap(){
   }
 }
 
+/* ================= RIWAYAT (HISTORY) ================= */
+const HISTORY_KEY = 'vw_history';
+const HISTORY_MAX = 30;
+
+function loadHistory(){
+  try{
+    const raw = localStorage.getItem(HISTORY_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list : [];
+  }catch(e){ return []; }
+}
+function saveHistoryList(list){
+  try{ localStorage.setItem(HISTORY_KEY, JSON.stringify(list)); }
+  catch(e){ console.error('Gagal menyimpan riwayat', e); }
+}
+function saveHistoryEntry(type, title, content){
+  const list = loadHistory();
+  list.unshift({ id: Date.now().toString(36) + Math.random().toString(36).slice(2,7), time: Date.now(), type, title, content });
+  if(list.length > HISTORY_MAX) list.length = HISTORY_MAX;
+  saveHistoryList(list);
+}
+function deleteHistoryEntry(id){
+  saveHistoryList(loadHistory().filter(h => h.id !== id));
+  renderHistoryTab();
+}
+function clearAllHistory(){
+  if(!confirm('Hapus semua riwayat? Tindakan ini tidak bisa dibatalkan.')) return;
+  saveHistoryList([]);
+  renderHistoryTab();
+}
+function toggleHistoryCard(id){
+  const body = document.getElementById('historyBody-'+id);
+  if(body) body.classList.toggle('open');
+}
+async function copyHistoryContent(id){
+  const item = loadHistory().find(h => h.id === id);
+  if(!item) return;
+  try{
+    await navigator.clipboard.writeText(item.content);
+    showToast('Disalin!');
+  }catch(e){ showToast('Gagal menyalin'); }
+}
+function formatHistoryTime(ts){
+  const d = new Date(ts);
+  const pad = n => String(n).padStart(2,'0');
+  return `${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function renderHistoryTab(){
+  const container = document.getElementById('historyList');
+  if(!container) return;
+  const list = loadHistory();
+  if(!list.length){
+    container.innerHTML = '<div class="hint" style="text-align:center; padding:30px 0;">Belum ada riwayat. Riwayat otomatis tersimpan setiap kali Generate Prompt (Foto/Video) berhasil.</div>';
+    return;
+  }
+  container.innerHTML = list.map(item => `
+    <div class="history-card">
+      <div class="history-card-head" onclick="toggleHistoryCard('${item.id}')">
+        <div><span class="history-badge">${item.type === 'video' ? '🎬' : '📷'}</span><span class="history-title">${escapeHtml(item.title)}</span></div>
+        <span class="history-time">${formatHistoryTime(item.time)}</span>
+      </div>
+      <div class="history-card-body" id="historyBody-${item.id}">
+        <pre class="history-pre">${escapeHtml(item.content)}</pre>
+        <div class="prompt-actions" style="margin-top:8px;">
+          <button class="btn-outline" onclick="copyHistoryContent('${item.id}')">📋 Copy</button>
+          <button class="btn-outline" onclick="deleteHistoryEntry('${item.id}')">🗑 Hapus</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
 function switchMainTab(tab){
-  ['foto','panduan'].forEach(t=>{
+  ['foto','panduan','riwayat'].forEach(t=>{
     document.getElementById('tabContent-'+t).style.display = (t===tab) ? 'block' : 'none';
   });
   document.querySelectorAll('.main-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
-  document.querySelector('.sticky-bar').style.display = (tab==='panduan') ? 'none' : 'flex';
+  document.querySelector('.sticky-bar').style.display = (tab==='panduan' || tab==='riwayat') ? 'none' : 'flex';
+  if(tab==='riwayat') renderHistoryTab();
 }
 
 /* ================= INIT ================= */
@@ -2823,6 +2922,9 @@ function vgBuildCharacterContext(){
   return `Karakter: ${vgState.gender}, usia ${vgGetAgeText()}. Nada bicara: ${vgGetToneText()}. Gaya bahasa/aksen: ${vgGetAccentText()} (natural Indonesian intonation, bukan logat daerah).`;
 }
 
+function vgFormatResultForHistory(results){
+  return results.map((r,i) => `PRODUK ${i+1}: ${r.productName}\nHOOK: ${r.hook}\nCERITA: ${r.cerita}\nCTA: ${r.cta}`).join('\n\n');
+}
 async function vgGenerateWithAI(){
   if(vgGenerating) return;
   vgGenerating = true; renderVgStep();
@@ -2850,6 +2952,7 @@ Balas HANYA dengan objek JSON mentah (tanpa markdown fences, tanpa penjelasan): 
       hook: parsed.hook || '', cerita: parsed.cerita || '', cta: parsed.cta || ''
     }];
     showToast('Script & JSON siap!');
+    saveHistoryEntry('video', `Video — ${vgState.productName}`, vgFormatResultForHistory(vgResult));
   }catch(err){
     console.error(err);
     showToast('Gagal membuat script: ' + (err.message || 'kesalahan tidak diketahui'));
@@ -2869,6 +2972,7 @@ function vgBuildFromManual(){
   }];
   renderVgStep();
   showToast('3 JSON dibuat dari script manual!');
+  saveHistoryEntry('video', `Video — ${vgState.productName || '(manual)'}`, vgFormatResultForHistory(vgResult));
 }
 
 async function vgGenerateMulti(){
@@ -2899,10 +3003,14 @@ Balas HANYA dengan objek JSON mentah (tanpa markdown fences, tanpa penjelasan): 
     }
     vgResult = results;
     showToast(`${results.length} set script & JSON siap!`);
+    if(results.length) saveHistoryEntry('video', `Video — ${results.length} produk sekaligus`, vgFormatResultForHistory(results));
   }catch(err){
     console.error(err);
     showToast('Gagal di tengah proses: ' + (err.message || 'kesalahan tidak diketahui') + ' (' + results.length + '/' + names.length + ' selesai)');
-    if(results.length) vgResult = results;
+    if(results.length){
+      vgResult = results;
+      saveHistoryEntry('video', `Video — ${results.length} produk (sebagian)`, vgFormatResultForHistory(results));
+    }
   }finally{
     vgGenerating = false; renderVgStep();
   }
@@ -2963,6 +3071,7 @@ async function vgCopyScene(idx, which){
 }
 </script>
 
+<script>
 (function(){
   const splash=document.getElementById('wiranzaSplash');
   if(!splash) return;
@@ -2972,25 +3081,9 @@ async function vgCopyScene(idx, which){
     document.documentElement.classList.remove('wz-loading');
     setTimeout(()=>splash.remove(),650);
   };
-  // Splash harus tampil minimal cukup lama untuk animasi logo selesai (~1.2 detik),
-  // TAPI tidak boleh menambah jeda ekstra di atas waktu loading yang sudah lambat.
-  // Dipicu oleh DOMContentLoaded (bukan window.load) supaya TIDAK ikut menunggu font/resource eksternal selesai diunduh.
-  const START_TIME = Date.now();
-  const MIN_SPLASH_MS = 1200;
-  let closed = false;
-  const closeOnce = ()=>{ if(closed) return; closed = true; closeSplash(); };
-  const scheduleClose = ()=>{
-    const elapsed = Date.now() - START_TIME;
-    const remaining = Math.max(0, MIN_SPLASH_MS - elapsed);
-    setTimeout(closeOnce, remaining);
-  };
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', scheduleClose, {once:true});
-  } else {
-    scheduleClose(); // dokumen sudah siap duluan (mis. script ini dimuat belakangan)
-  }
-  // Fallback keras: kalau ada resource yang macet total, splash tetap dijamin hilang, tidak mengunci aplikasi selamanya.
-  setTimeout(closeOnce, 2000);
+  // Splash sengaja ditampilkan tetap 3 detik supaya animasi logo selesai penuh dan terasa mewah —
+  // TAPI dipatok pas 3 detik, tidak boleh molor ke 4-5 detik seperti sebelumnya.
+  setTimeout(closeSplash, 3000);
 })();
 </script>
 

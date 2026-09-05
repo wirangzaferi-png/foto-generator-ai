@@ -1,4 +1,4 @@
-const CACHE_NAME = "wiranza-ai-v20";
+const CACHE_NAME = "wiranza-ai-v7";
 
 const APP_SHELL = [
   "./",
