@@ -11,10 +11,12 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"></noscript>
 <title>WIRANZA AI — AI Photo &amp; Content Generator</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
   :root{
     --bg:#0c0c12;
     --bg-panel:#16171f;
@@ -83,6 +85,44 @@
   .ai-modal-title{font-size:14.5px; font-weight:800;}
   .ai-modal-close{background:var(--bg-input); border:1px solid var(--line); color:var(--ink); width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:14px; flex-shrink:0;}
   .ai-modal-body{overflow-y:auto; padding:16px 18px 20px;}
+
+  /* ===== VIDEO GENERATOR — wizard 5 step, terpisah dari alur generate produk ===== */
+  .vg-modal{
+    position:fixed; inset:0; z-index:180;
+    background:var(--bg); display:none; flex-direction:column;
+  }
+  .vg-modal.open{display:flex;}
+  .vg-head{display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--line); flex-shrink:0;}
+  .vg-title{font-weight:800; font-size:14px; display:flex; align-items:center; gap:8px;}
+  .vg-close{background:var(--bg-input); border:1px solid var(--line); color:var(--ink); width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:14px; flex-shrink:0;}
+  .vg-progress-track{height:3px; background:var(--bg-input); flex-shrink:0;}
+  .vg-progress-bar{height:100%; background:var(--grad); transition:width .25s ease;}
+  .vg-stepline{display:flex; align-items:center; justify-content:space-between; padding:10px 16px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-dim); flex-shrink:0; border-bottom:1px solid var(--line);}
+  .vg-body{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:18px 16px 100px;}
+  .vg-step-badge{width:26px;height:26px;border-radius:8px;background:var(--ink);color:var(--bg);display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;}
+  .vg-h2{font-size:17px; font-weight:800; margin:14px 0 6px;}
+  .vg-desc{font-size:12px; color:var(--ink-dim); line-height:1.5; margin-bottom:16px;}
+  .vg-pill-grid{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;}
+  .vg-pill{padding:12px 16px; border-radius:14px; background:var(--bg-panel); border:1px solid var(--line); cursor:pointer; font-size:13px; font-weight:600; transition:.15s;}
+  .vg-pill .sub{color:var(--ink-dim); font-weight:500; font-size:11.5px;}
+  .vg-pill.selected{border-color:var(--accent2); background:rgba(124,77,255,.12); color:var(--accent2);}
+  .vg-pill.block{width:100%; text-align:left;}
+  .vg-pill-note{font-size:11.5px; color:var(--ink-dim); line-height:1.55; margin:4px 0 14px; padding:12px; background:var(--bg-input); border-radius:10px; border:1px solid var(--line);}
+  .vg-input, .vg-textarea{width:100%; background:var(--bg-input); border:1px solid var(--line); border-radius:10px; padding:11px 12px; color:var(--ink); font-size:13px; font-family:inherit;}
+  .vg-textarea{min-height:74px; resize:vertical;}
+  .vg-count{text-align:right; font-size:10.5px; color:var(--ink-dim); margin-top:4px;}
+  .vg-field-label{font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.04em; margin-bottom:7px; display:block;}
+  .vg-required{color:#ff6b8a;}
+  .vg-btn-primary{width:100%; padding:15px; border-radius:12px; border:none; background:var(--grad); color:#0c0c12; font-weight:800; font-size:14px; cursor:pointer; margin-top:6px;}
+  .vg-btn-primary:disabled{opacity:.5;}
+  .vg-submode-tabs{display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;}
+  .vg-submode-tab{flex:1; min-width:100px; padding:10px 8px; text-align:center; border-radius:10px; background:var(--bg-panel); border:1px solid var(--line); font-size:11.5px; font-weight:700; cursor:pointer;}
+  .vg-submode-tab.selected{border-color:var(--accent2); color:var(--accent2); background:rgba(124,77,255,.12);}
+  .vg-photo-row{display:flex; gap:10px; align-items:flex-start;}
+  .vg-photo-box{width:64px; height:64px; border-radius:12px; border:1.3px dashed var(--line); display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer; overflow:hidden; background:var(--bg-input);}
+  .vg-photo-box img{width:100%; height:100%; object-fit:cover;}
+  .vg-scene-card{background:var(--bg-panel); border:1px solid var(--line); border-radius:13px; padding:14px; margin-bottom:14px;}
+  .vg-scene-tag{font-size:11px; font-weight:800; letter-spacing:.05em; color:var(--accent2); margin-bottom:8px; display:block;}
 
   .provider-status-row{display:flex; align-items:center; gap:8px; margin:2px 0 14px;}
   .provider-status-row .pname{font-size:14px; font-weight:700;}
@@ -348,12 +388,12 @@ input, textarea, select, [contenteditable="true"] {
     radial-gradient(28% 22% at 72% 60%, rgba(255,79,216,0.14), transparent 60%);
   filter:blur(40px);
   opacity:0;
-  animation:wzAuraIn 1.5s ease .4s forwards, wzDrift 9s ease-in-out 1.9s infinite alternate;
+  animation:wzAuraIn 1.5s ease .26s forwards, wzDrift 9s ease-in-out 1.2s infinite alternate;
 }
 @keyframes wzAuraIn{ to{opacity:1} }
 @keyframes wzDrift{ 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(2%,-3%) scale(1.06)} }
 
-#wiranzaSplash .wz-particles{ position:absolute; inset:0; overflow:hidden; opacity:0; animation:wzAuraIn 1.5s ease .6s forwards; }
+#wiranzaSplash .wz-particles{ position:absolute; inset:0; overflow:hidden; opacity:0; animation:wzAuraIn 1.5s ease .39s forwards; }
 #wiranzaSplash .wz-dot{
   position:absolute; width:3px; height:3px; border-radius:50%;
   background:#9a4fff; box-shadow:0 0 8px 1px rgba(154,79,255,.8);
@@ -367,14 +407,14 @@ input, textarea, select, [contenteditable="true"] {
 .wz-mark polygon, .wz-mark path{ opacity:0; }
 
 .wz-spark{ transform-origin:96px 70px;
-  animation:wzSparkIn .7s cubic-bezier(.2,.8,.2,1) .15s forwards, wzSparkPulse 2.4s ease-in-out 1.4s infinite;
+  animation:wzSparkIn .7s cubic-bezier(.2,.8,.2,1) .1s forwards, wzSparkPulse 2.4s ease-in-out .9s infinite;
 }
 @keyframes wzSparkIn{ 0%{opacity:0; transform:scale(.2) rotate(-25deg)} 60%{opacity:1; transform:scale(1.25) rotate(4deg)} 100%{opacity:1; transform:scale(1) rotate(0)} }
 @keyframes wzSparkPulse{ 0%,100%{filter:drop-shadow(0 0 6px rgba(154,79,255,.5))} 50%{filter:drop-shadow(0 0 15px rgba(154,79,255,.9))} }
 
-.wz-blade-mid{ animation:wzStrokeIn .85s ease-out .55s forwards; transform-origin:96px 92px; }
-.wz-blade-left{ animation:wzStrokeIn .85s ease-out .85s forwards; transform-origin:55px 76px; }
-.wz-blade-right{ animation:wzStrokeIn .85s ease-out .85s forwards; transform-origin:140px 76px; }
+.wz-blade-mid{ animation:wzStrokeIn .85s ease-out .36s forwards; transform-origin:96px 92px; }
+.wz-blade-left{ animation:wzStrokeIn .85s ease-out .55s forwards; transform-origin:55px 76px; }
+.wz-blade-right{ animation:wzStrokeIn .85s ease-out .55s forwards; transform-origin:140px 76px; }
 @keyframes wzStrokeIn{ 0%{opacity:0; transform:translateY(14px) scale(.92)} 100%{opacity:1; transform:translateY(0) scale(1)} }
 
 .wz-title{
@@ -382,23 +422,23 @@ input, textarea, select, [contenteditable="true"] {
   background:linear-gradient(90deg,#2f6bff,#9a4fff 55%,#ff4fd8);
   -webkit-background-clip:text; background-clip:text; color:transparent;
   opacity:0; filter:blur(6px);
-  animation:wzTextReveal .8s ease-out 1.25s forwards;
+  animation:wzTextReveal .8s ease-out .81s forwards;
 }
 @keyframes wzTextReveal{ 0%{opacity:0; filter:blur(6px); transform:translateY(6px)} 100%{opacity:1; filter:blur(0); transform:translateY(0)} }
 
 .wz-sub{
   margin-top:10px; font-size:12px; letter-spacing:.28em; color:#9aa0b4;
   font-family:'Space Grotesk',sans-serif;
-  opacity:0; animation:wzFadeUp .6s ease-out 1.65s forwards;
+  opacity:0; animation:wzFadeUp .6s ease-out 1.07s forwards;
 }
-.wz-divider{ display:flex; align-items:center; justify-content:center; gap:14px; margin-top:26px; opacity:0; animation:wzFadeUp .6s ease-out 1.9s forwards; }
+.wz-divider{ display:flex; align-items:center; justify-content:center; gap:14px; margin-top:26px; opacity:0; animation:wzFadeUp .6s ease-out 1.24s forwards; }
 .wz-divider-line{ height:1px; width:36px; background:linear-gradient(90deg,transparent,#2f6bff); }
 .wz-divider-line.right{ background:linear-gradient(90deg,#ff4fd8,transparent); }
 .wz-divider-glow{ height:2px; width:60px; border-radius:2px; background:linear-gradient(90deg,#2f6bff,#9a4fff,#ff4fd8); box-shadow:0 0 10px rgba(122,92,255,.7); }
 .wz-author{
   margin-top:16px; font-size:13px; letter-spacing:.24em; color:#e6e8f0;
   font-family:'Space Grotesk',sans-serif;
-  opacity:0; animation:wzFadeUp .6s ease-out 2.1s forwards;
+  opacity:0; animation:wzFadeUp .6s ease-out 1.37s forwards;
 }
 @keyframes wzFadeUp{ 0%{opacity:0; transform:translateY(8px)} 100%{opacity:1; transform:translateY(0)} }
 
@@ -476,9 +516,12 @@ input, textarea, select, [contenteditable="true"] {
 
   <div class="topbar">
     <div class="brand-mini"><span class="logo">✨</span> VERRY WIRANZA AI</div>
-    <button class="provider-badge" id="providerBadgeBtn" onclick="openAiModal()">
-      <span id="aiMenuLabel">🔑 AI</span>
-    </button>
+    <div style="display:flex; gap:6px;">
+      <button class="provider-badge" onclick="openVideoGen()">🎬 Video</button>
+      <button class="provider-badge" id="providerBadgeBtn" onclick="openAiModal()">
+        <span id="aiMenuLabel">🔑 AI</span>
+      </button>
+    </div>
   </div>
 
   <div class="ai-modal-overlay" id="aiModalOverlay" onclick="closeAiModal()"></div>
@@ -893,7 +936,8 @@ const PROMPT_TYPES = [
   { id:'social_media', name:'SOCIAL MEDIA', objective:'Mengoptimalkan framing dan visual untuk tampilan layar HP/media sosial.', strategy:'Optimize framing and visual clarity specifically for a vertical mobile-feed viewing experience — clear subject silhouette, readable at small size.' },
   { id:'curiosity', name:'CURIOSITY / MYSTERY', objective:'Membuat penonton penasaran tanpa membuat informasi palsu.', strategy:'Use partial reveals, framing, or angle choices that build intrigue and curiosity — without fabricating any detail not present in the reference.' },
   { id:'viral', name:'VIRAL', objective:'Membuat konsep visual yang memiliki stopping power dan menarik perhatian.', strategy:'Prioritize maximum stopping power: a bold, memorable visual moment/composition that stands out and is highly shareable.' },
-  { id:'attention_story_cta', name:'ATTENTION + STORY + CTA', objective:'Menghasilkan konsep HOOK → STORY → VALUE → CTA.', strategy:'Structure the visual progression as Hook (grab attention) → Story (brief narrative moment) → Value (show the benefit) → CTA (clear closing direction), all through framing/pacing, not by altering the subject.' }
+  { id:'attention_story_cta', name:'ATTENTION + STORY + CTA', objective:'Menghasilkan konsep HOOK → STORY → VALUE → CTA.', strategy:'Structure the visual progression as Hook (grab attention) → Story (brief narrative moment) → Value (show the benefit) → CTA (clear closing direction), all through framing/pacing, not by altering the subject.' },
+  { id:'video_produk', name:'VIDEO PRODUK', objective:'Struktur khusus video produk terarah — motion, kamera, hook, storytelling, CTA, dan negative prompt dalam satu JSON siap pakai.', strategy:'Produce a structured product-video treatment: clear character/product motion, deliberate camera movement, and product-focused framing throughout — while keeping every visual detail of the reference product completely unchanged.' }
 ];
 let selectedPromptType = localStorage.getItem('vw_promptType') || 'general';
 
@@ -989,12 +1033,28 @@ document.getElementById('fileInput').addEventListener('change', function(e){
     document.getElementById('detectStatus').textContent = '';
     document.getElementById('detectStatus').className = 'detect-status';
 
+    // RESET total: foto baru = produk baru. Jangan pernah pakai hasil analisis,
+    // hook/storytelling/cta dari foto SEBELUMNYA — semua wajib dianalisis ulang.
+    detectedProductDetails = ""; detectedProductMaterial = ""; detectedProductColor = "";
+    detectedProductTexture = ""; detectedProductLogo = ""; detectedEnvironment = "";
+    garmentDescription = "produk";
+    autoHook = ""; autoStorytelling = ""; autoCta = "";
+    ['hookPreview','storyPreview','ctaPreview'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.value = '';
+    });
+    ['hookBadge','storyBadge','ctaBadge'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.textContent = HOOKSTORY_FIELD_CFG[id==='hookBadge'?'hook':id==='storyBadge'?'story':'cta'].autoLabel;
+    });
+
     // Foto yang dikirim ke AI dikompres dulu (maks 1280px, JPEG kualitas 0.85) —
     // foto kamera HP bisa 5-15MB tanpa ini, yang bikin proses generate lambat
     // terutama di koneksi seluler. Kualitas visual untuk analisis AI tetap cukup.
     uploadedBase64 = await resizeImageForAI(evt.target.result, 1280, 0.85);
     uploadedMediaType = 'image/jpeg';
     updateSummaries();
+    render();
     autoAdvance('sec-foto','sec-subjek');
   };
   reader.readAsDataURL(file);
@@ -2081,10 +2141,10 @@ function syntaxHighlight(json){
 function buildNegativePrompt(){
   const base = ['blurry','low quality','distorted object','duplicate object','incorrect logo','unreadable text','oversaturated','unnatural lighting','artifacts','watermark','extra text overlay','jpeg artifacts', ...NEGATIVE_PROMPT_BASE_EXTRA];
   if(fotoSubjek === 'model'){
-    base.push('malformed hands','extra fingers','missing fingers','deformed face','asymmetrical face','extra limbs','unnatural pose','bad anatomy');
+    base.push('malformed hands','extra fingers','missing fingers','extra hands','deformed face','asymmetrical face','extra limbs','unnatural pose','bad anatomy');
   }
   if(fotoSubjek === 'produk'){
-    base.push('warped product','product shape changed','wrong product color','floating product','product clipping through hand','melted product edges', ...NEGATIVE_PROMPT_PRODUCT_EXTRA);
+    base.push('different product','warped product','product shape changed','changed product color','wrong product color','floating product','product clipping through hand','melted product edges','product morphing', ...NEGATIVE_PROMPT_PRODUCT_EXTRA);
   }
   return [...new Set(base)].join(', ');
 }
@@ -2365,6 +2425,47 @@ ${preservasi}`;
     platform_target: document.getElementById('platformSelect')?.value || 'Generic / Lainnya'
   };
 
+  // ===== Skema JSON khusus untuk Jenis Prompt "VIDEO PRODUK" =====
+  if(promptType.id === 'video_produk'){
+    data.video_produk_schema = {
+      reference: {
+        frame_start: fotoSubjek === 'produk' ? 'Sesuai foto referensi produk yang diunggah, posisi awal stabil dan jelas terlihat.' : 'Sesuai foto referensi yang diunggah, pose awal natural.',
+        instruction: 'Gunakan foto referensi sebagai acuan visual utama tanpa mengubah bentuk, warna, atau detail apa pun.'
+      },
+      preserve_original: {
+        enabled: true,
+        instruction: PRESERVE_ORIGINAL_TEXT + (fotoSubjek === 'produk' ? ' ' + PRESERVE_ORIGINAL_PRODUCT_TEXT : '')
+      },
+      motion: {
+        character: fotoSubjek === 'model' ? 'model bergerak natural sesuai foto referensi' : 'tangan/model pendukung bergerak halus tanpa mengubah produk',
+        action: gerakanText,
+        camera: camText,
+        movement_speed: 'halus, sedang, tidak terburu-buru',
+        product_focus: fotoSubjek === 'produk' ? 'produk selalu jelas terlihat dan menjadi focal point' : 'natural, mengikuti subjek utama'
+      },
+      content: {
+        hook: autoHook || '',
+        storytelling: autoStorytelling || '',
+        cta: ctaText
+      },
+      duration: { seconds: 8 },
+      sound: {
+        ambient: lokasi.isOutdoor ? 'suara ambient outdoor natural (angin/lalu lintas halus)' : 'suara ambient indoor natural (ruang tenang)',
+        voice_character: 'natural, santai, seperti teman bercerita — bukan gaya iklan',
+        voice_over: true
+      },
+      output: {
+        style: 'photorealistic',
+        resolution: '4K',
+        fps: 24,
+        lighting: lightingText,
+        post_processing: 'minimal',
+        realistic_motion: true
+      },
+      negative_prompt: negativePrompt.split(', ')
+    };
+  }
+
   const promptText = formatFullPrompt(data);
 
   document.getElementById('jsonOutput').innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
@@ -2479,8 +2580,389 @@ if('serviceWorker' in navigator){
 }
 </script>
 
+<!-- ===== VIDEO GENERATOR — wizard 5 step, terpisah dari alur generate produk ===== -->
+<div class="vg-modal" id="vgModal" role="dialog" aria-modal="true">
+  <div class="vg-head">
+    <span class="vg-title">🎬 Video Generator</span>
+    <button class="vg-close" onclick="closeVideoGen()">✕</button>
+  </div>
+  <div class="vg-progress-track"><div class="vg-progress-bar" id="vgProgressBar" style="width:20%;"></div></div>
+  <div class="vg-stepline"><span>Step <b id="vgStepNum" style="color:var(--ink);">1</b> dari 5</span><span id="vgStepLabel">Mode Referensi Foto</span></div>
+  <div class="vg-body" id="vgBody"></div>
+</div>
+
 <script>
-/* ===== SPLASH LIFECYCLE ===== */
+/* ================= VIDEO GENERATOR (wizard 5 step → 3 JSON: Hook/Cerita/CTA) =================
+   Fitur terpisah total dari alur generate produk yang sudah ada — tidak menyentuh
+   variabel/fungsi lain di file ini. */
+const VG_REF_MODES = [
+  { id:'mode1', label:'Mode 1 — 1 foto untuk semua', desc:'Satu foto dipakai sebagai referensi visual untuk seluruh scene (Hook, Cerita, CTA). Konsisten tapi lebih sederhana.' },
+  { id:'mode2', label:'Mode 2 — Aset frame awal', desc:'Foto yang dilampirkan jadi frame awal SETIAP pergantian scene, scene wajib 100% sama dengan foto (kalau di foto tidak ada wajah, jangan dimunculkan wajah), dan urutan scene wajib berurutan sesuai foto yang dilampirkan.' },
+  { id:'mode3', label:'Mode 3 — Karakter + Produk + Lokasi', desc:'Karakter, produk, dan lokasi masing-masing punya foto referensi terpisah, digabung jadi satu scene yang konsisten.' }
+];
+const VG_AGE_PRESETS = [
+  { id:'anak', label:'Anak-anak', sub:'5–10 th' },
+  { id:'remaja', label:'Remaja', sub:'15–20 th' },
+  { id:'dewasa_muda', label:'Dewasa Muda', sub:'20–30 th' },
+  { id:'dewasa', label:'Dewasa', sub:'30–45 th' },
+  { id:'paruh_baya', label:'Paruh Baya', sub:'45–60 th' }
+];
+const VG_TONE_PRESETS = ['Ceria','Tenang','Serius','Lembut','Bersemangat','Misterius'];
+const VG_ACCENT_PRESETS = ['Netral','Formal','Santai'];
+
+let vgStep = 1;
+let vgState = {
+  refMode: 'mode2',
+  gender: '',
+  agePreset: '',
+  ageCustom: '',
+  tone: '',
+  toneCustom: '',
+  accent: '',
+  accentCustom: '',
+  subMode: 'ai', // 'ai' | 'manual' | 'multi'
+  productName: '',
+  productPhotoBase64: null,
+  targetAudience: '',
+  manualHook: '',
+  manualCerita: '',
+  manualCta: '',
+  multiNames: ''
+};
+let vgResult = null; // { hook, cerita, cta } setelah generate
+let vgGenerating = false;
+
+function openVideoGen(){
+  document.getElementById('vgModal').classList.add('open');
+  vgStep = 1;
+  renderVgStep();
+}
+function closeVideoGen(){
+  document.getElementById('vgModal').classList.remove('open');
+}
+function vgGoToStep(n){
+  vgStep = n;
+  renderVgStep();
+  // Tidak ada scrollTo/scrollIntoView — konten modal sendiri yang scroll (overflow-y pada .vg-body),
+  // dan setiap ganti step, .vg-body di-reset ke atas secara lokal (bukan halaman utama).
+  const body = document.getElementById('vgBody');
+  if(body) body.scrollTop = 0;
+}
+
+function renderVgStep(){
+  const labels = ['Mode Referensi Foto','Jenis Kelamin & Usia','Nada Bicara','Aksen','Script / Dialog'];
+  document.getElementById('vgStepNum').textContent = vgStep;
+  document.getElementById('vgStepLabel').textContent = labels[vgStep-1];
+  document.getElementById('vgProgressBar').style.width = (vgStep/5*100) + '%';
+  const body = document.getElementById('vgBody');
+  if(vgStep === 1) body.innerHTML = vgRenderStep1();
+  else if(vgStep === 2) body.innerHTML = vgRenderStep2();
+  else if(vgStep === 3) body.innerHTML = vgRenderStep3();
+  else if(vgStep === 4) body.innerHTML = vgRenderStep4();
+  else body.innerHTML = vgRenderStep5();
+}
+
+function vgRenderStep1(){
+  const modeCards = VG_REF_MODES.map(m => `
+    <div class="vg-pill block ${vgState.refMode===m.id?'selected':''}" onclick="vgState.refMode='${m.id}'; renderVgStep();">${m.label}</div>
+  `).join('');
+  const activeMode = VG_REF_MODES.find(m=>m.id===vgState.refMode);
+  return `
+    <span class="vg-step-badge">1</span>
+    <div class="vg-h2">Mode Referensi Foto</div>
+    <div class="vg-desc">Foto referensinya di-upload langsung di Google Flow/Veo saat kamu pakai prompt ini — bukan di sini. Pilihan di bawah cuma menentukan strategi/instruksi di dalam JSON.</div>
+    <div class="vg-pill-grid" style="flex-direction:column;">${modeCards}</div>
+    <div class="vg-pill-note">${activeMode.desc}</div>
+    <button class="vg-btn-primary" onclick="vgGoToStep(2)">Lanjut →</button>
+  `;
+}
+
+function vgRenderStep2(){
+  const genderPills = ['Laki-laki','Perempuan'].map(g => `<div class="vg-pill ${vgState.gender===g?'selected':''}" onclick="vgState.gender='${g}'; renderVgStep();">${g}</div>`).join('');
+  const agePills = VG_AGE_PRESETS.map(a => `<div class="vg-pill ${vgState.agePreset===a.id?'selected':''}" onclick="vgState.agePreset='${a.id}'; vgState.ageCustom=''; renderVgStep();">${a.label} <span class="sub">${a.sub}</span></div>`).join('');
+  const canNext = vgState.gender && (vgState.agePreset || vgState.ageCustom.trim());
+  return `
+    <span class="vg-step-badge">2</span>
+    <div class="vg-h2">Jenis Kelamin &amp; Usia</div>
+    <label class="vg-field-label">Jenis Kelamin <span class="vg-required">*wajib</span></label>
+    <div class="vg-pill-grid">${genderPills}</div>
+    <label class="vg-field-label">Usia Karakter <span class="vg-required">*wajib</span></label>
+    <div class="vg-pill-grid">${agePills}</div>
+    <label class="vg-field-label">Atau tulis usia sendiri</label>
+    <input class="vg-input" maxlength="120" placeholder="Contoh: elderly woman, around 65 years old" value="${vgState.ageCustom.replace(/"/g,'&quot;')}" oninput="vgState.ageCustom=this.value; if(this.value.trim()) vgState.agePreset=''; vgUpdateNextBtn2();">
+    <div class="vg-count">${vgState.ageCustom.length} / 120</div>
+    <button class="vg-btn-primary" id="vgNextBtn2" ${canNext?'':'disabled'} onclick="vgGoToStep(3)">Konfirmasi →</button>
+  `;
+}
+function vgUpdateNextBtn2(){
+  const btn = document.getElementById('vgNextBtn2');
+  if(btn) btn.disabled = !(vgState.gender && (vgState.agePreset || vgState.ageCustom.trim()));
+}
+
+function vgRenderStep3(){
+  const tonePills = VG_TONE_PRESETS.map(t => `<div class="vg-pill ${vgState.tone===t?'selected':''}" onclick="vgState.tone='${t}'; vgState.toneCustom=''; renderVgStep();">${t}</div>`).join('');
+  return `
+    <span class="vg-step-badge">3</span>
+    <div class="vg-h2">Nada Bicara</div>
+    <div class="vg-desc">Emosi/energi karakter saat ngomong — apakah terdengar semangat, kalem, atau misterius.</div>
+    <div class="vg-pill-grid">${tonePills}</div>
+    <label class="vg-field-label">Atau tulis sendiri</label>
+    <input class="vg-input" maxlength="80" placeholder="Contoh: lelah tapi tetap ramah" value="${vgState.toneCustom.replace(/"/g,'&quot;')}" oninput="vgState.toneCustom=this.value; if(this.value.trim()) vgState.tone=''; vgUpdateNextBtn3();">
+    <div class="vg-count">${vgState.toneCustom.length} / 80</div>
+    <button class="vg-btn-primary" id="vgNextBtn3" ${(vgState.tone||vgState.toneCustom.trim())?'':'disabled'} onclick="vgGoToStep(4)">Konfirmasi →</button>
+  `;
+}
+function vgUpdateNextBtn3(){
+  const btn = document.getElementById('vgNextBtn3');
+  if(btn) btn.disabled = !(vgState.tone || vgState.toneCustom.trim());
+}
+
+function vgRenderStep4(){
+  const accentPills = VG_ACCENT_PRESETS.map(a => `<div class="vg-pill ${vgState.accent===a?'selected':''}" onclick="vgState.accent='${a}'; vgState.accentCustom=''; renderVgStep();">${a}</div>`).join('');
+  return `
+    <span class="vg-step-badge">4</span>
+    <div class="vg-h2">Aksen</div>
+    <div class="vg-desc">Seberapa baku atau santai bahasanya — bukan logat daerah (logat Jawa/Sunda/dll tidak tersedia).</div>
+    <div class="vg-pill-grid">${accentPills}</div>
+    <label class="vg-field-label">Atau tulis sendiri</label>
+    <input class="vg-input" maxlength="120" placeholder="Contoh: nada santai dan ramah" value="${vgState.accentCustom.replace(/"/g,'&quot;')}" oninput="vgState.accentCustom=this.value; if(this.value.trim()) vgState.accent=''; vgUpdateNextBtn4();">
+    <div class="vg-count">${vgState.accentCustom.length} / 120</div>
+    <div class="vg-desc" style="margin-top:10px;">Semua pilihan otomatis digabung dengan "Natural Indonesian intonation".</div>
+    <button class="vg-btn-primary" id="vgNextBtn4" ${(vgState.accent||vgState.accentCustom.trim())?'':'disabled'} onclick="vgGoToStep(5)">Konfirmasi →</button>
+  `;
+}
+function vgUpdateNextBtn4(){
+  const btn = document.getElementById('vgNextBtn4');
+  if(btn) btn.disabled = !(vgState.accent || vgState.accentCustom.trim());
+}
+
+function vgRenderStep5(){
+  const tabs = [['ai','Skrip dibantu AI'],['manual','Tulis Manual Sendiri'],['multi','Banyak Produk Sekaligus (maks 10)']]
+    .map(([id,label]) => `<div class="vg-submode-tab ${vgState.subMode===id?'selected':''}" onclick="vgState.subMode='${id}'; renderVgStep();">${label}</div>`).join('');
+
+  let body = '';
+  if(vgState.subMode === 'ai'){
+    const photoImg = vgState.productPhotoBase64 ? `<img src="data:image/jpeg;base64,${vgState.productPhotoBase64}">` : '📷';
+    const canGen = vgState.productName.trim() && vgState.targetAudience.trim() && !vgGenerating;
+    body = `
+      <label class="vg-field-label">Nama Produk <span class="vg-required">*wajib</span></label>
+      <div class="vg-photo-row">
+        <input class="vg-input" style="flex:1;" id="vgProductName" placeholder="Contoh: Serum Wajah Glow Aura" value="${vgState.productName.replace(/"/g,'&quot;')}" oninput="vgState.productName=this.value; vgUpdateGenBtn();">
+        <div class="vg-photo-box" onclick="document.getElementById('vgPhotoInput').click();">${photoImg}</div>
+        <input type="file" id="vgPhotoInput" accept="image/*" style="display:none;" onchange="vgOnPhotoSelect(this)">
+      </div>
+      <div class="vg-desc">Foto produk bantu AI biar script lebih sesuai produk asli — opsional.</div>
+      <label class="vg-field-label">Target Audience <span class="vg-required">*wajib</span></label>
+      <textarea class="vg-textarea" id="vgTargetAudience" placeholder="Contoh: perempuan usia 20-30 tahun yang peduli perawatan kulit" oninput="vgState.targetAudience=this.value; vgUpdateGenBtn();">${vgState.targetAudience}</textarea>
+      <button class="vg-btn-primary" id="vgGenBtn" ${canGen?'':'disabled'} onclick="vgGenerateWithAI()">${vgGenerating?'⏳ Membuat Script...':'✨ Buatkan 3 Script + JSON dengan AI'}</button>
+      <div class="vg-desc" style="margin-top:8px;">AI otomatis buat 3 script sekaligus (Hook, Cerita Produk, CTA) — masing-masing ±25 kata, langsung jadi 3 prompt JSON siap pakai.</div>
+    `;
+  } else if(vgState.subMode === 'manual'){
+    body = `
+      <label class="vg-field-label">🪝 Hook — pembuka penasaran</label>
+      <textarea class="vg-textarea" oninput="vgState.manualHook=this.value; vgUpdateWordCounts();" placeholder="Contoh: Kalian yang masih bingung pilih skincare buat kulit berminyak, coba deh merhatiin ini bentar...">${vgState.manualHook}</textarea>
+      <div class="vg-count" id="vgCountHook">0 kata</div>
+      <label class="vg-field-label" style="margin-top:10px;">📖 Cerita Produk</label>
+      <textarea class="vg-textarea" oninput="vgState.manualCerita=this.value; vgUpdateWordCounts();" placeholder="Contoh: Bayangin tiap pagi wajah kalian kerasa lebih segar, minyak berkurang, dan pede tanpa perlu banyak makeup lagi...">${vgState.manualCerita}</textarea>
+      <div class="vg-count" id="vgCountCerita">0 kata</div>
+      <label class="vg-field-label" style="margin-top:10px;">🎯 CTA — ajak cek keranjang bawah</label>
+      <textarea class="vg-textarea" oninput="vgState.manualCta=this.value; vgUpdateWordCounts();" placeholder="Contoh: Jangan kelamaan mikir, langsung aja cek keranjang di bawah sebelum kehabisan stoknya ya...">${vgState.manualCta}</textarea>
+      <div class="vg-count" id="vgCountCta">0 kata</div>
+      <div class="vg-desc">Idealnya masing-masing sekitar 25 kata, natural kayak orang ngomong beneran — bukan bahasa iklan formal.</div>
+      <button class="vg-btn-primary" id="vgManualBtn" onclick="vgBuildFromManual()">Buat 3 JSON dari Script Ini →</button>
+    `;
+  } else {
+    body = `
+      <label class="vg-field-label">Nama Produk (1 per baris, maks 10)</label>
+      <textarea class="vg-textarea" style="min-height:140px;" oninput="vgState.multiNames=this.value;" placeholder="Serum Wajah Glow Aura&#10;Sepatu Lari UltraBoost&#10;Tas Selempang Kulit">${vgState.multiNames}</textarea>
+      <div class="vg-desc">Setiap baris = 1 produk. AI akan membuat 3 script (Hook/Cerita/CTA) untuk setiap produk secara berurutan menggunakan Target Audience yang sama.</div>
+      <label class="vg-field-label">Target Audience <span class="vg-required">*wajib</span></label>
+      <textarea class="vg-textarea" oninput="vgState.targetAudience=this.value;" placeholder="Contoh: perempuan usia 20-30 tahun">${vgState.targetAudience}</textarea>
+      <button class="vg-btn-primary" id="vgMultiBtn" onclick="vgGenerateMulti()" ${vgGenerating?'disabled':''}>${vgGenerating?'⏳ Memproses...':'✨ Buatkan Semua Script + JSON'}</button>
+    `;
+  }
+
+  const resultHtml = vgResult ? vgRenderResult() : '';
+
+  return `
+    <span class="vg-step-badge">5</span>
+    <div class="vg-h2">Script / Dialog</div>
+    <div class="vg-desc">Mau bikin script gimana?</div>
+    <div class="vg-submode-tabs">${tabs}</div>
+    ${body}
+    ${resultHtml}
+  `;
+}
+
+function vgUpdateGenBtn(){
+  const btn = document.getElementById('vgGenBtn');
+  if(btn) btn.disabled = !(vgState.productName.trim() && vgState.targetAudience.trim()) || vgGenerating;
+}
+function vgUpdateWordCounts(){
+  const wc = (s) => (s.trim() ? s.trim().split(/\s+/).length : 0);
+  const h = document.getElementById('vgCountHook'); if(h) h.textContent = wc(vgState.manualHook) + ' kata';
+  const c = document.getElementById('vgCountCerita'); if(c) c.textContent = wc(vgState.manualCerita) + ' kata';
+  const t = document.getElementById('vgCountCta'); if(t) t.textContent = wc(vgState.manualCta) + ' kata';
+}
+
+function vgOnPhotoSelect(input){
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async function(evt){
+    vgState.productPhotoBase64 = await resizeImageForAI(evt.target.result, 1280, 0.85);
+    renderVgStep();
+  };
+  reader.readAsDataURL(file);
+}
+
+function vgGetAgeText(){ return vgState.ageCustom.trim() || (VG_AGE_PRESETS.find(a=>a.id===vgState.agePreset)||{}).label + ' (' + (VG_AGE_PRESETS.find(a=>a.id===vgState.agePreset)||{}).sub + ')'; }
+function vgGetToneText(){ return vgState.toneCustom.trim() || vgState.tone; }
+function vgGetAccentText(){ return vgState.accentCustom.trim() || vgState.accent; }
+
+function vgBuildCharacterContext(){
+  return `Karakter: ${vgState.gender}, usia ${vgGetAgeText()}. Nada bicara: ${vgGetToneText()}. Gaya bahasa/aksen: ${vgGetAccentText()} (natural Indonesian intonation, bukan logat daerah).`;
+}
+
+async function vgGenerateWithAI(){
+  if(vgGenerating) return;
+  vgGenerating = true; renderVgStep();
+  try{
+    const refMode = VG_REF_MODES.find(m=>m.id===vgState.refMode);
+    const instruction = `Kamu adalah copywriter video pendek (TikTok/Reels/Shorts) untuk produk marketplace.
+
+${vgBuildCharacterContext()}
+Produk: ${vgState.productName}
+Target Audience: ${vgState.targetAudience}
+
+Buat 3 bagian script, berurutan dan saling berhubungan (satu konsep konsisten):
+1. HOOK — sekitar 25 kata, pembuka yang bikin penasaran, natural, tidak seperti iklan.
+2. CERITA PRODUK — sekitar 25 kata, cerita natural gimana rasanya kalau audiens pakai produk ini, mengalir dari hook.
+3. CTA — sekitar 25 kata, ajakan natural untuk cek keranjang di bawah, jadi penutup dari cerita produk. Jangan mengarahkan ke follow/like/subscribe/klik link/kirim pesan.
+
+Balas HANYA dengan objek JSON mentah (tanpa markdown fences, tanpa penjelasan): {"hook":"...","cerita":"...","cta":"..."}`;
+
+    const img = vgState.productPhotoBase64 ? { base64: vgState.productPhotoBase64, mediaType: 'image/jpeg' } : false;
+    let rawText = activeProvider === 'gemini' ? await callGemini(instruction, img) : await callClaude(instruction, img);
+    rawText = (rawText || '').trim().replace(/^```json\s*|```$/g, '').trim();
+    const parsed = JSON.parse(rawText);
+    vgResult = [{
+      productName: vgState.productName,
+      hook: parsed.hook || '', cerita: parsed.cerita || '', cta: parsed.cta || ''
+    }];
+    showToast('Script & JSON siap!');
+  }catch(err){
+    console.error(err);
+    showToast('Gagal membuat script: ' + (err.message || 'kesalahan tidak diketahui'));
+  }finally{
+    vgGenerating = false; renderVgStep();
+  }
+}
+
+function vgBuildFromManual(){
+  if(!vgState.manualHook.trim() && !vgState.manualCerita.trim() && !vgState.manualCta.trim()){
+    showToast('Isi minimal salah satu bagian dulu (Hook/Cerita/CTA)');
+    return;
+  }
+  vgResult = [{
+    productName: vgState.productName || '(manual)',
+    hook: vgState.manualHook, cerita: vgState.manualCerita, cta: vgState.manualCta
+  }];
+  renderVgStep();
+  showToast('3 JSON dibuat dari script manual!');
+}
+
+async function vgGenerateMulti(){
+  if(vgGenerating) return;
+  const names = vgState.multiNames.split('\n').map(s=>s.trim()).filter(Boolean).slice(0,10);
+  if(!names.length){ showToast('Isi minimal 1 nama produk'); return; }
+  if(!vgState.targetAudience.trim()){ showToast('Target Audience wajib diisi'); return; }
+  vgGenerating = true; renderVgStep();
+  const results = [];
+  try{
+    for(const name of names){
+      const instruction = `Kamu adalah copywriter video pendek (TikTok/Reels/Shorts) untuk produk marketplace.
+
+${vgBuildCharacterContext()}
+Produk: ${name}
+Target Audience: ${vgState.targetAudience}
+
+Buat 3 bagian script, berurutan dan saling berhubungan (satu konsep konsisten):
+1. HOOK — sekitar 25 kata, pembuka yang bikin penasaran, natural, tidak seperti iklan.
+2. CERITA PRODUK — sekitar 25 kata, cerita natural gimana rasanya kalau audiens pakai produk ini, mengalir dari hook.
+3. CTA — sekitar 25 kata, ajakan natural untuk cek keranjang di bawah, jadi penutup dari cerita produk.
+
+Balas HANYA dengan objek JSON mentah (tanpa markdown fences, tanpa penjelasan): {"hook":"...","cerita":"...","cta":"..."}`;
+      let rawText = activeProvider === 'gemini' ? await callGemini(instruction, false) : await callClaude(instruction, false);
+      rawText = (rawText || '').trim().replace(/^```json\s*|```$/g, '').trim();
+      const parsed = JSON.parse(rawText);
+      results.push({ productName: name, hook: parsed.hook || '', cerita: parsed.cerita || '', cta: parsed.cta || '' });
+    }
+    vgResult = results;
+    showToast(`${results.length} set script & JSON siap!`);
+  }catch(err){
+    console.error(err);
+    showToast('Gagal di tengah proses: ' + (err.message || 'kesalahan tidak diketahui') + ' (' + results.length + '/' + names.length + ' selesai)');
+    if(results.length) vgResult = results;
+  }finally{
+    vgGenerating = false; renderVgStep();
+  }
+}
+
+function vgBuildSceneJSON(item, sceneKey, dialogText){
+  const refMode = VG_REF_MODES.find(m=>m.id===vgState.refMode);
+  const sceneNames = { hook:'HOOK', cerita:'CERITA_PRODUK', cta:'CTA' };
+  return {
+    scene: sceneNames[sceneKey],
+    product_name: item.productName,
+    reference_mode: { id: refMode.id, label: refMode.label, instruction: refMode.desc },
+    character: {
+      gender: vgState.gender,
+      age: vgGetAgeText(),
+      tone: vgGetToneText(),
+      accent: vgGetAccentText() + ' (natural Indonesian intonation)'
+    },
+    target_audience: vgState.targetAudience || null,
+    dialog: dialogText,
+    duration_seconds: 8,
+    preserve_original: {
+      enabled: true,
+      instruction: PRESERVE_ORIGINAL_TEXT + ' ' + PRESERVE_ORIGINAL_PRODUCT_TEXT
+    },
+    negative_prompt: ['different product','product redesign','changed product shape','changed product color','changed logo','changed text','changed branding','altered proportions','deformed product','product morphing','warped product','duplicate product','different person','face distortion','identity change','deformed hands','extra fingers','extra hands']
+  };
+}
+
+function vgRenderResult(){
+  return vgResult.map((item, idx) => `
+    <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--line);">
+      ${vgResult.length > 1 ? `<div class="vg-h2" style="font-size:14px;">📦 ${item.productName}</div>` : ''}
+      <div class="vg-scene-card">
+        <span class="vg-scene-tag">🪝 SCENE 1 — HOOK</span>
+        <pre id="vgJsonHook${idx}" style="display:block; background:var(--bg-input); border:1px solid var(--line); border-radius:8px; padding:10px; font-size:10px; white-space:pre-wrap; word-break:break-word; max-height:220px; overflow-y:auto; color:#d5f5ef;">${JSON.stringify(vgBuildSceneJSON(item,'hook',item.hook), null, 2)}</pre>
+        <button class="btn-outline" style="margin-top:8px;" onclick="vgCopyScene(${idx}, 'Hook')">📋 Copy JSON Hook</button>
+      </div>
+      <div class="vg-scene-card">
+        <span class="vg-scene-tag">📖 SCENE 2 — CERITA PRODUK</span>
+        <pre id="vgJsonCerita${idx}" style="display:block; background:var(--bg-input); border:1px solid var(--line); border-radius:8px; padding:10px; font-size:10px; white-space:pre-wrap; word-break:break-word; max-height:220px; overflow-y:auto; color:#d5f5ef;">${JSON.stringify(vgBuildSceneJSON(item,'cerita',item.cerita), null, 2)}</pre>
+        <button class="btn-outline" style="margin-top:8px;" onclick="vgCopyScene(${idx}, 'Cerita')">📋 Copy JSON Cerita</button>
+      </div>
+      <div class="vg-scene-card">
+        <span class="vg-scene-tag">🎯 SCENE 3 — CTA</span>
+        <pre id="vgJsonCta${idx}" style="display:block; background:var(--bg-input); border:1px solid var(--line); border-radius:8px; padding:10px; font-size:10px; white-space:pre-wrap; word-break:break-word; max-height:220px; overflow-y:auto; color:#d5f5ef;">${JSON.stringify(vgBuildSceneJSON(item,'cta',item.cta), null, 2)}</pre>
+        <button class="btn-outline" style="margin-top:8px;" onclick="vgCopyScene(${idx}, 'Cta')">📋 Copy JSON CTA</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function vgCopyScene(idx, which){
+  const el = document.getElementById('vgJson' + which + idx);
+  if(!el) return;
+  const ok = await copyText(el.textContent);
+  if(ok) showToast('JSON ' + which + ' disalin!');
+}
+</script>
+
 (function(){
   const splash=document.getElementById('wiranzaSplash');
   if(!splash) return;
@@ -2490,9 +2972,25 @@ if('serviceWorker' in navigator){
     document.documentElement.classList.remove('wz-loading');
     setTimeout(()=>splash.remove(),650);
   };
-  window.addEventListener('load',()=>setTimeout(closeSplash,3000),{once:true});
-  // Fallback agar splash tidak pernah mengunci aplikasi bila ada resource lambat.
-  setTimeout(closeSplash,5000);
+  // Splash harus tampil minimal cukup lama untuk animasi logo selesai (~1.2 detik),
+  // TAPI tidak boleh menambah jeda ekstra di atas waktu loading yang sudah lambat.
+  // Dipicu oleh DOMContentLoaded (bukan window.load) supaya TIDAK ikut menunggu font/resource eksternal selesai diunduh.
+  const START_TIME = Date.now();
+  const MIN_SPLASH_MS = 1200;
+  let closed = false;
+  const closeOnce = ()=>{ if(closed) return; closed = true; closeSplash(); };
+  const scheduleClose = ()=>{
+    const elapsed = Date.now() - START_TIME;
+    const remaining = Math.max(0, MIN_SPLASH_MS - elapsed);
+    setTimeout(closeOnce, remaining);
+  };
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', scheduleClose, {once:true});
+  } else {
+    scheduleClose(); // dokumen sudah siap duluan (mis. script ini dimuat belakangan)
+  }
+  // Fallback keras: kalau ada resource yang macet total, splash tetap dijamin hilang, tidak mengunci aplikasi selamanya.
+  setTimeout(closeOnce, 2000);
 })();
 </script>
 
