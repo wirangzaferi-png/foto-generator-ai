@@ -84,7 +84,7 @@
   .ai-modal-head{display:flex; align-items:center; justify-content:space-between; padding:16px 18px; flex-shrink:0; border-bottom:1px solid var(--line);}
   .ai-modal-title{font-size:14.5px; font-weight:800;}
   .ai-modal-close{background:var(--bg-input); border:1px solid var(--line); color:var(--ink); width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:14px; flex-shrink:0;}
-  .ai-modal-body{overflow-y:auto; padding:16px 18px 20px;}
+  .ai-modal-body{overflow-y:auto; overscroll-behavior-y:contain; padding:16px 18px 20px;}
 
   /* ===== VIDEO GENERATOR — wizard 5 step, terpisah dari alur generate produk ===== */
   .vg-modal{
@@ -98,7 +98,7 @@
   .vg-progress-track{height:3px; background:var(--bg-input); flex-shrink:0;}
   .vg-progress-bar{height:100%; background:var(--grad); transition:width .25s ease;}
   .vg-stepline{display:flex; align-items:center; justify-content:space-between; padding:10px 16px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-dim); flex-shrink:0; border-bottom:1px solid var(--line);}
-  .vg-body{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:18px 16px 100px;}
+  .vg-body{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior-y:contain; padding:18px 16px 100px;}
   .vg-step-badge{width:26px;height:26px;border-radius:8px;background:var(--ink);color:var(--bg);display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;}
   .vg-h2{font-size:17px; font-weight:800; margin:14px 0 6px;}
   .vg-desc{font-size:12px; color:var(--ink-dim); line-height:1.5; margin-bottom:16px;}
@@ -186,7 +186,7 @@
   .history-time{font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--ink-dim); white-space:nowrap;}
   .history-card-body{display:none; padding:0 14px 14px;}
   .history-card-body.open{display:block;}
-  .history-pre{white-space:pre-wrap; font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--ink-dim); background:var(--bg-input); border:1px solid var(--line); border-radius:9px; padding:10px 12px; max-height:260px; overflow-y:auto;}
+  .history-pre{white-space:pre-wrap; font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--ink-dim); background:var(--bg-input); border:1px solid var(--line); border-radius:9px; padding:10px 12px; max-height:260px; overflow-y:auto; overscroll-behavior-y:contain;}
 
   .hero{ padding:34px 0 22px; text-align:center; }
   .hero .kicker{font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:12px;}
@@ -299,7 +299,7 @@
   .btn-outline{font-family:'Space Grotesk',sans-serif; font-size:11.5px; font-weight:700; background:var(--bg-input); border:1px solid var(--line); color:var(--ink); border-radius:8px; padding:8px 10px; cursor:pointer; flex:1; min-width:96px;}
   .btn-outline:hover{border-color:var(--accent2);}
   .json-toggle{font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--ink-dim); cursor:pointer; margin:14px 0 8px; display:flex; align-items:center; gap:6px;}
-  pre{background:var(--bg-input);border:1px solid var(--line);border-radius:10px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.55;color:#d5f5ef;overflow-x:auto;white-space:pre-wrap;word-break:break-word;margin:0;max-height:340px;overflow-y:auto;display:none;}
+  pre{background:var(--bg-input);border:1px solid var(--line);border-radius:10px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.55;color:#d5f5ef;overflow-x:auto;white-space:pre-wrap;word-break:break-word;margin:0;max-height:340px;overflow-y:auto;overscroll-behavior-y:contain;display:none;}
   pre.show{display:block;}
   .json-actions{display:flex; gap:8px; margin-top:8px;}
   .key{color:#8fb8ff;}
@@ -351,22 +351,29 @@
   .drawer-tab{flex:1; text-align:center; padding:9px 4px; border-radius:9px; font-size:12px; font-weight:700; background:var(--bg-panel); border:1px solid var(--line); color:var(--ink-dim); cursor:pointer;}
   .drawer-tab.active{background:var(--grad); color:#fff; border-color:transparent;}
   .drawer-tab:disabled{opacity:.35; cursor:not-allowed;}
-  .drawer-body{overflow-y:auto; -webkit-overflow-scrolling:touch; padding:0 16px 24px; flex:1;}
+  .drawer-body{overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior-y:contain; padding:0 16px 24px; flex:1;}
   .drawer-body .acc{display:none;}
   .drawer-body .acc.tab-visible{display:block;}
 
 
 /* ===== APP / MOBILE LOCK ===== */
+/* body TIDAK scroll — #mainScroll di bawah ini SATU-SATUNYA scroll container di aplikasi. */
 html, body {
-  width:100%; max-width:100%; min-height:100%;
+  width:100%; height:100%;
   margin:0; padding:0;
-  overflow-x:hidden !important;
-  overscroll-behavior-x:none;
+  overflow:hidden;
+  overscroll-behavior-y:none;
   -webkit-text-size-adjust:100%;
-  touch-action:pan-y;
   user-select:none;
   -webkit-user-select:none;
   -webkit-touch-callout:none;
+}
+#mainScroll{
+  height:100vh; height:100dvh;
+  overflow-y:auto; overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:none;
+  touch-action:pan-y;
 }
 body { -webkit-tap-highlight-color:transparent; }
 img, svg { -webkit-user-drag:none; user-drag:none; }
@@ -523,6 +530,7 @@ input, textarea, select, [contenteditable="true"] {
 
 
 
+<main id="mainScroll">
   <div class="topbar">
     <div class="brand-mini"><span class="logo">✨</span> VERRY WIRANZA AI</div>
     <div style="display:flex; gap:6px;">
@@ -875,6 +883,7 @@ input, textarea, select, [contenteditable="true"] {
 </div><!-- /tabContent-riwayat -->
 
 </div><!-- /wrap -->
+</main><!-- /mainScroll -->
 
 <div class="toast" id="toast">Tersalin ke clipboard</div>
 
