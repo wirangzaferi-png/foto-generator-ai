@@ -650,6 +650,13 @@ input, textarea, select, [contenteditable="true"] {
           <div class="field" id="categoryCustomWrap" style="display:none; margin-top:8px;">
             <input type="text" id="categoryCustomText" placeholder="Jelaskan jenis produk sendiri">
           </div>
+          <div id="elektronikSubWrap" style="display:none; margin-top:10px;">
+            <label class="field-label">Jenis Elektronik</label>
+            <div class="g3" id="elektronikSubGrid"></div>
+            <div class="field" id="elektronikCustomWrap" style="display:none; margin-top:8px;">
+              <input type="text" id="elektronikCustomText" placeholder="Jelaskan jenis elektronik sendiri">
+            </div>
+          </div>
         </div></div>
       </div>
 
@@ -904,20 +911,74 @@ const CATEGORIES = [
   { id:"tas", label:"Tas", icon:"👜" }, { id:"sepatu", label:"Sepatu", icon:"👟" },
   { id:"sandal", label:"Sandal", icon:"🩴" }, { id:"kosmetik", label:"Kosmetik", icon:"💄" },
   { id:"baju", label:"Baju", icon:"👕" }, { id:"celana", label:"Celana", icon:"👖" },
-  { id:"aksesori", label:"Aksesori", icon:"💍" }, { id:"lainnya", label:"Lainnya", icon:"📦" },
+  { id:"aksesori", label:"Aksesori", icon:"💍" }, { id:"elektronik", label:"Elektronik", icon:"⚡" },
+  { id:"lainnya", label:"Lainnya", icon:"📦" },
   { id:"custom", label:"Custom", icon:"✏️" },
 ];
-const CATEGORY_HAS_INTERIOR = { tas:true, sepatu:true, sandal:false, kosmetik:true, baju:false, celana:false, aksesori:false, lainnya:false, custom:false };
+const CATEGORY_HAS_INTERIOR = { tas:true, sepatu:true, sandal:false, kosmetik:true, baju:false, celana:false, aksesori:false, elektronik:true, lainnya:false, custom:false };
 const KATEGORI_KAIN = ["baju","celana"];
+
+const ELEKTRONIK_TYPES = [
+  {id:"tws", label:"TWS Bluetooth"},
+  {id:"earphone", label:"Earphone Bluetooth"},
+  {id:"headset", label:"Headset"},
+  {id:"radio", label:"Radio"},
+  {id:"speaker", label:"Speaker Bluetooth"},
+  {id:"smartwatch", label:"Smartwatch"},
+  {id:"charger", label:"Charger"},
+  {id:"powerbank", label:"Power Bank"},
+  {id:"kabel_adaptor", label:"Kabel & Adaptor"},
+  {id:"aksesori_hp", label:"Aksesori HP"},
+  {id:"mouse", label:"Mouse"},
+  {id:"keyboard", label:"Keyboard"},
+  {id:"game_controller", label:"Game Controller"},
+  {id:"lampu_led", label:"Lampu LED"},
+  {id:"kamera", label:"Kamera"},
+  {id:"aksesori_komputer", label:"Aksesori Komputer"},
+  {id:"elektronik_rumah_tangga", label:"Elektronik Rumah Tangga"},
+  {id:"lainnya_elektronik", label:"Lainnya"},
+  {id:"custom_elektronik", label:"Custom"},
+];
+let selectedElektronikType = "tws";
+let lokasiManuallySet = false; // begitu user pilih lokasi sendiri, saran otomatis per produk elektronik berhenti menimpa
 
 const GERAKAN_MODEL = ["Berdiri Natural","Berjalan Natural","Duduk di Kursi","Memegang Produk","Memperlihatkan Produk","Custom"];
 const GERAKAN_PRODUK_UMUM = ["Dipegang","Diputar Perlahan","Dielus","Ditekan jika sesuai","Memperlihatkan Detail","Review Produk","Custom"];
 const GERAKAN_PRODUK_KAIN = ["Dipegang","Diputar Perlahan","Dielus pada kain","Memperlihatkan tekstur","Memperlihatkan detail","Review Produk","Custom"];
 
+const GERAKAN_ELEKTRONIK = {
+  tws: ["Dipegang","Diperlihatkan Dekat Kamera","Membuka Charging Case","Mengeluarkan TWS dari Case","Memasukkan Kembali ke Case","Menunjukkan Detail Penggunaan","Simulasi Penggunaan Secara Natural","Custom"],
+  earphone: ["Dipegang","Diperlihatkan Dekat Kamera","Menunjukkan Bagian Earphone","Memakai Earphone Secara Natural","Menunjukkan Charging Port/Case","Simulasi Penggunaan","Custom"],
+  headset: ["Dipegang","Diputar Perlahan","Menunjukkan Sisi Kiri dan Kanan","Menunjukkan Earcup","Dipakai Secara Natural","Simulasi Penggunaan","Custom"],
+  radio: ["Dipegang","Diputar Perlahan","Menunjukkan Bagian Depan","Menunjukkan Tombol","Diletakkan di Meja","Simulasi Penggunaan","Custom"],
+  speaker: ["Dipegang","Diputar Perlahan","Menunjukkan Beberapa Sisi","Menunjukkan Tombol","Diletakkan di Meja","Simulasi Penggunaan","Custom"],
+  smartwatch: ["Dipegang","Diperlihatkan Dekat Kamera","Menunjukkan Layar","Dipakai pada Pergelangan Tangan","Menunjukkan Penggunaan Secara Natural","Custom"],
+  charger: ["Dipegang","Diperlihatkan Dekat Kamera","Menunjukkan Konektor","Diletakkan di Meja","Simulasi Penggunaan","Custom"],
+  powerbank: ["Dipegang","Diputar Perlahan","Menunjukkan Port","Diletakkan di Meja","Simulasi Penggunaan","Custom"],
+  mouse: ["Dipegang","Diperlihatkan Dekat Kamera","Diletakkan di Meja","Digunakan Secara Natural","Custom"],
+  keyboard: ["Diperlihatkan dari Atas","Dipegang","Diletakkan di Meja","Tangan Mengetik Secara Natural","Custom"],
+  game_controller: ["Dipegang","Diperlihatkan dari Beberapa Sisi","Tombol Digunakan Secara Natural","Simulasi Bermain","Custom"],
+  lampu_led: ["Dipegang","Diletakkan","Dinyalakan","Menunjukkan Efek Pencahayaan Secara Natural","Custom"],
+  kamera: ["Dipegang","Diputar Perlahan","Menunjukkan Bagian Depan","Menunjukkan Bagian Belakang","Simulasi Penggunaan","Custom"],
+};
+// Untuk sub-jenis tanpa daftar gerakan spesifik (Kabel & Adaptor, Aksesori HP, Aksesori Komputer,
+// Elektronik Rumah Tangga, Lainnya, Custom) — pakai set generik yang tetap masuk akal untuk elektronik apa pun.
+const GERAKAN_ELEKTRONIK_GENERIC = ["Dipegang","Diperlihatkan Dekat Kamera","Diputar Perlahan","Menunjukkan Detail Penggunaan","Simulasi Penggunaan Secara Natural","Custom"];
+
+// Saran lokasi otomatis per sub-jenis elektronik — HANYA diterapkan sebagai default saat sub-jenis dipilih,
+// dan berhenti menyarankan begitu pengguna mengubah lokasi secara manual (lihat lokasiManuallySet).
+const LOKASI_ELEKTRONIK_HINT = {
+  tws: "Kamar Modern", earphone: "Kamar Modern", headset: "Gaming Setup", radio: "Kamar Modern",
+  speaker: "Ruang Tamu", smartwatch: "Kamar Modern", charger: "Meja Kerja", powerbank: "Meja Kerja",
+  kabel_adaptor: "Meja Kerja", aksesori_hp: "Meja Kerja", mouse: "Meja Komputer", keyboard: "Gaming Setup",
+  game_controller: "Gaming Setup", lampu_led: "Kamar Modern", kamera: "Studio",
+  aksesori_komputer: "Meja Komputer", elektronik_rumah_tangga: "Ruang Tamu",
+};
+
 const REVIEW_LUAR_OPTIONS = ["Memperlihatkan Bagian Depan","Memperlihatkan Bagian Samping","Memperlihatkan Bagian Belakang","Memutar Produk Perlahan","Menunjukkan Detail Produk","Mendekatkan Produk ke Kamera","Review Natural","Custom"];
 const REVIEW_DALAM_OPTIONS = ["Membuka Produk","Memperlihatkan Bagian Dalam","Menunjukkan Detail Interior","Memperlihatkan Kantong / Kompartemen","Kamera Melihat ke Dalam Produk","Menutup Produk Secara Natural","Review Natural","Custom"];
 
-const INDOOR_OPTIONS = ["Studio","Boutique","Kamar Modern","Dressing Room","Cafe Indoor","Mall","Custom"];
+const INDOOR_OPTIONS = ["Studio","Boutique","Kamar Modern","Dressing Room","Cafe Indoor","Mall","Meja Kerja","Ruang Kerja","Ruang Tamu","Meja Komputer","Gaming Setup","Toko Elektronik","Custom"];
 const OUTDOOR_OPTIONS = ["Di Dalam Mobil","Taman","Pantai","Trotoar","Area Gedung","Cafe Outdoor","Custom"];
 
 const CAM_POS_OPTIONS = [
@@ -1174,6 +1235,8 @@ function renderCategoryGrid(){
     el.addEventListener('click', ()=>{
       selectedCategory = cat.id;
       document.getElementById('categoryCustomWrap').style.display = cat.id === 'custom' ? 'block' : 'none';
+      document.getElementById('elektronikSubWrap').style.display = cat.id === 'elektronik' ? 'block' : 'none';
+      if(cat.id === 'elektronik'){ renderElektronikSubGrid(); applyElektronikLokasiHint(); }
       refreshGerakanOptions();
       renderCategoryGrid(); updateSummaries(); render();
       autoAdvance('sec-jenisproduk','sec-gerakan');
@@ -1183,11 +1246,51 @@ function renderCategoryGrid(){
 }
 document.getElementById('categoryCustomText').addEventListener('input', render);
 
+function renderElektronikSubGrid(){
+  const grid = document.getElementById('elektronikSubGrid');
+  grid.innerHTML = "";
+  ELEKTRONIK_TYPES.forEach(t=>{
+    const el = document.createElement('div');
+    el.className = 'pill' + (t.id === selectedElektronikType ? ' selected' : '');
+    el.innerHTML = `<span>${t.label}</span>`;
+    el.addEventListener('click', ()=>{
+      selectedElektronikType = t.id;
+      document.getElementById('elektronikCustomWrap').style.display = t.id === 'custom_elektronik' ? 'block' : 'none';
+      applyElektronikLokasiHint();
+      refreshGerakanOptions();
+      renderElektronikSubGrid(); updateSummaries(); render();
+    });
+    grid.appendChild(el);
+  });
+}
+document.getElementById('elektronikCustomText').addEventListener('input', render);
+
+// Terapkan saran lokasi otomatis berdasarkan sub-jenis elektronik yang dipilih —
+// TIDAK menimpa kalau pengguna sudah pernah mengubah lokasi secara manual.
+function applyElektronikLokasiHint(){
+  if(lokasiManuallySet) return;
+  const hint = LOKASI_ELEKTRONIK_HINT[selectedElektronikType];
+  if(!hint) return;
+  lokasiMode = 'indoor';
+  selectedIndoor = hint;
+  document.getElementById('lokasiIndoorWrap').style.display = 'block';
+  document.getElementById('lokasiOutdoorWrap').style.display = 'none';
+  document.getElementById('lokasiUploadWrap').style.display = 'none';
+  document.getElementById('lokasiCustomWrap').style.display = 'none';
+  const indoorEl = document.getElementById('indoorSelect');
+  if(indoorEl) indoorEl.value = selectedIndoor;
+  document.getElementById('indoorCustomWrap').style.display = 'none';
+  refreshLightingOptions();
+  renderLokasiModeSeg();
+}
+
 /* ================= ④ GERAKAN (kondisional Subjek/Jenis Produk) ================= */
 function refreshGerakanOptions(){
   let options;
   if(fotoSubjek === 'model'){
     options = GERAKAN_MODEL;
+  } else if(selectedCategory === 'elektronik'){
+    options = GERAKAN_ELEKTRONIK[selectedElektronikType] || GERAKAN_ELEKTRONIK_GENERIC;
   } else {
     options = KATEGORI_KAIN.includes(selectedCategory) ? GERAKAN_PRODUK_KAIN : GERAKAN_PRODUK_UMUM;
   }
@@ -1292,6 +1395,7 @@ function renderLokasiModeSeg(){
     el.className = 'seg-btn' + (lokasiMode === id ? ' selected' : '');
     el.textContent = label;
     el.addEventListener('click', ()=>{
+      lokasiManuallySet = true;
       lokasiMode = id;
       document.getElementById('lokasiIndoorWrap').style.display = id==='indoor' ? 'block' : 'none';
       document.getElementById('lokasiOutdoorWrap').style.display = id==='outdoor' ? 'block' : 'none';
@@ -1308,6 +1412,7 @@ function initLokasiSelects(){
   INDOOR_OPTIONS.forEach(o=>{ const op=document.createElement('option'); op.value=o; op.textContent=o; indoorEl.appendChild(op); });
   indoorEl.value = selectedIndoor;
   indoorEl.addEventListener('change', ()=>{
+    lokasiManuallySet = true;
     selectedIndoor = indoorEl.value;
     document.getElementById('indoorCustomWrap').style.display = selectedIndoor==='Custom' ? 'block' : 'none';
     render();
@@ -1316,6 +1421,7 @@ function initLokasiSelects(){
   OUTDOOR_OPTIONS.forEach(o=>{ const op=document.createElement('option'); op.value=o; op.textContent=o; outdoorEl.appendChild(op); });
   outdoorEl.value = selectedOutdoor;
   outdoorEl.addEventListener('change', ()=>{
+    lokasiManuallySet = true;
     selectedOutdoor = outdoorEl.value;
     document.getElementById('outdoorCustomWrap').style.display = selectedOutdoor==='Custom' ? 'block' : 'none';
     render();
@@ -1403,9 +1509,23 @@ document.getElementById('promptTypeSelect').addEventListener('change', function(
 renderPromptTypeOptions();
 
 /* ================= HOOK & STORYTELLING (AI) ================= */
+function resolveCategoryLabel(){
+  const catObj = CATEGORIES.find(c=>c.id===selectedCategory) || CATEGORIES[0];
+  if(selectedCategory === 'custom'){
+    return document.getElementById('categoryCustomText').value.trim() || 'produk custom';
+  }
+  if(selectedCategory === 'elektronik'){
+    const subObj = ELEKTRONIK_TYPES.find(t=>t.id===selectedElektronikType) || ELEKTRONIK_TYPES[0];
+    if(selectedElektronikType === 'custom_elektronik'){
+      return document.getElementById('elektronikCustomText').value.trim() || 'produk elektronik custom';
+    }
+    return subObj.label; // mis. "TWS Bluetooth", bukan cuma "Elektronik" generik
+  }
+  return catObj.label;
+}
 function buildVideoContextBlock(){
   const catObj = CATEGORIES.find(c=>c.id===selectedCategory) || CATEGORIES[0];
-  const catLabel = selectedCategory === 'custom' ? (document.getElementById('categoryCustomText').value.trim() || 'produk custom') : catObj.label;
+  const catLabel = resolveCategoryLabel();
   const subjekText = fotoSubjek === 'model' ? 'Model / manusia' : `Produk (${catLabel})`;
   const gerakanText = gerakanUtama === 'Custom' ? (document.getElementById('gerakanCustomText').value.trim()||'gerakan custom') : gerakanUtama;
   const lokasi = resolveLokasi();
@@ -1924,7 +2044,8 @@ async function callClaude(promptText, imagePart, signal){
 const detectionInstruction = `Lihat foto ini dengan sangat teliti sebagai seorang product/commercial photographer profesional. Balas HANYA dengan objek JSON mentah (tanpa markdown fences, tanpa kalimat pembuka), dalam Bahasa Indonesia, dengan field berikut. Jika suatu detail TIDAK terlihat jelas pada foto, isi dengan string kosong "" atau array kosong [] — JANGAN mengarang detail yang tidak terlihat.
 
 {
-  "product_type": "salah satu dari: 'tas','sepatu','sandal','kosmetik','baju','celana','aksesori','lainnya' — pilih paling cocok, kosongkan jika foto bukan produk",
+  "product_type": "salah satu dari: 'tas','sepatu','sandal','kosmetik','baju','celana','aksesori','elektronik','lainnya' — pilih paling cocok, kosongkan jika foto bukan produk",
+  "electronic_subtype": "HANYA isi jika product_type='elektronik'. Pilih salah satu paling cocok dari: 'tws','earphone','headset','radio','speaker','smartwatch','charger','powerbank','kabel_adaptor','aksesori_hp','mouse','keyboard','game_controller','lampu_led','kamera','aksesori_komputer','elektronik_rumah_tangga','lainnya_elektronik'. Kosongkan kalau product_type bukan 'elektronik'.",
   "garment_description": "frasa singkat warna + produk, misalnya 'tas kulit coklat'",
   "product_material": "material/bahan produk yang terlihat, misalnya 'kulit sintetis', 'katun', 'plastik glossy'",
   "product_color": "warna pasti produk yang terlihat",
@@ -1958,6 +2079,13 @@ async function detectProduct(){
     if(validCats.includes(parsed.product_type)){
       selectedCategory = parsed.product_type;
       document.getElementById('categoryCustomWrap').style.display = selectedCategory === 'custom' ? 'block' : 'none';
+      document.getElementById('elektronikSubWrap').style.display = selectedCategory === 'elektronik' ? 'block' : 'none';
+      if(selectedCategory === 'elektronik'){
+        const validSub = ELEKTRONIK_TYPES.map(t=>t.id);
+        if(validSub.includes(parsed.electronic_subtype)) selectedElektronikType = parsed.electronic_subtype;
+        renderElektronikSubGrid();
+        applyElektronikLokasiHint();
+      }
       refreshGerakanOptions();
       renderCategoryGrid();
       if(fotoSubjek !== 'produk'){
@@ -2251,7 +2379,7 @@ QUALITY: ${qualityLine}`;
 
 function render(){
   const catObj = CATEGORIES.find(c=>c.id===selectedCategory) || CATEGORIES[0];
-  const catLabel = selectedCategory === 'custom' ? (document.getElementById('categoryCustomText').value.trim() || 'produk custom') : catObj.label;
+  const catLabel = resolveCategoryLabel();
   const promptType = PROMPT_TYPES.find(p=>p.id===selectedPromptType) || PROMPT_TYPES[0];
 
   const subjekText = fotoSubjek === 'model' ? 'Model / manusia' : `Produk (${catLabel})`;

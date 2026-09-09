@@ -1,4 +1,4 @@
-const CACHE_NAME = "wiranza-ai-v24";
+const CACHE_NAME = "wiranza-ai-cache";
 
 const APP_SHELL = [
   "./",
@@ -34,6 +34,30 @@ self.addEventListener("fetch", event => {
     return;
   }
 
+  const acceptHeader = event.request.headers.get("accept") || "";
+  const isHTML = event.request.mode === "navigate" || acceptHeader.includes("text/html");
+
+  if (isHTML) {
+    // Network-first untuk halaman utama: selalu ambil versi TERBARU selama online.
+    // Cache cuma dipakai sebagai cadangan kalau sedang offline / server tidak bisa dihubungi.
+    // Dengan cara ini, CACHE_NAME di atas tidak perlu diubah setiap kali upload file baru.
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          if (response && response.status === 200) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
+          }
+          return response;
+        })
+        .catch(() => {
+          return caches.match(event.request).then(cached => cached || caches.match("./index.html"));
+        })
+    );
+    return;
+  }
+
+  // Untuk asset lain (manifest, icon, dll) tetap cache-first supaya hemat kuota & tetap cepat.
   event.respondWith(
     caches.match(event.request)
       .then(cachedResponse => {
