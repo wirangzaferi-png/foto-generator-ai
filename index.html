@@ -798,6 +798,11 @@ input, textarea, select, [contenteditable="true"] {
         </div>
         <div class="acc-body"><div class="acc-body-inner">
           <div class="field">
+            <label class="field-label">🌐 Bahasa Promosi</label>
+            <select id="languageSelect"></select>
+            <div class="hint">Bahasa yang dipakai model/talent saat mempromosikan produk (Hook, Storytelling, CTA). Foto, produk, dan gerakan tidak ikut berubah — cuma bahasanya.</div>
+          </div>
+          <div class="field" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
             <label class="field-label">⚙️ Pengaturan (API Key)</label>
             <div class="chip-toolbar">
               <button class="btn-mini" onclick="exportSettings()">⬇️ Export Pengaturan</button>
@@ -995,6 +1000,15 @@ const PROMPT_TYPES = [
   { id:'video_produk', name:'VIDEO PRODUK', objective:'Struktur khusus video produk terarah — motion, kamera, hook, storytelling, CTA, dan negative prompt dalam satu JSON siap pakai.', strategy:'Produce a structured product-video treatment: clear character/product motion, deliberate camera movement, and product-focused framing throughout — while keeping every visual detail of the reference product completely unchanged.' }
 ];
 let selectedPromptType = 'general'; // Menu Jenis Prompt dihapus — dikunci ke mode General
+
+const LANGUAGES = [
+  { id:'id', label:'Bahasa Indonesia', note:'Bahasa Indonesia sehari-hari yang santai, seperti konten media sosial pada umumnya.' },
+  { id:'aceh', label:'Bahasa Aceh', note:'Bahasa Aceh sehari-hari yang natural dan santai, seperti orang Aceh ngobrol biasa — bukan terjemahan kaku kata per kata.' },
+  { id:'sunda', label:'Bahasa Sunda', note:'Bahasa Sunda "loma" (santai sehari-hari, bukan yang halus/lemes formal), seperti obrolan santai orang Sunda di media sosial.' },
+  { id:'en', label:'English', note:'Casual, natural English suited for social media content — not stiff or overly formal.' },
+  { id:'jawa', label:'Bahasa Jawa', note:'Bahasa Jawa "ngoko" (santai sehari-hari, bukan krama formal), seperti obrolan santai anak muda Jawa di media sosial.' },
+];
+let selectedLanguage = localStorage.getItem('vw_language') || 'id';
 
 const NEGATIVE_PROMPT_BASE_EXTRA = ['face distortion','different person','identity change','different clothing','changed clothing color','product deformation','product redesign','changed logo','changed text','altered proportions','extra objects','missing objects','extra fingers','bad anatomy','unnatural skin','plastic skin','unrealistic texture','blurry subject','duplicate objects'];
 const NEGATIVE_PROMPT_PRODUCT_EXTRA = ['wrong product shape','incorrect branding','incorrect logo','incorrect label','incorrect text','altered material','altered color','deformed product'];
@@ -1504,6 +1518,19 @@ document.getElementById('lightingSelect').addEventListener('change', function(){
 document.getElementById('lightingCustomText').addEventListener('input', render);
 
 /* ================= HOOK & STORYTELLING (AI) ================= */
+function renderLanguageOptions(){
+  const sel = document.getElementById('languageSelect');
+  if(!sel) return;
+  sel.innerHTML = LANGUAGES.map(l => `<option value="${l.id}">${l.label}</option>`).join('');
+  sel.value = selectedLanguage;
+}
+document.getElementById('languageSelect').addEventListener('change', function(){
+  selectedLanguage = this.value;
+  localStorage.setItem('vw_language', selectedLanguage);
+  render();
+});
+renderLanguageOptions();
+
 function buildVideoContextBlock(){
   const catObj = CATEGORIES.find(c=>c.id===selectedCategory) || CATEGORIES[0];
   const catLabel = resolveCategoryLabel(catObj);
@@ -1512,6 +1539,7 @@ function buildVideoContextBlock(){
   const lokasiArr = resolveLokasiList();
   const lokasiLine = lokasiArr.length > 1 ? lokasiArr.map((l,i)=>`Lokasi ${i+1}${i===0?' (awal)':i===lokasiArr.length-1?' (akhir)':' (tengah)'}: ${l.label}`).join('; ') : lokasiArr[0].label;
   const pt = PROMPT_TYPES.find(p => p.id === selectedPromptType) || PROMPT_TYPES[0];
+  const lang = LANGUAGES.find(l => l.id === selectedLanguage) || LANGUAGES[0];
   return `Konteks video:
 - Subjek: ${subjekText}
 - Deskripsi produk: ${garmentDescription}
@@ -1519,7 +1547,9 @@ function buildVideoContextBlock(){
 - Gerakan: ${gerakanText}
 - Lokasi: ${lokasiLine}
 - Jenis Prompt terpilih: ${pt.name} — ${pt.objective} Arahan gaya: ${pt.strategy}
+- Bahasa promosi: ${lang.label}. ${lang.note}
 
+WAJIB: tulis HOOK, STORYTELLING, dan CTA sepenuhnya dalam ${lang.label}, bukan bahasa lain.
 PENTING: Subjek utama, produk, wajah, pakaian, dan semua detail dari foto asli TIDAK BOLEH diubah/dikarang. Jenis Prompt di atas hanya menentukan gaya penyampaian (hook/storytelling/CTA), bukan mengubah apa yang ada di foto.`;
 }
 
@@ -2473,6 +2503,7 @@ function render(){
   const preservasi = `${PRESERVE_ORIGINAL_TEXT}${fotoSubjek === 'produk' ? ' ' + PRESERVE_ORIGINAL_PRODUCT_TEXT : ''} PRODUCT CONSISTENCY: maintain exact product consistency throughout — do not alter the product shape, proportions, color, design, logo, material, texture, or visible details. Pertahankan bentuk, ukuran, proporsi, warna, motif, logo, tulisan, desain, material, tekstur, jahitan, dan aksesori produk agar identik dengan foto referensi (${garmentDescription})${materialColorBits ? '. Material/warna/tekstur dari foto: ' + materialColorBits : ''}${detectedProductLogo ? '. Logo/label: ' + detectedProductLogo : ''}${detectedProductDetails ? '. Detail spesifik dari foto: ' + detectedProductDetails : ''}. Jangan menambahkan detail yang tidak terlihat pada referensi. Gerakan tangan harus realistis, natural, dan tidak kaku (posisi stabil, jangan menembus produk, jangan berpindah tangan tiba-tiba, jangan ada gerakan patah-patah/robotik terutama saat mengambil atau memegang produk).`;
 
   const ctaText = (autoCta || '').trim() || DEFAULT_CTA_FALLBACK;
+  const langObj = LANGUAGES.find(l => l.id === selectedLanguage) || LANGUAGES[0];
   const hookSection = autoHook ? `\nHOOK: ${autoHook}` : '';
   const storySection = autoStorytelling ? `\nSTORYTELLING: ${autoStorytelling}` : '';
   const subjectExtra = fotoSubjek === 'model'
@@ -2488,6 +2519,7 @@ NATURAL TRANSITION: perpindahan antar gerakan dilakukan halus dan berkesinambung
 HAND-PRODUCT INTERACTION: saat tangan mengambil, memegang, atau meletakkan produk, gerakan harus terlihat natural dan meyakinkan — jari-jari menyesuaikan bentuk produk secara wajar, tidak kaku seperti menahan beban imajiner, tidak menembus/melayang di atas permukaan produk, dan tidak ada jeda aneh sesaat sebelum/sesudah kontak dengan produk. Momen "mengambil produk" harus terlihat seperti gerakan refleks sehari-hari, bukan gerakan yang dipaksakan atau terlihat seperti animasi patah-patah.
 PRODUCT INTERACTION: ${reviewBlock ? reviewBlock.trim() : 'produk ditampilkan konsisten mengikuti gerakan utama tanpa interaksi tambahan yang rumit'}${hookSection}${storySection}
 CTA: ${ctaText}
+LANGUAGE: dialog/narasi/ucapan model dan teks CTA menggunakan ${langObj.label}. ${langObj.note} Jangan mencampur dengan bahasa lain kecuali istilah produk yang memang umum dipakai apa adanya.
 ENDING: kembali ke posisi stabil dan natural, produk tetap jelas terlihat di frame terakhir.
 CREATIVE DIRECTION (${promptType.name}): ${promptType.strategy}
 
@@ -2597,6 +2629,7 @@ ${preservasi}`;
     hook: autoHook || "belum dibuat — tap Generate Prompt",
     storytelling: autoStorytelling || "belum dibuat — tap Generate Prompt",
     cta: ctaText,
+    language: { code: langObj.id, name: langObj.label },
     ai_provider: activeProvider === 'gemini' ? 'Google Gemini' : 'Anthropic Claude',
     platform_target: document.getElementById('platformSelect')?.value || 'Generic / Lainnya'
   };
