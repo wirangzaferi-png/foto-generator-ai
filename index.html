@@ -520,7 +520,6 @@ input, textarea, select, [contenteditable="true"] {
   <div class="topbar">
     <div class="brand-mini"><span class="logo">✨</span> VERRY WIRANZA AI</div>
     <div style="display:flex; gap:6px;">
-      <button class="provider-badge" onclick="openVideoGen()">🎬 Video</button>
       <button class="provider-badge" id="providerBadgeBtn" onclick="openAiModal()">
         <span id="aiMenuLabel">🔑 AI</span>
       </button>
@@ -544,6 +543,7 @@ input, textarea, select, [contenteditable="true"] {
 
 <div class="main-tab-nav">
   <button class="main-tab active" data-tab="foto" onclick="switchMainTab('foto')">📷 Foto</button>
+  <button class="main-tab" onclick="openVideoGen()">🎬 Video</button>
   <button class="main-tab" data-tab="panduan" onclick="switchMainTab('panduan')">📖 Panduan</button>
 </div>
 
