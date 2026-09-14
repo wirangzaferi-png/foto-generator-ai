@@ -762,6 +762,14 @@ input, textarea, select, [contenteditable="true"] {
             <option value="en">🇬🇧 English</option>
           </select>
           <div class="hint">Cuma ucapan/dialog model (Hook, Storytelling, CTA) yang berubah bahasa — tampilan website tetap Bahasa Indonesia.</div>
+          <div class="field" style="margin-top:14px;">
+            <label class="field-label">🎙️ Jenis Kelamin Suara</label>
+            <select id="voiceGenderSelect">
+              <option value="female">👩 Perempuan</option>
+              <option value="male">👨 Laki-laki</option>
+            </select>
+            <div class="hint">Suara dipakai konsisten untuk Hook, Storytelling, CTA, dan semua dialog model — usia suara tetap 20 tahun, tidak berubah sepanjang video.</div>
+          </div>
         </div></div>
       </div>
 
@@ -997,12 +1005,62 @@ function safeStorageRemove(key){
 let selectedPromptType = safeStorageGet('vw_promptType', 'general');
 let selectedBahasaModel = safeStorageGet('vw_bahasaModel', 'id'); // default Bahasa Indonesia
 const BAHASA_MODEL_MAP = {
-  id: { label: 'Bahasa Indonesia', instruction: 'Bahasa Indonesia sehari-hari yang natural dan santai, seperti berbicara dengan teman — bukan bahasa baku/formal.' },
-  ace: { label: 'Bahasa Aceh', instruction: 'Bahasa Aceh (bahasa daerah Aceh) yang natural dan santai, seperti percakapan sehari-hari penutur asli — BUKAN terjemahan kata-per-kata dari Bahasa Indonesia. Istilah produk umum (nama produk, istilah teknis seperti "TWS Bluetooth", "Power Bank") boleh tetap memakai istilah aslinya, tidak perlu dipaksakan diterjemahkan.' },
-  su: { label: 'Bahasa Sunda', instruction: 'Bahasa Sunda yang natural dan santai (loma), seperti percakapan sehari-hari penutur asli — BUKAN terjemahan kata-per-kata dari Bahasa Indonesia. Istilah produk umum boleh tetap memakai istilah aslinya.' },
-  jv: { label: 'Bahasa Jawa', instruction: 'Bahasa Jawa ngoko/natural yang santai, seperti percakapan sehari-hari penutur asli — BUKAN terjemahan kata-per-kata dari Bahasa Indonesia. Istilah produk umum boleh tetap memakai istilah aslinya.' },
-  en: { label: 'English', instruction: 'Natural conversational English (like talking to a friend), NOT a literal/stiff translation from Indonesian. Common product terms may stay in their original form.' }
+  id: { label: 'Bahasa Indonesia', instruction: 'Bahasa Indonesia sehari-hari yang natural dan santai, seperti berbicara dengan teman — bukan bahasa baku/formal.', forbidden: 'Bahasa Jawa, Sunda, Aceh, atau English' },
+  ace: { label: 'Bahasa Aceh', instruction: 'Bahasa Aceh (bahasa daerah Aceh) yang natural dan santai, seperti percakapan sehari-hari penutur asli — BUKAN terjemahan kata-per-kata dari Bahasa Indonesia. Istilah produk umum (nama produk, istilah teknis seperti "TWS Bluetooth", "Power Bank") boleh tetap memakai istilah aslinya, tidak perlu dipaksakan diterjemahkan.', forbidden: 'Bahasa Indonesia sebagai bahasa utama' },
+  su: { label: 'Bahasa Sunda', instruction: 'Bahasa Sunda yang natural dan santai (loma), seperti percakapan sehari-hari penutur asli — BUKAN terjemahan kata-per-kata dari Bahasa Indonesia. Istilah produk umum boleh tetap memakai istilah aslinya.', forbidden: 'Bahasa Jawa, Aceh, English, atau Bahasa Indonesia sebagai bahasa utama' },
+  jv: { label: 'Bahasa Jawa', instruction: 'Bahasa Jawa ngoko/natural yang santai, seperti percakapan sehari-hari penutur asli — BUKAN terjemahan kata-per-kata dari Bahasa Indonesia. Gunakan gaya percakapan yang sesuai target audiens. Istilah produk umum boleh tetap memakai istilah aslinya.', forbidden: 'Bahasa Indonesia sebagai bahasa utama' },
+  en: { label: 'English', instruction: 'Natural conversational English (like talking to a friend), NOT a literal/stiff translation from Indonesian. Common product terms may stay in their original form.', forbidden: 'Indonesian or any regional language as the main language' }
 };
+
+/* ================= VOICE GENDER — konsisten di seluruh JSON, usia tetap 20 tahun ================= */
+let selectedVoiceGender = safeStorageGet('vw_voiceGender', 'female');
+const VOICE_GENDER_MAP = {
+  female: { label: 'Perempuan', genderValue: 'female' },
+  male: { label: 'Laki-laki', genderValue: 'male' }
+};
+const VOICE_AGE_FIXED = 20;
+
+function buildVoiceCharacterBlock(scriptText){
+  const gender = VOICE_GENDER_MAP[selectedVoiceGender] || VOICE_GENDER_MAP.female;
+  const bahasa = BAHASA_MODEL_MAP[selectedBahasaModel] || BAHASA_MODEL_MAP.id;
+  const voiceIdentity = `young ${bahasa.label} ${gender.genderValue} voice, age ${VOICE_AGE_FIXED}`;
+  return {
+    dialogue: {
+      voice_character: {
+        age: VOICE_AGE_FIXED,
+        gender: gender.genderValue,
+        voice_identity: voiceIdentity,
+        voice_profile: {
+          pitch: 'cheerful and natural',
+          tone: 'friendly, warm, and expressive',
+          accent: `Natural ${bahasa.label} intonation`,
+          speaking_style: 'casual, relaxed, and conversational',
+          speaking_speed: 'natural',
+          emotion: 'confident and playful',
+          pronunciation: 'clear and natural'
+        },
+        language: bahasa.label,
+        script: scriptText || 'Teks Hook, Storytelling, dan CTA'
+      }
+    },
+    voice_consistency_rules: [
+      'Keep the same voice identity throughout the entire video',
+      'Keep the voice age fixed at 20 years old',
+      'Keep the selected gender unchanged throughout the video',
+      'Keep the same pitch, tone, accent, emotion, and speaking style',
+      'Do not switch between male and female voice',
+      'Do not make the voice sound older or younger',
+      'Use the same voice for Hook, Storytelling, CTA, and all model dialogue'
+    ],
+    audio: {
+      voice_gender: gender.genderValue,
+      voice_age: VOICE_AGE_FIXED,
+      voice_consistency: 'strict',
+      voice_stability: 'high',
+      voice_change: 'not allowed'
+    }
+  };
+}
 
 const NEGATIVE_PROMPT_BASE_EXTRA = ['face distortion','different person','identity change','different clothing','changed clothing color','product deformation','product redesign','changed logo','changed text','altered proportions','extra objects','missing objects','extra fingers','bad anatomy','unnatural skin','plastic skin','unrealistic texture','blurry subject','duplicate objects'];
 const NEGATIVE_PROMPT_PRODUCT_EXTRA = ['wrong product shape','incorrect branding','incorrect logo','incorrect label','incorrect text','altered material','altered color','deformed product'];
@@ -1083,6 +1141,18 @@ function resizeImageForAI(dataUrl, maxDim, quality){
 }
 
 /* ================= ① REFERENSI (upload produk + deteksi AI) ================= */
+function clearAutoHookStoryCta(){
+  autoHook = ""; autoStorytelling = ""; autoCta = "";
+  ['hookPreview','storyPreview','ctaPreview'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  ['hookBadge','storyBadge','ctaBadge'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.textContent = HOOKSTORY_FIELD_CFG[id==='hookBadge'?'hook':id==='storyBadge'?'story':'cta'].autoLabel;
+  });
+}
+
 document.getElementById('fileInput').addEventListener('change', function(e){
   const file = e.target.files[0]; if(!file) return;
   const reader = new FileReader();
@@ -1101,15 +1171,7 @@ document.getElementById('fileInput').addEventListener('change', function(e){
     detectedProductDetails = ""; detectedProductMaterial = ""; detectedProductColor = "";
     detectedProductTexture = ""; detectedProductLogo = ""; detectedEnvironment = "";
     garmentDescription = "produk";
-    autoHook = ""; autoStorytelling = ""; autoCta = "";
-    ['hookPreview','storyPreview','ctaPreview'].forEach(id=>{
-      const el = document.getElementById(id);
-      if(el) el.value = '';
-    });
-    ['hookBadge','storyBadge','ctaBadge'].forEach(id=>{
-      const el = document.getElementById(id);
-      if(el) el.textContent = HOOKSTORY_FIELD_CFG[id==='hookBadge'?'hook':id==='storyBadge'?'story':'cta'].autoLabel;
-    });
+    clearAutoHookStoryCta();
 
     // Foto yang dikirim ke AI dikompres dulu (maks 1280px, JPEG kualitas 0.85) —
     // foto kamera HP bisa 5-15MB tanpa ini, yang bikin proses generate lambat
@@ -1536,7 +1598,18 @@ document.getElementById('bahasaModelSelect').value = selectedBahasaModel;
 document.getElementById('bahasaModelSelect').addEventListener('change', function(){
   selectedBahasaModel = this.value;
   safeStorageSet('vw_bahasaModel', selectedBahasaModel);
+  if(autoHook || autoStorytelling || autoCta){
+    clearAutoHookStoryCta();
+    showToast('Bahasa diganti — tap Generate Prompt / General lagi untuk buat ulang dialog');
+  }
   updateSummaries();
+  render();
+});
+
+document.getElementById('voiceGenderSelect').value = selectedVoiceGender;
+document.getElementById('voiceGenderSelect').addEventListener('change', function(){
+  selectedVoiceGender = this.value;
+  safeStorageSet('vw_voiceGender', selectedVoiceGender);
   render();
 });
 
@@ -1550,15 +1623,19 @@ function buildVideoContextBlock(){
   const lokasiLine = lokasiArr.length > 1 ? lokasiArr.map((l,i)=>`Lokasi ${i+1}${i===0?' (awal)':i===lokasiArr.length-1?' (akhir)':' (tengah)'}: ${l.label}`).join('; ') : lokasiArr[0].label;
   const pt = PROMPT_TYPES.find(p => p.id === selectedPromptType) || PROMPT_TYPES[0];
   const bahasa = BAHASA_MODEL_MAP[selectedBahasaModel] || BAHASA_MODEL_MAP.id;
-  return `Konteks video:
+  return `=== B. TECHNICAL VIDEO INSTRUCTIONS (kunci, tidak boleh diubah/ditafsirkan ulang) ===
 - Subjek: ${subjekText}
 - Deskripsi produk: ${garmentDescription}
 - Detail produk yang terlihat (jangan mengarang di luar ini): ${detectedProductDetails || 'tidak ada detail spesifik terdeteksi'}
 - Gerakan: ${gerakanText}
 - Lokasi: ${lokasiLine}
 - Jenis Prompt terpilih: ${pt.name} — ${pt.objective} Arahan gaya: ${pt.strategy}
+JANGAN membuat Hook/Storytelling/CTA yang menyebut atau menyiratkan gerakan atau lokasi LAIN selain yang tertulis di atas — narasi harus konsisten 100% dengan gerakan dan lokasi ini, bukan versi lain yang dikarang AI.
 
-BAHASA DIALOG MODEL (WAJIB): Tulis Hook, Storytelling, dan CTA dalam ${bahasa.label}. ${bahasa.instruction} Ini HANYA mengatur bahasa dialog/ucapan model — bukan instruksi teknis video.
+=== A. MODEL DIALOGUE — BAHASA WAJIB: ${bahasa.label} ===
+Tulis Hook, Storytelling, dan CTA dalam ${bahasa.label}. ${bahasa.instruction}
+DILARANG KERAS memakai ${bahasa.forbidden} sebagai bahasa utama dialog — apa pun jenis produk, lokasi, atau isi fotonya. Bahasa HANYA ditentukan oleh pilihan menu Bahasa Model di atas, bukan oleh nama produk/lokasi/isi foto.
+Bagian ini HANYA mengatur bahasa dialog/ucapan model — tidak mengubah instruksi teknis di bagian B di atas.
 
 PENTING: Subjek utama, produk, wajah, pakaian, dan semua detail dari foto asli TIDAK BOLEH diubah/dikarang. Jenis Prompt di atas hanya menentukan gaya penyampaian (hook/storytelling/CTA), bukan mengubah apa yang ada di foto.`;
 }
@@ -2525,6 +2602,10 @@ ${preservasi}${humanConsistency}`;
     platform_target: document.getElementById('platformSelect')?.value || 'Generic / Lainnya'
   };
 
+  // ===== Suara (voice) — konsisten di seluruh video, usia tetap 20 tahun, mengikuti pilihan gender & Bahasa Model =====
+  const voiceScript = [autoHook, autoStorytelling, ctaText].filter(Boolean).join(' / ') || 'Teks Hook, Storytelling, dan CTA';
+  Object.assign(data, buildVoiceCharacterBlock(voiceScript));
+
   // ===== Skema JSON khusus untuk Jenis Prompt "VIDEO PRODUK" =====
   if(promptType.id === 'video_produk'){
     data.video_produk_schema = {
@@ -2552,8 +2633,8 @@ ${preservasi}${humanConsistency}`;
       duration: { seconds: 8 },
       sound: {
         ambient: lokasi.isOutdoor ? 'suara ambient outdoor natural (angin/lalu lintas halus)' : 'suara ambient indoor natural (ruang tenang)',
-        voice_character: 'natural, santai, seperti teman bercerita — bukan gaya iklan',
-        voice_over: true
+        voice_over: true,
+        ...buildVoiceCharacterBlock(voiceScript)
       },
       output: {
         style: 'photorealistic',
@@ -2600,9 +2681,7 @@ async function onGenerateTap(){
     showToast('Prompt siap!');
     const inner = document.getElementById('stickyBarInner');
     inner.innerHTML = `
-      <button class="btn-outline" onclick="copyPrompt()">📋 Copy</button>
-      <button class="btn-outline" onclick="toggleEdit()">✏️ Edit</button>
-      <button class="btn-outline" onclick="generateUlang()">🔄 Ulang</button>
+      <button class="gen-btn" id="mainGenBtn" onclick="onGenerateTap()">🔄 Generate Ulang</button>
     `;
   }catch(err){
     console.error(err);
@@ -2613,9 +2692,7 @@ async function onGenerateTap(){
     showToast(message);
     const inner = document.getElementById('stickyBarInner');
     inner.innerHTML = `
-      <button class="btn-outline" onclick="copyPrompt()">📋 Copy</button>
-      <button class="btn-outline" onclick="toggleEdit()">✏️ Edit</button>
-      <button class="btn-outline" onclick="onGenerateTap()">🔁 Coba Lagi</button>
+      <button class="gen-btn" id="mainGenBtn" onclick="onGenerateTap()">🔁 Coba Lagi</button>
     `;
   }finally{
     if(timeoutId) clearTimeout(timeoutId);
