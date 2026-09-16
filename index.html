@@ -3011,34 +3011,67 @@ function vgGetToneText(){ return vgState.toneCustom.trim() || vgState.tone; }
 function vgGetAccentText(){ return vgState.accentCustom.trim() || vgState.accent; }
 
 function vgBuildCharacterContext(){
-  return `Karakter: ${vgState.gender}, usia ${vgGetAgeText()}. Nada bicara: ${vgGetToneText()}. Gaya bahasa/aksen: ${vgGetAccentText()} (natural Indonesian intonation, bukan logat daerah).`;
+  const bahasa = BAHASA_MODEL_MAP[selectedBahasaModel] || BAHASA_MODEL_MAP.id;
+  return `Karakter di video: ${vgState.gender}, usia ${vgGetAgeText()}. Nada bicara: ${vgGetToneText()}. Gaya bahasa/aksen penyampaian: ${vgGetAccentText()}.
+BAHASA DIALOG WAJIB: ${bahasa.label}. ${bahasa.instruction} DILARANG KERAS memakai ${bahasa.forbidden} sebagai bahasa utama dialog.`;
+}
+
+function vgBuildScriptInstruction(productName){
+  const bahasa = BAHASA_MODEL_MAP[selectedBahasaModel] || BAHASA_MODEL_MAP.id;
+  return `Kamu adalah copywriter + video strategist konten pendek (TikTok/Reels/Shorts) untuk produk marketplace. Tujuan utama: STOP-SCROLL dalam 0-2 detik pertama dan bikin penonton tertarik ke produk — penonton sering skip di 1-2 detik pertama kalau pembukaannya lemah.
+
+${vgBuildCharacterContext()}
+Produk: ${productName}
+Target Audience: ${vgState.targetAudience || 'Gen Z perempuan (default, jangan disebut eksplisit di dialog)'}
+
+=== ATURAN HOOK (0-2 DETIK, PRIORITAS TERTINGGI) ===
+JANGAN buka dengan: sapaan panjang, "Hai guys"/"Halo semuanya", perkenalan panjang, penjelasan produk dulu, model diam saja, kamera lama-lama nyari objek, atau produk baru muncul setelah beberapa detik.
+Dalam 2 detik pertama HARUS sudah ada pemicu perhatian: aksi produk, perubahan visual, close-up menarik, ekspresi natural, gerakan tangan, penggunaan produk, hasil penggunaan, situasi relatable, pertanyaan menggugah penasaran, atau pernyataan yang bikin penonton ingin tahu lanjutannya.
+Pilih SATU tipe hook yang paling cocok untuk produk ini dari: Curiosity Hook, Problem Hook, Result Hook, Relatable Hook, Unexpected Hook, Visual Hook, Comparison Hook, Discovery Hook, Product Interaction Hook, Mini Story Hook. Jangan selalu pakai pola sama ("Kalau kamu...", "Guys...", "Ini dia...", "Jangan sampai...", "Siapa yang...") — variasikan sesuai produk.
+Hook BUKAN cuma dialog — tentukan juga aksi visual 0-2 detik yang sesuai jenis produk (contoh acuan, jangan dipakai selalu sama: pakaian → langsung tampilkan bagian menarik pakaian; tas → langsung tunjukkan cara pakai; sepatu → langsung perlihatkan saat dipakai; kosmetik → langsung perlihatkan pemakaian; elektronik → langsung perlihatkan produk dipakai; aksesori → langsung perlihatkan saat dikenakan). Harus realistis, bukan gerakan berlebihan.
+
+=== CURIOSITY & STORYTELLING ===
+Setelah hook, kasih alasan buat terus nonton: pertanyaan, masalah umum, perbandingan, kejutan kecil, manfaat yang belum langsung dijelaskan. Jangan clickbait palsu, jangan klaim yang tidak berasal dari info produk.
+Storytelling harus terasa seperti orang berbagi pengalaman/menemukan sesuatu menarik — BUKAN membaca katalog. Gaya casual, conversational, relatable, boleh sedikit humor kalau pas, jangan formal, jangan seperti announcer. HINDARI kalimat "Produk ini memiliki...", "Produk ini sangat bagus...", "Produk ini wajib Anda miliki..." kecuali benar-benar perlu.
+Tunjukkan manfaat produk lewat ADEGAN/aksi (product demonstration), bukan cuma disebutkan — kalau produk bisa dipakai, tunjukkan pemakaiannya; kalau tidak cocok didemonstrasikan, pakai close-up/handling/showcase natural.
+
+=== CTA ===
+Natural, singkat, tidak memaksa, TANPA urgency palsu ("stok terbatas", "buruan", "sebelum kehabisan"). Inti CTA: ajak cek keranjang di bawah — boleh divariasikan kalimatnya asal maksud tetap sama.
+
+=== ATURAN PANJANG & FORMAT (WAJIB) ===
+Hook = tepat 25 kata. Cerita Produk = tepat 25 kata. CTA = tepat 25 kata. Hitung kata dengan benar sebelum menjawab.
+JANGAN gunakan tanda em dash "—" di mana pun dalam dialog.
+VISUAL, GERAKAN, KAMERA, dan DIALOG harus saling mendukung satu sama lain — bukan cuma dialog yang menarik tapi visualnya asal.
+
+Balas HANYA dengan objek JSON mentah (tanpa markdown fences, tanpa penjelasan), dengan struktur persis ini:
+{
+  "hook_type": "salah satu dari 10 tipe hook di atas",
+  "hook": "dialog hook, tepat 25 kata",
+  "hook_visual_action": "aksi visual spesifik di 0-2 detik, sesuai jenis produk",
+  "hook_camera": "framing kamera untuk hook (mis. close-up, medium shot)",
+  "cerita": "dialog storytelling, tepat 25 kata",
+  "cerita_visual_action": "aksi/interaksi dengan produk yang mendukung storytelling",
+  "cerita_emotion": "emosi/nuansa yang dibangun di bagian ini",
+  "cta": "dialog CTA, tepat 25 kata",
+  "cta_visual_action": "aksi visual penutup, biasanya fokus bersih ke produk"
+}`;
 }
 
 async function vgGenerateWithAI(){
   if(vgGenerating) return;
   vgGenerating = true; renderVgStep();
   try{
-    const refMode = VG_REF_MODES.find(m=>m.id===vgState.refMode);
-    const instruction = `Kamu adalah copywriter video pendek (TikTok/Reels/Shorts) untuk produk marketplace.
-
-${vgBuildCharacterContext()}
-Produk: ${vgState.productName}
-Target Audience: ${vgState.targetAudience}
-
-Buat 3 bagian script, berurutan dan saling berhubungan (satu konsep konsisten):
-1. HOOK — sekitar 25 kata, pembuka yang bikin penasaran, natural, tidak seperti iklan.
-2. CERITA PRODUK — sekitar 25 kata, cerita natural gimana rasanya kalau audiens pakai produk ini, mengalir dari hook.
-3. CTA — sekitar 25 kata, ajakan natural untuk cek keranjang di bawah, jadi penutup dari cerita produk. Jangan mengarahkan ke follow/like/subscribe/klik link/kirim pesan.
-
-Balas HANYA dengan objek JSON mentah (tanpa markdown fences, tanpa penjelasan): {"hook":"...","cerita":"...","cta":"..."}`;
-
+    const instruction = vgBuildScriptInstruction(vgState.productName);
     const img = vgState.productPhotoBase64 ? { base64: vgState.productPhotoBase64, mediaType: 'image/jpeg' } : false;
     let rawText = activeProvider === 'gemini' ? await callGemini(instruction, img) : await callClaude(instruction, img);
     rawText = (rawText || '').trim().replace(/^```json\s*|```$/g, '').trim();
     const parsed = JSON.parse(rawText);
     vgResult = [{
       productName: vgState.productName,
-      hook: parsed.hook || '', cerita: parsed.cerita || '', cta: parsed.cta || ''
+      hook: parsed.hook || '', cerita: parsed.cerita || '', cta: parsed.cta || '',
+      hookType: parsed.hook_type || '', hookVisualAction: parsed.hook_visual_action || '', hookCamera: parsed.hook_camera || '',
+      ceritaVisualAction: parsed.cerita_visual_action || '', ceritaEmotion: parsed.cerita_emotion || '',
+      ctaVisualAction: parsed.cta_visual_action || ''
     }];
     showToast('Script & JSON siap!');
   }catch(err){
@@ -3071,22 +3104,17 @@ async function vgGenerateMulti(){
   const results = [];
   try{
     for(const name of names){
-      const instruction = `Kamu adalah copywriter video pendek (TikTok/Reels/Shorts) untuk produk marketplace.
-
-${vgBuildCharacterContext()}
-Produk: ${name}
-Target Audience: ${vgState.targetAudience}
-
-Buat 3 bagian script, berurutan dan saling berhubungan (satu konsep konsisten):
-1. HOOK — sekitar 25 kata, pembuka yang bikin penasaran, natural, tidak seperti iklan.
-2. CERITA PRODUK — sekitar 25 kata, cerita natural gimana rasanya kalau audiens pakai produk ini, mengalir dari hook.
-3. CTA — sekitar 25 kata, ajakan natural untuk cek keranjang di bawah, jadi penutup dari cerita produk.
-
-Balas HANYA dengan objek JSON mentah (tanpa markdown fences, tanpa penjelasan): {"hook":"...","cerita":"...","cta":"..."}`;
+      const instruction = vgBuildScriptInstruction(name);
       let rawText = activeProvider === 'gemini' ? await callGemini(instruction, false) : await callClaude(instruction, false);
       rawText = (rawText || '').trim().replace(/^```json\s*|```$/g, '').trim();
       const parsed = JSON.parse(rawText);
-      results.push({ productName: name, hook: parsed.hook || '', cerita: parsed.cerita || '', cta: parsed.cta || '' });
+      results.push({
+        productName: name,
+        hook: parsed.hook || '', cerita: parsed.cerita || '', cta: parsed.cta || '',
+        hookType: parsed.hook_type || '', hookVisualAction: parsed.hook_visual_action || '', hookCamera: parsed.hook_camera || '',
+        ceritaVisualAction: parsed.cerita_visual_action || '', ceritaEmotion: parsed.cerita_emotion || '',
+        ctaVisualAction: parsed.cta_visual_action || ''
+      });
     }
     vgResult = results;
     showToast(`${results.length} set script & JSON siap!`);
@@ -3102,7 +3130,13 @@ Balas HANYA dengan objek JSON mentah (tanpa markdown fences, tanpa penjelasan): 
 function vgBuildSceneJSON(item, sceneKey, dialogText){
   const refMode = VG_REF_MODES.find(m=>m.id===vgState.refMode);
   const sceneNames = { hook:'HOOK', cerita:'CERITA_PRODUK', cta:'CTA' };
-  return {
+  const bahasa = BAHASA_MODEL_MAP[selectedBahasaModel] || BAHASA_MODEL_MAP.id;
+  const data = {
+    video_strategy: {
+      goal: 'stop_scroll_and_create_product_interest',
+      hook_priority: 'very_high',
+      style: 'natural_social_media_product_content'
+    },
     scene: sceneNames[sceneKey],
     product_name: item.productName,
     reference_mode: { id: refMode.id, label: refMode.label, instruction: refMode.desc },
@@ -3110,17 +3144,41 @@ function vgBuildSceneJSON(item, sceneKey, dialogText){
       gender: vgState.gender,
       age: vgGetAgeText(),
       tone: vgGetToneText(),
-      accent: vgGetAccentText() + ' (natural Indonesian intonation)'
+      accent: vgGetAccentText() + ` (${bahasa.label})`
     },
-    target_audience: vgState.targetAudience || null,
+    target_audience: vgState.targetAudience || 'Gen Z perempuan (default)',
     dialog: dialogText,
+    timing: sceneKey === 'hook' ? '0-2s' : (sceneKey === 'cta' ? 'final seconds' : 'pertengahan video'),
     duration_seconds: 8,
     preserve_original: {
       enabled: true,
       instruction: PRESERVE_ORIGINAL_TEXT + ' ' + PRESERVE_ORIGINAL_PRODUCT_TEXT
     },
-    negative_prompt: ['different product','product redesign','changed product shape','changed product color','changed logo','changed text','changed branding','altered proportions','deformed product','product morphing','warped product','duplicate product','different person','face distortion','identity change','deformed hands','extra fingers','extra hands']
+    product_consistency: {
+      preserve_reference_exactly: true,
+      no_product_modification: true,
+      no_new_product_details: true
+    },
+    voice: buildVoiceCharacterBlock(dialogText).dialogue.voice_character,
+    negative_prompt: ['different product','product redesign','changed product shape','changed product color','changed logo','changed text','changed branding','altered proportions','deformed product','product morphing','warped product','duplicate product','different person','face distortion','identity change','deformed hands','extra fingers','extra hands','stiff movement','robotic motion','jerky animation']
   };
+
+  if(sceneKey === 'hook'){
+    data.hook_type = item.hookType || 'AI-selected berdasarkan produk';
+    data.visual_hook = {
+      action: item.hookVisualAction || 'aksi produk yang langsung menarik perhatian di 0-2 detik pertama',
+      camera: item.hookCamera || 'close-up',
+      movement: 'smooth and natural',
+      timing: 'immediate'
+    };
+  } else if(sceneKey === 'cerita'){
+    data.product_action = item.ceritaVisualAction || 'demonstrasi/interaksi produk yang mendukung cerita';
+    data.emotion = item.ceritaEmotion || 'natural dan relatable';
+  } else if(sceneKey === 'cta'){
+    data.visual_action = item.ctaVisualAction || 'clean_product_focus';
+  }
+
+  return data;
 }
 
 function vgRenderResult(){
