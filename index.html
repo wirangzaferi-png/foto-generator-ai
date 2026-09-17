@@ -1023,6 +1023,7 @@ const VOICE_AGE_FIXED = 20;
 function buildVoiceCharacterBlock(scriptText){
   const gender = VOICE_GENDER_MAP[selectedVoiceGender] || VOICE_GENDER_MAP.female;
   const bahasa = BAHASA_MODEL_MAP[selectedBahasaModel] || BAHASA_MODEL_MAP.id;
+  const langCode = selectedBahasaModel; // 'id' | 'ace' | 'su' | 'jv' | 'en' — langsung dari pilihan Bahasa Model, tidak pernah hardcode
   const voiceIdentity = `young ${bahasa.label} ${gender.genderValue} voice, age ${VOICE_AGE_FIXED}`;
   return {
     dialogue: {
@@ -1040,6 +1041,7 @@ function buildVoiceCharacterBlock(scriptText){
           pronunciation: 'clear and natural'
         },
         language: bahasa.label,
+        language_code: langCode,
         script: scriptText || 'Teks Hook, Storytelling, dan CTA'
       }
     },
@@ -1055,9 +1057,23 @@ function buildVoiceCharacterBlock(scriptText){
     audio: {
       voice_gender: gender.genderValue,
       voice_age: VOICE_AGE_FIXED,
+      voice_language: bahasa.label,
+      voice_language_code: langCode,
+      voice_language_lock: true,
       voice_consistency: 'strict',
       voice_stability: 'high',
-      voice_change: 'not allowed'
+      voice_change: 'not allowed',
+      selected_model_language_is_authoritative: true,
+      voice_language_must_match_selected_language: true,
+      never_fallback_to_aceh: true,
+      never_mix_languages_unless_explicitly_requested: true
+    },
+    language_validation: {
+      selected_language: bahasa.label,
+      selected_language_code: langCode,
+      script_language: bahasa.label,
+      voice_language: bahasa.label,
+      status: 'matched'
     }
   };
 }
@@ -1601,6 +1617,12 @@ document.getElementById('bahasaModelSelect').addEventListener('change', function
   if(autoHook || autoStorytelling || autoCta){
     clearAutoHookStoryCta();
     showToast('Bahasa diganti — tap Generate Prompt / General lagi untuk buat ulang dialog');
+  }
+  if(typeof vgResult !== 'undefined' && vgResult){
+    vgResult = null;
+    if(typeof renderVgStep === 'function' && document.getElementById('vgModal')?.classList.contains('open')){
+      renderVgStep();
+    }
   }
   updateSummaries();
   render();
@@ -2763,6 +2785,21 @@ try{
   document.addEventListener('touchmove', function(e){
     if(e.touches && e.touches.length>1) e.preventDefault();
   }, {passive:false});
+
+  // Cegah Pull-to-Refresh browser SECARA PRESISI: preventDefault cuma dipicu
+  // kalau kondisinya PERSIS gesture PTR (1 jari, halaman sudah di paling atas,
+  // dan sedang ditarik ke bawah) — scroll/swipe dari posisi manapun lainnya
+  // (atas, tengah, bawah, samping) tetap normal karena tidak pernah masuk kondisi ini.
+  let ptrTouchStartY = 0;
+  document.addEventListener('touchstart', function(e){
+    if(e.touches.length === 1) ptrTouchStartY = e.touches[0].clientY;
+  }, {passive:true});
+  document.addEventListener('touchmove', function(e){
+    if(e.touches.length !== 1) return;
+    const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
+    const draggingDown = e.touches[0].clientY > ptrTouchStartY;
+    if(scrollTop <= 0 && draggingDown) e.preventDefault();
+  }, {passive:false});
 })();
 
 /* ===== PWA SERVICE WORKER ===== */
@@ -2779,6 +2816,7 @@ if('serviceWorker' in navigator){
   </div>
   <div class="vg-progress-track"><div class="vg-progress-bar" id="vgProgressBar" style="width:20%;"></div></div>
   <div class="vg-stepline"><span>Step <b id="vgStepNum" style="color:var(--ink);">1</b> dari 5</span><span id="vgStepLabel">Mode Referensi Foto</span></div>
+  <div id="vgStepDots" style="display:flex; gap:6px; justify-content:center; padding:8px 16px; flex-shrink:0; border-bottom:1px solid var(--line);"></div>
   <div class="vg-body" id="vgBody"></div>
 </div>
 
@@ -2802,6 +2840,7 @@ const VG_TONE_PRESETS = ['Ceria','Tenang','Serius','Lembut','Bersemangat','Miste
 const VG_ACCENT_PRESETS = ['Netral','Formal','Santai'];
 
 let vgStep = 1;
+let vgVisitedSteps = new Set([1]);
 let vgState = {
   refMode: 'mode2',
   gender: '',
@@ -2818,7 +2857,10 @@ let vgState = {
   manualHook: '',
   manualCerita: '',
   manualCta: '',
-  multiNames: ''
+  multiNames: '',
+  multiCount: 3,
+  multiCountConfirmed: false,
+  multiProducts: [] // {name, keunggulan, photoBase64} — tidak dihancurkan saat jumlah dikurangi lalu dinaikkan lagi
 };
 let vgResult = null; // { hook, cerita, cta } setelah generate
 let vgGenerating = false;
@@ -2826,6 +2868,7 @@ let vgGenerating = false;
 function openVideoGen(){
   document.getElementById('vgModal').classList.add('open');
   vgStep = 1;
+  vgVisitedSteps = new Set([1]);
   renderVgStep();
 }
 function closeVideoGen(){
@@ -2833,6 +2876,7 @@ function closeVideoGen(){
 }
 function vgGoToStep(n){
   vgStep = n;
+  vgVisitedSteps.add(n);
   renderVgStep();
   // Tidak ada scrollTo/scrollIntoView — konten modal sendiri yang scroll (overflow-y pada .vg-body),
   // dan setiap ganti step, .vg-body di-reset ke atas secara lokal (bukan halaman utama).
@@ -2840,11 +2884,25 @@ function vgGoToStep(n){
   if(body) body.scrollTop = 0;
 }
 
+function renderVgStepDots(){
+  const wrap = document.getElementById('vgStepDots');
+  if(!wrap) return;
+  wrap.innerHTML = [1,2,3,4,5].map(n => {
+    const visited = vgVisitedSteps.has(n);
+    const active = n === vgStep;
+    const clickable = visited && !active;
+    const style = `width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;font-family:'JetBrains Mono',monospace;` +
+      (active ? `background:var(--grad);color:#0c0c12;` : visited ? `background:var(--bg-input);color:var(--ink);border:1px solid var(--accent2);cursor:pointer;` : `background:var(--bg-input);color:var(--ink-dim);border:1px solid var(--line);`);
+    return `<div style="${style}" ${clickable ? `onclick="vgGoToStep(${n})"` : ''}>${n}</div>`;
+  }).join('<div style="width:10px;height:1px;align-self:center;background:var(--line);"></div>');
+}
+
 function renderVgStep(){
   const labels = ['Mode Referensi Foto','Jenis Kelamin & Usia','Nada Bicara','Aksen','Script / Dialog'];
   document.getElementById('vgStepNum').textContent = vgStep;
   document.getElementById('vgStepLabel').textContent = labels[vgStep-1];
   document.getElementById('vgProgressBar').style.width = (vgStep/5*100) + '%';
+  renderVgStepDots();
   const body = document.getElementById('vgBody');
   if(vgStep === 1) body.innerHTML = vgRenderStep1();
   else if(vgStep === 2) body.innerHTML = vgRenderStep2();
@@ -2882,7 +2940,10 @@ function vgRenderStep2(){
     <label class="vg-field-label">Atau tulis usia sendiri</label>
     <input class="vg-input" maxlength="120" placeholder="Contoh: elderly woman, around 65 years old" value="${vgState.ageCustom.replace(/"/g,'&quot;')}" oninput="vgState.ageCustom=this.value; if(this.value.trim()) vgState.agePreset=''; vgUpdateNextBtn2();">
     <div class="vg-count">${vgState.ageCustom.length} / 120</div>
-    <button class="vg-btn-primary" id="vgNextBtn2" ${canNext?'':'disabled'} onclick="vgGoToStep(3)">Konfirmasi →</button>
+    <div style="display:flex; gap:8px;">
+      ${vgBackBtn(1)}
+      <button class="vg-btn-primary" style="flex:2;" id="vgNextBtn2" ${canNext?'':'disabled'} onclick="vgGoToStep(3)">Konfirmasi →</button>
+    </div>
   `;
 }
 function vgUpdateNextBtn2(){
@@ -2900,7 +2961,10 @@ function vgRenderStep3(){
     <label class="vg-field-label">Atau tulis sendiri</label>
     <input class="vg-input" maxlength="80" placeholder="Contoh: lelah tapi tetap ramah" value="${vgState.toneCustom.replace(/"/g,'&quot;')}" oninput="vgState.toneCustom=this.value; if(this.value.trim()) vgState.tone=''; vgUpdateNextBtn3();">
     <div class="vg-count">${vgState.toneCustom.length} / 80</div>
-    <button class="vg-btn-primary" id="vgNextBtn3" ${(vgState.tone||vgState.toneCustom.trim())?'':'disabled'} onclick="vgGoToStep(4)">Konfirmasi →</button>
+    <div style="display:flex; gap:8px;">
+      ${vgBackBtn(2)}
+      <button class="vg-btn-primary" style="flex:2;" id="vgNextBtn3" ${(vgState.tone||vgState.toneCustom.trim())?'':'disabled'} onclick="vgGoToStep(4)">Konfirmasi →</button>
+    </div>
   `;
 }
 function vgUpdateNextBtn3(){
@@ -2919,7 +2983,10 @@ function vgRenderStep4(){
     <input class="vg-input" maxlength="120" placeholder="Contoh: nada santai dan ramah" value="${vgState.accentCustom.replace(/"/g,'&quot;')}" oninput="vgState.accentCustom=this.value; if(this.value.trim()) vgState.accent=''; vgUpdateNextBtn4();">
     <div class="vg-count">${vgState.accentCustom.length} / 120</div>
     <div class="vg-desc" style="margin-top:10px;">Semua pilihan otomatis digabung dengan "Natural Indonesian intonation".</div>
-    <button class="vg-btn-primary" id="vgNextBtn4" ${(vgState.accent||vgState.accentCustom.trim())?'':'disabled'} onclick="vgGoToStep(5)">Konfirmasi →</button>
+    <div style="display:flex; gap:8px;">
+      ${vgBackBtn(3)}
+      <button class="vg-btn-primary" style="flex:2;" id="vgNextBtn4" ${(vgState.accent||vgState.accentCustom.trim())?'':'disabled'} onclick="vgGoToStep(5)">Konfirmasi →</button>
+    </div>
   `;
 }
 function vgUpdateNextBtn4(){
@@ -2928,7 +2995,7 @@ function vgUpdateNextBtn4(){
 }
 
 function vgRenderStep5(){
-  const tabs = [['ai','Skrip dibantu AI'],['manual','Tulis Manual Sendiri'],['multi','Banyak Produk Sekaligus (maks 10)']]
+  const tabs = [['ai','Skrip dibantu AI'],['manual','Tulis Manual Sendiri'],['multi','Banyak Produk Sekaligus (maks 30)']]
     .map(([id,label]) => `<div class="vg-submode-tab ${vgState.subMode===id?'selected':''}" onclick="vgState.subMode='${id}'; renderVgStep();">${label}</div>`).join('');
 
   let body = '';
@@ -2963,14 +3030,7 @@ function vgRenderStep5(){
       <button class="vg-btn-primary" id="vgManualBtn" onclick="vgBuildFromManual()">Buat 3 JSON dari Script Ini →</button>
     `;
   } else {
-    body = `
-      <label class="vg-field-label">Nama Produk (1 per baris, maks 10)</label>
-      <textarea class="vg-textarea" style="min-height:140px;" oninput="vgState.multiNames=this.value;" placeholder="Serum Wajah Glow Aura&#10;Sepatu Lari UltraBoost&#10;Tas Selempang Kulit">${vgState.multiNames}</textarea>
-      <div class="vg-desc">Setiap baris = 1 produk. AI akan membuat 3 script (Hook/Cerita/CTA) untuk setiap produk secara berurutan menggunakan Target Audience yang sama.</div>
-      <label class="vg-field-label">Target Audience <span class="vg-required">*wajib</span></label>
-      <textarea class="vg-textarea" oninput="vgState.targetAudience=this.value;" placeholder="Contoh: perempuan usia 20-30 tahun">${vgState.targetAudience}</textarea>
-      <button class="vg-btn-primary" id="vgMultiBtn" onclick="vgGenerateMulti()" ${vgGenerating?'disabled':''}>${vgGenerating?'⏳ Memproses...':'✨ Buatkan Semua Script + JSON'}</button>
-    `;
+    body = vgRenderMultiMode();
   }
 
   const resultHtml = vgResult ? vgRenderResult() : '';
@@ -2981,8 +3041,66 @@ function vgRenderStep5(){
     <div class="vg-desc">Mau bikin script gimana?</div>
     <div class="vg-submode-tabs">${tabs}</div>
     ${body}
+    ${vgState.subMode !== 'multi' ? `<div style="display:flex; gap:8px; margin-top:10px;">${vgBackBtn(4)}</div>` : ''}
     ${resultHtml}
   `;
+}
+
+function vgRenderMultiMode(){
+  if(!vgState.multiCountConfirmed){
+    return `
+      <label class="vg-field-label">Mau generate berapa produk?</label>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <input class="vg-input" type="number" min="1" max="30" style="flex:1;" id="vgMultiCountInput" value="${vgState.multiCount}"
+          oninput="let v=parseInt(this.value)||1; if(v<1)v=1; if(v>30)v=30; vgState.multiCount=v; this.value=v;">
+        <button class="vg-btn-primary" style="flex:1; margin-top:0;" onclick="vgConfirmMultiCount()">Tentukan Jumlah →</button>
+      </div>
+      <div class="vg-desc" style="margin-top:8px;">Minimum 1, maksimum 30 produk sekaligus.</div>
+      <div style="display:flex; gap:8px; margin-top:14px;">${vgBackBtn(4)}</div>
+    `;
+  }
+
+  const cards = [];
+  for(let i=0;i<vgState.multiCount;i++){
+    const p = vgState.multiProducts[i] || { name:'', keunggulan:'', photoBase64:null };
+    vgState.multiProducts[i] = p;
+    const photoImg = p.photoBase64 ? `<img src="data:image/jpeg;base64,${p.photoBase64}">` : '📷';
+    cards.push(`
+      <div class="vg-scene-card" style="margin-bottom:10px;">
+        <span class="vg-scene-tag">PRODUK ${i+1}</span>
+        <div class="vg-photo-row">
+          <input class="vg-input" style="flex:1;" placeholder="Nama Produk *wajib" value="${p.name.replace(/"/g,'&quot;')}" oninput="vgState.multiProducts[${i}].name=this.value;">
+          <div class="vg-photo-box" onclick="document.getElementById('vgMultiPhotoInput${i}').click();">${photoImg}</div>
+          <input type="file" id="vgMultiPhotoInput${i}" accept="image/*" style="display:none;" onchange="vgOnMultiPhotoSelect(this, ${i})">
+        </div>
+        <input class="vg-input" style="margin-top:8px;" placeholder="Keunggulan (opsional)" value="${(p.keunggulan||'').replace(/"/g,'&quot;')}" oninput="vgState.multiProducts[${i}].keunggulan=this.value;">
+      </div>
+    `);
+  }
+
+  return `
+    <div style="font-size:12px; color:var(--ink-dim); margin-bottom:10px; cursor:pointer;" onclick="vgState.multiCountConfirmed=false; renderVgStep();">← Ubah jumlah produk (${vgState.multiCount})</div>
+    ${cards.join('')}
+    <label class="vg-field-label" style="margin-top:6px;">Target Audience <span class="vg-required">*wajib</span></label>
+    <textarea class="vg-textarea" oninput="vgState.targetAudience=this.value;" placeholder="Contoh: perempuan usia 20-30 tahun">${vgState.targetAudience}</textarea>
+    <div style="display:flex; gap:8px; margin-top:10px;">
+      ${vgBackBtn(4)}
+      <button class="vg-btn-primary" style="flex:2; margin-top:0;" id="vgMultiBtn" onclick="vgGenerateMulti()" ${vgGenerating?'disabled':''}>${vgGenerating?'⏳ Memproses...':'✨ Generate Semua Produk'}</button>
+    </div>
+  `;
+}
+function vgConfirmMultiCount(){
+  vgState.multiCountConfirmed = true;
+  renderVgStep();
+}
+function vgOnMultiPhotoSelect(input, idx){
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async function(evt){
+    vgState.multiProducts[idx].photoBase64 = await resizeImageForAI(evt.target.result, 1280, 0.85);
+    renderVgStep();
+  };
+  reader.readAsDataURL(file);
 }
 
 function vgUpdateGenBtn(){
@@ -3009,6 +3127,10 @@ function vgOnPhotoSelect(input){
 function vgGetAgeText(){ return vgState.ageCustom.trim() || (VG_AGE_PRESETS.find(a=>a.id===vgState.agePreset)||{}).label + ' (' + (VG_AGE_PRESETS.find(a=>a.id===vgState.agePreset)||{}).sub + ')'; }
 function vgGetToneText(){ return vgState.toneCustom.trim() || vgState.tone; }
 function vgGetAccentText(){ return vgState.accentCustom.trim() || vgState.accent; }
+
+function vgBackBtn(toStep){
+  return `<button class="btn-outline" style="flex:1;" onclick="vgGoToStep(${toStep})">← Kembali</button>`;
+}
 
 function vgBuildCharacterContext(){
   const bahasa = BAHASA_MODEL_MAP[selectedBahasaModel] || BAHASA_MODEL_MAP.id;
@@ -3097,19 +3219,21 @@ function vgBuildFromManual(){
 
 async function vgGenerateMulti(){
   if(vgGenerating) return;
-  const names = vgState.multiNames.split('\n').map(s=>s.trim()).filter(Boolean).slice(0,10);
-  if(!names.length){ showToast('Isi minimal 1 nama produk'); return; }
+  const products = vgState.multiProducts.slice(0, vgState.multiCount).filter(p => p && p.name && p.name.trim());
+  if(!products.length){ showToast('Isi minimal 1 Nama Produk'); return; }
   if(!vgState.targetAudience.trim()){ showToast('Target Audience wajib diisi'); return; }
   vgGenerating = true; renderVgStep();
   const results = [];
   try{
-    for(const name of names){
-      const instruction = vgBuildScriptInstruction(name);
-      let rawText = activeProvider === 'gemini' ? await callGemini(instruction, false) : await callClaude(instruction, false);
+    for(const p of products){
+      const namaLengkap = p.keunggulan && p.keunggulan.trim() ? `${p.name.trim()} (keunggulan: ${p.keunggulan.trim()})` : p.name.trim();
+      const instruction = vgBuildScriptInstruction(namaLengkap);
+      const img = p.photoBase64 ? { base64: p.photoBase64, mediaType: 'image/jpeg' } : false;
+      let rawText = activeProvider === 'gemini' ? await callGemini(instruction, img) : await callClaude(instruction, img);
       rawText = (rawText || '').trim().replace(/^```json\s*|```$/g, '').trim();
       const parsed = JSON.parse(rawText);
       results.push({
-        productName: name,
+        productName: p.name.trim(),
         hook: parsed.hook || '', cerita: parsed.cerita || '', cta: parsed.cta || '',
         hookType: parsed.hook_type || '', hookVisualAction: parsed.hook_visual_action || '', hookCamera: parsed.hook_camera || '',
         ceritaVisualAction: parsed.cerita_visual_action || '', ceritaEmotion: parsed.cerita_emotion || '',
@@ -3120,7 +3244,7 @@ async function vgGenerateMulti(){
     showToast(`${results.length} set script & JSON siap!`);
   }catch(err){
     console.error(err);
-    showToast('Gagal di tengah proses: ' + (err.message || 'kesalahan tidak diketahui') + ' (' + results.length + '/' + names.length + ' selesai)');
+    showToast('Gagal di tengah proses: ' + (err.message || 'kesalahan tidak diketahui') + ' (' + results.length + '/' + products.length + ' selesai)');
     if(results.length) vgResult = results;
   }finally{
     vgGenerating = false; renderVgStep();
