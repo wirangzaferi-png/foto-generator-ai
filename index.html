@@ -551,287 +551,85 @@ input, textarea, select, [contenteditable="true"] {
 
 <div id="tabContent-foto">
 
-  <section class="hero">
-    <div class="kicker">AI Product Video Prompt Generator</div>
-    <h1>VERRY WIRANZA AI</h1>
-    <p class="subtitle">AI Product Video Creator</p>
-    <button class="cta-btn" onclick="jumpToSection('sec-foto')">Mulai Buat Video →</button>
+  <section class="hero" style="padding:20px 16px 8px;">
+    <div class="kicker">FOTO PRODUK AI</div>
+    <h1 style="font-size:20px;">Buat Foto Produk Berkualitas Tinggi</h1>
+    <p style="font-size:12.5px; color:var(--ink-dim); margin-top:4px;">Upload foto produk, pilih konsep & background, AI buatkan foto baru — produk tetap identik dengan aslinya.</p>
   </section>
 
-  <header class="tool-header" id="step-1">
-    <div class="eyebrow">Product Video Prompt Tool</div>
-    <h2 class="tool-title">Buat Prompt Video Produk</h2>
-    <p>Ketuk tiap bagian untuk buka pilihannya. Produk selalu dijaga identik dengan foto aslinya.</p>
-  </header>
+  <div class="wrap">
 
-  <div class="layout">
-    <div>
-
-      <div class="acc open" id="sec-foto">
-        <div class="acc-head" onclick="toggleSection('sec-foto')">
-          <span class="num">①</span><span class="ttl">Referensi</span>
-          <span class="summary" id="sum-foto"></span><span class="chev">▾</span>
+    <!-- ① UPLOAD FOTO PRODUK -->
+    <div class="acc open" id="fp-sec-upload">
+      <div class="acc-head"><span class="num">①</span><span class="ttl">Upload Foto Produk</span></div>
+      <div class="acc-body"><div class="acc-body-inner">
+        <div class="upload-box" id="fpUploadBox" onclick="document.getElementById('fpFileInput').click();">
+          <div id="fpUploadPlaceholder">
+            <div style="font-size:28px;">📷</div>
+            <div style="font-size:12.5px; color:var(--ink-dim); margin-top:6px;">Tap untuk Upload Foto Produk</div>
+          </div>
+          <img id="fpPreviewImg" style="display:none; max-width:160px; max-height:160px; border-radius:10px; object-fit:cover;">
         </div>
-        <div class="acc-body"><div class="acc-body-inner">
-          <div class="upload-box" id="uploadBox">
-            <input type="file" id="fileInput" accept="image/*">
-            <div class="upload-placeholder" id="uploadPlaceholder">
-              <span class="icon">＋</span>Klik atau seret foto ke sini
-            </div>
-            <img id="previewImg" alt="preview">
-          </div>
-          <div class="photo-actions" id="photoActions-produk">
-            <button onclick="event.stopPropagation(); document.getElementById('fileInput').click()">🔄 Ganti</button>
-            <button onclick="event.stopPropagation(); openLightbox('previewImg')">🔍 Lihat</button>
-            <button onclick="event.stopPropagation(); removePhoto('produk')">🗑️ Hapus</button>
-          </div>
-          <button class="detect" id="detectBtn" disabled onclick="detectProduct()">Deteksi Otomatis dengan AI</button>
-          <div class="detect-status" id="detectStatus"></div>
-          <div class="badge-info">Foto ini jadi acuan utama. Bentuk, warna, motif, logo, & detail dikunci otomatis — tidak berubah di hasil akhir.</div>
-        </div></div>
-      </div>
-
-      <div class="acc" id="sec-subjek">
-        <div class="acc-head" onclick="toggleSection('sec-subjek')">
-          <span class="num">②</span><span class="ttl">Subjek</span>
-          <span class="summary" id="sum-subjek"></span><span class="chev">▾</span>
+        <input type="file" id="fpFileInput" accept="image/*" style="display:none;">
+        <div class="chip-toolbar" id="fpPhotoActions" style="display:none; margin-top:10px;">
+          <button class="btn-mini" onclick="document.getElementById('fpFileInput').click();">➕ Tambah Foto</button>
+          <button class="btn-mini" onclick="fpRemovePhoto()">🗑️ Hapus</button>
         </div>
-        <div class="acc-body"><div class="acc-body-inner">
-          <div class="g2" id="subjekGrid"></div>
-
-          <div id="modelPhotoSection" style="display:none; margin-top:12px;">
-            <label class="field-label">Foto Model</label>
-            <div class="segmented" id="modelSourceSeg"></div>
-            <div class="field" id="modelUploadWrap" style="margin-top:8px;">
-              <div class="upload-box" id="modelUploadBox">
-                <input type="file" id="modelFileInput" accept="image/*">
-                <div class="upload-placeholder" id="modelUploadPlaceholder"><span class="icon">👤</span>Upload foto model (opsional)</div>
-                <img id="modelPreviewImg" alt="preview model">
-              </div>
-              <div class="photo-actions" id="photoActions-model">
-                <button onclick="event.stopPropagation(); document.getElementById('modelFileInput').click()">🔄 Ganti</button>
-                <button onclick="event.stopPropagation(); openLightbox('modelPreviewImg')">🔍 Lihat</button>
-                <button onclick="event.stopPropagation(); removePhoto('model')">🗑️ Hapus</button>
-              </div>
-              <div class="hint">Karakter model (wajah, rambut, proporsi tubuh) dijaga konsisten sepanjang hasil.</div>
-            </div>
-            <div class="field" id="modelGenAiWrap" style="display:none; margin-top:8px;">
-              <label class="field-label">Gender Model</label>
-              <div class="segmented" id="modelGenderSeg"></div>
-              <label class="field-label" style="margin-top:8px;">Gaya Model</label>
-              <div class="chip-wrap" id="modelStyleChips"></div>
-            </div>
-          </div>
-        </div></div>
-      </div>
-
-      <div class="acc" id="sec-jenisproduk" style="display:none;">
-        <div class="acc-head" onclick="toggleSection('sec-jenisproduk')">
-          <span class="num">③</span><span class="ttl">Jenis Produk</span>
-          <span class="summary" id="sum-jenisproduk"></span><span class="chev">▾</span>
-        </div>
-        <div class="acc-body"><div class="acc-body-inner">
-          <div class="g3" id="categoryGrid"></div>
-          <div class="field" id="categoryCustomWrap" style="display:none; margin-top:8px;">
-            <input type="text" id="categoryCustomText" placeholder="Jelaskan jenis produk sendiri">
-          </div>
-          <div class="field" id="elektronikProdukWrap" style="display:none; margin-top:12px;">
-            <label class="field-label">Produk Elektronik</label>
-            <div class="g3" id="elektronikProdukGrid"></div>
-            <div class="field" id="elektronikCustomWrap" style="display:none; margin-top:8px;">
-              <input type="text" id="elektronikCustomText" placeholder="Jelaskan produk elektronik sendiri">
-            </div>
-          </div>
-        </div></div>
-      </div>
-
-      <div class="acc" id="sec-gerakan">
-        <div class="acc-head" onclick="toggleSection('sec-gerakan')">
-          <span class="num">④</span><span class="ttl">Gerakan</span>
-          <span class="summary" id="sum-gerakan"></span><span class="chev">▾</span>
-        </div>
-        <div class="acc-body"><div class="acc-body-inner">
-          <div class="hint" style="margin-bottom:8px;">Pilih satu gerakan utama untuk hasil paling natural.</div>
-          <div class="chip-wrap" id="gerakanChips"></div>
-          <div class="field" id="gerakanCustomWrap" style="display:none; margin-top:8px;">
-            <textarea id="gerakanCustomText" placeholder="Jelaskan gerakan sendiri..."></textarea>
-          </div>
-
-          <div id="reviewProdukWrap" style="display:none; margin-top:12px;">
-            <label class="field-label">🎬 Review Produk</label>
-            <div class="segmented" id="reviewProdukTabSeg"></div>
-            <div id="reviewLuarWrap" style="margin-top:8px;">
-              <div class="chip-wrap" id="reviewLuarChips"></div>
-              <div class="field" id="reviewLuarCustomWrap" style="display:none; margin-top:8px;">
-                <textarea id="reviewLuarCustomText" placeholder="Tulis sendiri bagaimana review bagian luar produk..."></textarea>
-              </div>
-              <div class="field" id="putaranWrap" style="display:none; margin-top:8px;">
-                <label class="field-label">Sudut Putaran</label>
-                <div class="segmented" id="putaranSeg"></div>
-                <div class="field" id="putaranCustomWrap" style="display:none; margin-top:8px;"><input type="text" id="putaranCustomText" placeholder="mis. 60 derajat"></div>
-                <div class="hint">Default 90° — putaran penuh 360° dihindari agar bentuk produk tetap konsisten.</div>
-              </div>
-            </div>
-            <div id="reviewDalamWrap" style="display:none; margin-top:8px;">
-              <div class="badge-info" id="reviewDalamHint" style="display:none;">Kategori produk ini biasanya tidak punya bagian dalam untuk direview — pilih hanya jika memang relevan, atau pakai Custom.</div>
-              <div class="chip-wrap" id="reviewDalamChips"></div>
-              <div class="field" id="reviewDalamCustomWrap" style="display:none; margin-top:8px;">
-                <textarea id="reviewDalamCustomText" placeholder="Tulis sendiri bagaimana review bagian dalam produk..."></textarea>
-              </div>
-            </div>
-          </div>
-        </div></div>
-      </div>
-
-      <div class="acc" id="sec-lokasi">
-        <div class="acc-head" onclick="toggleSection('sec-lokasi')">
-          <span class="num">⑤</span><span class="ttl">Lokasi</span>
-          <span class="summary" id="sum-lokasi"></span><span class="chev">▾</span>
-        </div>
-        <div class="acc-body"><div class="acc-body-inner">
-          <div class="segmented" id="lokasiModeSeg"></div>
-          <div id="lokasiIndoorWrap" style="margin-top:10px;">
-            <select id="indoorSelect"></select>
-            <div class="field" id="indoorCustomWrap" style="display:none; margin-top:8px;"><input type="text" id="indoorCustomText" placeholder="Jelaskan lokasi indoor sendiri"></div>
-          </div>
-          <div id="lokasiOutdoorWrap" style="display:none; margin-top:10px;">
-            <select id="outdoorSelect"></select>
-            <div class="field" id="outdoorCustomWrap" style="display:none; margin-top:8px;"><input type="text" id="outdoorCustomText" placeholder="Jelaskan lokasi outdoor sendiri"></div>
-          </div>
-          <div id="lokasiUploadWrap" style="display:none; margin-top:10px;">
-            <div class="upload-box" id="locBgUploadBox">
-              <input type="file" id="locBgFileInput" accept="image/*">
-              <div class="upload-placeholder" id="locBgUploadPlaceholder"><span class="icon">🖼️</span>Upload foto lokasi</div>
-              <img id="locBgPreview" alt="preview lokasi">
-            </div>
-            <div class="photo-actions" id="photoActions-locBg">
-              <button onclick="event.stopPropagation(); document.getElementById('locBgFileInput').click()">🔄 Ganti</button>
-              <button onclick="event.stopPropagation(); openLightbox('locBgPreview')">🔍 Lihat</button>
-              <button onclick="event.stopPropagation(); removePhoto('locBg')">🗑️ Hapus</button>
-            </div>
-            <div class="hint">Foto ini jadi acuan lokasi utama — tidak diganti lokasi lain.</div>
-          </div>
-          <div id="lokasiCustomWrap" style="display:none; margin-top:10px;">
-            <textarea id="lokasiCustomText" placeholder="Jelaskan lokasi atau suasana yang Anda inginkan..."></textarea>
-          </div>
-
-          <button class="btn-mini" id="lokasiAddBtn" style="margin-top:12px;" onclick="lokasiAddCurrent()">➕ Tambahkan sebagai Lokasi Berikutnya (maks 3)</button>
-          <div class="hint">Model/produk bisa berpindah frame — tambahkan sampai 3 lokasi berurutan (Lokasi 1 di awal, sampai Lokasi 3 di akhir). Boleh campur Indoor &amp; Outdoor. Kalau cuma butuh 1 lokasi, tidak perlu ditambahkan — cukup pilih di atas.</div>
-          <div id="lokasiListWrap" style="margin-top:10px;"></div>
-        </div></div>
-      </div>
-
-      <div class="acc" id="sec-kamera">
-        <div class="acc-head" onclick="toggleSection('sec-kamera')">
-          <span class="num">⑥</span><span class="ttl">Posisi Kamera</span>
-          <span class="summary" id="sum-kamera"></span><span class="chev">▾</span>
-        </div>
-        <div class="acc-body"><div class="acc-body-inner">
-          <div class="chip-wrap" id="camPosChips"></div>
-          <div class="field" id="camPosCustomWrap" style="display:none; margin-top:8px;">
-            <textarea id="camPosCustomText" placeholder="Jelaskan posisi/gerakan kamera sendiri..."></textarea>
-          </div>
-          <div class="hint">Kamera dijaga natural dan stabil — tanpa orbit ekstrem atau zoom cepat.</div>
-        </div></div>
-      </div>
-
-      <div class="acc" id="sec-cahaya">
-        <div class="acc-head" onclick="toggleSection('sec-cahaya')">
-          <span class="num">⑦</span><span class="ttl">Pencahayaan</span>
-          <span class="summary" id="sum-cahaya"></span><span class="chev">▾</span>
-        </div>
-        <div class="acc-body"><div class="acc-body-inner">
-          <select id="lightingSelect"></select>
-          <div class="field" id="lightingCustomWrap" style="display:none; margin-top:8px;">
-            <input type="text" id="lightingCustomText" placeholder="Jelaskan pencahayaan sendiri">
-          </div>
-        </div></div>
-      </div>
-
-      <div class="acc" id="sec-bahasa">
-        <div class="acc-head" onclick="toggleSection('sec-bahasa')">
-          <span class="num">⑧</span><span class="ttl">🗣️ Bahasa Model</span>
-          <span class="summary" id="sum-bahasa"></span><span class="chev">▾</span>
-        </div>
-        <div class="acc-body"><div class="acc-body-inner">
-          <select id="bahasaModelSelect">
-            <option value="id">🇮🇩 Bahasa Indonesia</option>
-            <option value="ace">🟢 Bahasa Aceh</option>
-            <option value="su">🟡 Bahasa Sunda</option>
-            <option value="jv">🟤 Bahasa Jawa</option>
-            <option value="en">🇬🇧 English</option>
-          </select>
-          <div class="hint">Cuma ucapan/dialog model (Hook, Storytelling, CTA) yang berubah bahasa — tampilan website tetap Bahasa Indonesia.</div>
-          <div class="field" style="margin-top:14px;">
-            <label class="field-label">🎙️ Jenis Kelamin Suara</label>
-            <select id="voiceGenderSelect">
-              <option value="female">👩 Perempuan</option>
-              <option value="male">👨 Laki-laki</option>
-            </select>
-            <div class="hint">Suara dipakai konsisten untuk Hook, Storytelling, CTA, dan semua dialog model — usia suara tetap 20 tahun, tidak berubah sepanjang video.</div>
-          </div>
-        </div></div>
-      </div>
-
-      <div class="acc" id="sec-hook">
-        <div class="acc-head" onclick="toggleSection('sec-hook')">
-          <span class="num">⑨</span><span class="ttl">Hook, Storytelling & CTA</span>
-          <span class="summary" id="sum-hook"></span><span class="chev">▾</span>
-        </div>
-        <div class="acc-body"><div class="acc-body-inner">
-          <div class="hint" style="margin-bottom:8px;">Dibuat otomatis oleh AI saat kamu tap Generate Prompt. Masing-masing bagian punya Copy & Buat Ulang sendiri — buat ulang salah satu TIDAK mengubah dua bagian lainnya. Isi manual juga langsung tersimpan.</div>
-
-          <div class="hookstory-row">
-            <span class="hookstory-label">🪝 Hook</span>
-            <span class="hookstory-badge" id="hookBadge">Auto</span>
-          </div>
-          <textarea class="hookstory-preview" id="hookPreview" rows="2" placeholder="Belum dibuat — tap Generate Prompt di bawah, atau ketik hook secara manual di sini." oninput="onHookStoryManualInput('hook', this.value)"></textarea>
-          <div class="prompt-actions" style="margin-top:6px;">
-            <button class="btn-outline" id="hookCopyBtn" onclick="copyHook()" type="button">📋 Copy Hook</button>
-            <button class="btn-outline" id="hookRegenBtn" onclick="regenerateHook()" type="button">🔄 Buat Ulang Hook</button>
-          </div>
-
-          <div class="hookstory-row" style="margin-top:14px;">
-            <span class="hookstory-label">📖 Storytelling</span>
-            <span class="hookstory-badge" id="storyBadge">Auto</span>
-          </div>
-          <textarea class="hookstory-preview" id="storyPreview" rows="3" placeholder="Belum dibuat — tap Generate Prompt di bawah, atau ketik storytelling secara manual di sini." oninput="onHookStoryManualInput('story', this.value)"></textarea>
-          <div class="prompt-actions" style="margin-top:6px;">
-            <button class="btn-outline" id="storyCopyBtn" onclick="copyStorytelling()" type="button">📋 Copy Storytelling</button>
-            <button class="btn-outline" id="storyRegenBtn" onclick="regenerateStorytelling()" type="button">🔄 Buat Ulang Storytelling</button>
-          </div>
-
-          <div class="hookstory-row" style="margin-top:14px;">
-            <span class="hookstory-label">🎯 CTA</span>
-            <span class="hookstory-badge" id="ctaBadge">Otomatis</span>
-          </div>
-          <textarea class="hookstory-preview" id="ctaPreview" rows="2" placeholder="Belum dibuat — tap Generate Prompt di bawah, atau ketik CTA secara manual di sini." oninput="onHookStoryManualInput('cta', this.value)"></textarea>
-          <div class="prompt-actions" style="margin-top:6px;">
-            <button class="btn-outline" id="ctaCopyBtn" onclick="copyCTA()" type="button">📋 Copy CTA</button>
-            <button class="btn-outline" id="ctaRegenBtn" onclick="regenerateCTA()" type="button">🔄 Buat Ulang CTA</button>
-          </div>
-
-          <button class="vg-btn-primary" style="margin-top:10px;" id="hookGeneralBtn" onclick="generateAllHookStoryCta()" type="button">✨ General — Proses Semua (Hook + Storytelling + CTA)</button>
-        </div></div>
-      </div>
-
-      <div class="acc" id="sec-lain">
-        <div class="acc-head" onclick="toggleSection('sec-lain')">
-          <span class="num">⑩</span><span class="ttl">Jenis Prompt</span>
-          <span class="chev">▾</span>
-        </div>
-        <div class="acc-body"><div class="acc-body-inner">
-          <div class="field">
-            <label class="field-label">Jenis Prompt</label>
-            <select id="promptTypeSelect"></select>
-            <div class="hint" id="promptTypeHint"></div>
-          </div>
-        </div></div>
-      </div>
-
+      </div></div>
     </div>
 
-  <footer class="brand-footer">VERRY WIRANZA AI — AI Product Video Creator</footer>
+    <!-- ② PILIH KONSEP FOTO -->
+    <div class="acc" id="fp-sec-konsep">
+      <div class="acc-head" onclick="toggleSection('fp-sec-konsep')"><span class="num">②</span><span class="ttl">Pilih Konsep Foto</span><span class="chev">▾</span></div>
+      <div class="acc-body"><div class="acc-body-inner">
+        <div class="g3" id="fpConceptGrid"></div>
+        <div class="field" id="fpConceptCustomWrap" style="display:none; margin-top:8px;">
+          <textarea id="fpConceptCustomText" placeholder="Contoh: Produk diletakkan di atas meja kayu dengan suasana premium."></textarea>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ③ BACKGROUND / LOKASI -->
+    <div class="acc" id="fp-sec-bg">
+      <div class="acc-head" onclick="toggleSection('fp-sec-bg')"><span class="num">③</span><span class="ttl">Background / Lokasi</span><span class="chev">▾</span></div>
+      <div class="acc-body"><div class="acc-body-inner">
+        <div class="g3" id="fpBackgroundGrid"></div>
+        <div class="field" id="fpBackgroundCustomWrap" style="display:none; margin-top:8px;">
+          <input type="text" id="fpBackgroundCustomText" placeholder="Jelaskan background sendiri">
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ④ GENERATE FOTO -->
+    <div class="acc" id="fp-sec-generate">
+      <div class="acc-head" onclick="toggleSection('fp-sec-generate')"><span class="num">④</span><span class="ttl">Generate Foto</span><span class="chev">▾</span></div>
+      <div class="acc-body"><div class="acc-body-inner">
+        <div style="font-size:12px; line-height:1.8; color:var(--ink-dim);">
+          <b style="color:var(--ink);">Produk:</b> <span id="fpSummaryProduk">belum upload foto</span><br>
+          <b style="color:var(--ink);">Konsep:</b> <span id="fpSummaryKonsep">belum dipilih</span><br>
+          <b style="color:var(--ink);">Background:</b> <span id="fpSummaryBg">belum dipilih</span>
+        </div>
+        <button class="vg-btn-primary" id="fpGenBtn" style="margin-top:14px;" onclick="fpGenerateFoto()">✨ Generate Foto</button>
+        <div class="hint" id="fpGenError" style="display:none; color:#ff6b8a;"></div>
+      </div></div>
+    </div>
+
+    <!-- ⑤ HASIL FOTO -->
+    <div class="acc" id="fp-sec-hasil" style="display:none;">
+      <div class="acc-head" onclick="toggleSection('fp-sec-hasil')"><span class="num">⑤</span><span class="ttl">Hasil Foto</span><span class="chev">▾</span></div>
+      <div class="acc-body"><div class="acc-body-inner">
+        <div id="fpResultWrap"></div>
+        <div class="chip-toolbar" style="margin-top:12px;">
+          <button class="btn-mini" onclick="fpGenerateFoto()">🔄 Generate Lagi</button>
+          <button class="btn-mini" onclick="fpUseThisPhoto()">✅ Gunakan Foto Ini</button>
+          <button class="btn-mini" onclick="fpDownloadResult()">⬇️ Download</button>
+        </div>
+      </div></div>
+    </div>
+
+  </div>
+
+  <footer class="brand-footer">VERRY WIRANZA AI — Foto Produk AI</footer>
 
 </div><!-- /tabContent-foto -->
 
@@ -1020,10 +818,10 @@ const VOICE_GENDER_MAP = {
 };
 const VOICE_AGE_FIXED = 20;
 
-function buildVoiceCharacterBlock(scriptText){
+function buildVoiceCharacterBlock(scriptText, langOverride){
   const gender = VOICE_GENDER_MAP[selectedVoiceGender] || VOICE_GENDER_MAP.female;
-  const bahasa = BAHASA_MODEL_MAP[selectedBahasaModel] || BAHASA_MODEL_MAP.id;
-  const langCode = selectedBahasaModel; // 'id' | 'ace' | 'su' | 'jv' | 'en' — langsung dari pilihan Bahasa Model, tidak pernah hardcode
+  const langCode = langOverride || selectedBahasaModel; // 'id' | 'ace' | 'su' | 'jv' | 'en' — langsung dari pilihan Bahasa Model (atau Bahasa Review kalau dipanggil dari Video Generator), tidak pernah hardcode
+  const bahasa = BAHASA_MODEL_MAP[langCode] || BAHASA_MODEL_MAP.id;
   const voiceIdentity = `young ${bahasa.label} ${gender.genderValue} voice, age ${VOICE_AGE_FIXED}`;
   return {
     dialogue: {
@@ -1169,471 +967,6 @@ function clearAutoHookStoryCta(){
   });
 }
 
-document.getElementById('fileInput').addEventListener('change', function(e){
-  const file = e.target.files[0]; if(!file) return;
-  const reader = new FileReader();
-  reader.onload = async function(evt){
-    const img = document.getElementById('previewImg');
-    img.src = evt.target.result; img.style.display = 'block'; // preview tetap kualitas asli
-    document.getElementById('uploadPlaceholder').style.display = 'none';
-    document.getElementById('uploadBox').classList.add('has-image');
-    document.getElementById('photoActions-produk').classList.add('show');
-    document.getElementById('detectBtn').disabled = false;
-    document.getElementById('detectStatus').textContent = '';
-    document.getElementById('detectStatus').className = 'detect-status';
-
-    // RESET total: foto baru = produk baru. Jangan pernah pakai hasil analisis,
-    // hook/storytelling/cta dari foto SEBELUMNYA — semua wajib dianalisis ulang.
-    detectedProductDetails = ""; detectedProductMaterial = ""; detectedProductColor = "";
-    detectedProductTexture = ""; detectedProductLogo = ""; detectedEnvironment = "";
-    garmentDescription = "produk";
-    clearAutoHookStoryCta();
-
-    // Foto yang dikirim ke AI dikompres dulu (maks 1280px, JPEG kualitas 0.85) —
-    // foto kamera HP bisa 5-15MB tanpa ini, yang bikin proses generate lambat
-    // terutama di koneksi seluler. Kualitas visual untuk analisis AI tetap cukup.
-    uploadedBase64 = await resizeImageForAI(evt.target.result, 1280, 0.85);
-    uploadedMediaType = 'image/jpeg';
-    updateSummaries();
-    render();
-    autoAdvance('sec-foto','sec-subjek');
-  };
-  reader.readAsDataURL(file);
-});
-
-/* ================= ② SUBJEK ================= */
-function renderSubjekGrid(){
-  const grid = document.getElementById('subjekGrid');
-  grid.innerHTML = "";
-  [["model","👤 Model / Manusia"],["produk","📦 Produk"]].forEach(([id,label])=>{
-    const el = document.createElement('div');
-    el.className = 'pill' + (fotoSubjek === id ? ' selected' : '');
-    el.textContent = label;
-    el.addEventListener('click', ()=>{
-      fotoSubjek = id;
-      document.getElementById('modelPhotoSection').style.display = id === 'model' ? 'block' : 'none';
-      document.getElementById('sec-jenisproduk').style.display = id === 'produk' ? 'block' : 'none';
-      refreshGerakanOptions();
-      renderSubjekGrid(); updateSummaries(); render();
-      autoAdvance('sec-subjek', id === 'produk' ? 'sec-jenisproduk' : 'sec-gerakan');
-    });
-    grid.appendChild(el);
-  });
-}
-function renderModelSourceSeg(){
-  const seg = document.getElementById('modelSourceSeg');
-  seg.innerHTML = "";
-  [["upload","Upload Foto"],["generate_ai","Generate AI"]].forEach(([id,label])=>{
-    const el = document.createElement('div');
-    el.className = 'seg-btn' + (modelSource === id ? ' selected' : '');
-    el.textContent = label;
-    el.addEventListener('click', ()=>{
-      modelSource = id;
-      document.getElementById('modelUploadWrap').style.display = id === 'upload' ? 'block' : 'none';
-      document.getElementById('modelGenAiWrap').style.display = id === 'generate_ai' ? 'block' : 'none';
-      renderModelSourceSeg(); render();
-    });
-    seg.appendChild(el);
-  });
-}
-function renderModelGenderSeg(){
-  const seg = document.getElementById('modelGenderSeg');
-  seg.innerHTML = "";
-  [["wanita","Wanita"],["pria","Pria"]].forEach(([id,label])=>{
-    const el = document.createElement('div');
-    el.className = 'seg-btn' + (modelGender === id ? ' selected' : '');
-    el.textContent = label;
-    el.addEventListener('click', ()=>{ modelGender = id; renderModelGenderSeg(); render(); });
-    seg.appendChild(el);
-  });
-}
-function renderModelStyleChips(){
-  const wrap = document.getElementById('modelStyleChips');
-  wrap.innerHTML = "";
-  MODEL_STYLES.forEach(s=>{
-    const el = document.createElement('div');
-    el.className = 'chip' + (modelStyle === s ? ' selected' : '');
-    el.textContent = s;
-    el.addEventListener('click', ()=>{ modelStyle = s; renderModelStyleChips(); render(); });
-    wrap.appendChild(el);
-  });
-}
-document.getElementById('modelFileInput').addEventListener('change', function(e){
-  const file = e.target.files[0]; if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(evt){
-    modelBase64 = evt.target.result.split(',')[1]; modelMediaType = file.type;
-    const img = document.getElementById('modelPreviewImg');
-    img.src = evt.target.result; img.style.display = 'block';
-    document.getElementById('modelUploadPlaceholder').style.display = 'none';
-    document.getElementById('modelUploadBox').classList.add('has-image');
-    document.getElementById('photoActions-model').classList.add('show');
-    render();
-  };
-  reader.readAsDataURL(file);
-});
-
-/* ================= ③ JENIS PRODUK ================= */
-function renderCategoryGrid(){
-  const grid = document.getElementById('categoryGrid');
-  grid.innerHTML = "";
-  CATEGORIES.forEach(cat=>{
-    const el = document.createElement('div');
-    el.className = 'pill' + (cat.id === selectedCategory ? ' selected' : '');
-    el.innerHTML = `<span class="ic">${cat.icon}</span><span>${cat.label}</span>`;
-    el.addEventListener('click', ()=>{
-      selectedCategory = cat.id;
-      document.getElementById('categoryCustomWrap').style.display = cat.id === 'custom' ? 'block' : 'none';
-      document.getElementById('elektronikProdukWrap').style.display = cat.id === 'elektronik' ? 'block' : 'none';
-      if(cat.id === 'elektronik'){
-        renderElektronikProdukGrid();
-        refreshGerakanOptions();
-        renderCategoryGrid(); updateSummaries(); render();
-        // Tidak langsung autoAdvance — user perlu pilih produk elektronik spesifik dulu,
-        // supaya gerakan & lokasi bisa menyesuaikan produknya.
-        return;
-      }
-      refreshGerakanOptions();
-      renderCategoryGrid(); updateSummaries(); render();
-      autoAdvance('sec-jenisproduk','sec-gerakan');
-    });
-    grid.appendChild(el);
-  });
-}
-function renderElektronikProdukGrid(){
-  const grid = document.getElementById('elektronikProdukGrid');
-  grid.innerHTML = "";
-  ELEKTRONIK_PRODUCTS.forEach(prod=>{
-    const el = document.createElement('div');
-    el.className = 'pill' + (prod === selectedElektronikProduk ? ' selected' : '');
-    el.innerHTML = `<span>${prod}</span>`;
-    el.addEventListener('click', ()=>{
-      selectedElektronikProduk = prod;
-      document.getElementById('elektronikCustomWrap').style.display = prod === 'Custom' ? 'block' : 'none';
-
-      // Lokasi otomatis menyesuaikan produk — cuma prefill/saran, kalau user
-      // sudah pernah pilih lokasi manual sebelumnya untuk produk lain, ini tetap
-      // dianggap saran baru (bukan memaksa) karena dipicu dari pemilihan produk itu sendiri.
-      const suggestedLokasi = ELEKTRONIK_LOKASI_MAP[prod];
-      if(suggestedLokasi){
-        lokasiMode = suggestedLokasi.mode;
-        document.getElementById('lokasiIndoorWrap').style.display = suggestedLokasi.mode==='indoor' ? 'block' : 'none';
-        document.getElementById('lokasiOutdoorWrap').style.display = suggestedLokasi.mode==='outdoor' ? 'block' : 'none';
-        document.getElementById('lokasiUploadWrap').style.display = 'none';
-        document.getElementById('lokasiCustomWrap').style.display = 'none';
-        if(suggestedLokasi.mode === 'indoor'){
-          selectedIndoor = suggestedLokasi.label;
-          document.getElementById('indoorSelect').value = selectedIndoor;
-          document.getElementById('indoorCustomWrap').style.display = 'none';
-        } else {
-          selectedOutdoor = suggestedLokasi.label;
-          document.getElementById('outdoorSelect').value = selectedOutdoor;
-          document.getElementById('outdoorCustomWrap').style.display = 'none';
-        }
-        renderLokasiModeSeg();
-        refreshLightingOptions();
-      }
-
-      refreshGerakanOptions();
-      renderElektronikProdukGrid(); updateSummaries(); render();
-      autoAdvance('sec-jenisproduk','sec-gerakan');
-    });
-    grid.appendChild(el);
-  });
-}
-document.getElementById('elektronikCustomText').addEventListener('input', render);
-document.getElementById('categoryCustomText').addEventListener('input', render);
-
-/* ================= ④ GERAKAN (kondisional Subjek/Jenis Produk) ================= */
-function resolveCategoryLabel(catObj){
-  if(selectedCategory === 'custom') return document.getElementById('categoryCustomText').value.trim() || 'produk custom';
-  if(selectedCategory === 'elektronik'){
-    if(selectedElektronikProduk === 'Custom') return document.getElementById('elektronikCustomText').value.trim() || 'produk elektronik custom';
-    if(selectedElektronikProduk) return selectedElektronikProduk;
-    return catObj.label;
-  }
-  return catObj.label;
-}
-
-function refreshGerakanOptions(){
-  let options;
-  if(fotoSubjek === 'model'){
-    options = GERAKAN_MODEL;
-  } else if(selectedCategory === 'elektronik' && ELEKTRONIK_GERAKAN_MAP[selectedElektronikProduk]){
-    options = ELEKTRONIK_GERAKAN_MAP[selectedElektronikProduk];
-  } else {
-    options = KATEGORI_KAIN.includes(selectedCategory) ? GERAKAN_PRODUK_KAIN : GERAKAN_PRODUK_UMUM;
-  }
-  if(!options.includes(gerakanUtama)) gerakanUtama = options[0];
-  renderGerakanChips(options);
-}
-function renderGerakanChips(options){
-  const wrap = document.getElementById('gerakanChips');
-  wrap.innerHTML = "";
-  options.forEach(opt=>{
-    const el = document.createElement('div');
-    el.className = 'chip' + (gerakanUtama === opt ? ' selected' : '');
-    el.textContent = opt;
-    el.addEventListener('click', ()=>{
-      gerakanUtama = opt;
-      document.getElementById('gerakanCustomWrap').style.display = opt === 'Custom' ? 'block' : 'none';
-      document.getElementById('reviewProdukWrap').style.display = opt === 'Review Produk' ? 'block' : 'none';
-      renderGerakanChips(options); updateSummaries(); render();
-    });
-    wrap.appendChild(el);
-  });
-  document.getElementById('gerakanCustomWrap').style.display = gerakanUtama === 'Custom' ? 'block' : 'none';
-  document.getElementById('reviewProdukWrap').style.display = gerakanUtama === 'Review Produk' ? 'block' : 'none';
-}
-document.getElementById('gerakanCustomText').addEventListener('input', render);
-
-function renderReviewTabSeg(){
-  const seg = document.getElementById('reviewProdukTabSeg');
-  seg.innerHTML = "";
-  [["luar","Review Luar"],["dalam","Review Dalam"]].forEach(([id,label])=>{
-    const el = document.createElement('div');
-    el.className = 'seg-btn' + (reviewProdukTab === id ? ' selected' : '');
-    el.textContent = label;
-    el.addEventListener('click', ()=>{
-      reviewProdukTab = id;
-      document.getElementById('reviewLuarWrap').style.display = id==='luar' ? 'block' : 'none';
-      document.getElementById('reviewDalamWrap').style.display = id==='dalam' ? 'block' : 'none';
-      document.getElementById('reviewDalamHint').style.display = (id==='dalam' && !CATEGORY_HAS_INTERIOR[selectedCategory]) ? 'block' : 'none';
-      renderReviewTabSeg(); render();
-    });
-    seg.appendChild(el);
-  });
-}
-function renderReviewChips(){
-  const luarWrap = document.getElementById('reviewLuarChips');
-  luarWrap.innerHTML = "";
-  REVIEW_LUAR_OPTIONS.forEach(opt=>{
-    const el = document.createElement('div');
-    el.className = 'chip' + (selectedReviewLuar.has(opt) ? ' selected' : '');
-    el.textContent = opt;
-    el.addEventListener('click', ()=>{
-      if(selectedReviewLuar.has(opt)) selectedReviewLuar.delete(opt); else selectedReviewLuar.add(opt);
-      document.getElementById('reviewLuarCustomWrap').style.display = selectedReviewLuar.has('Custom') ? 'block' : 'none';
-      document.getElementById('putaranWrap').style.display = selectedReviewLuar.has('Memutar Produk Perlahan') ? 'block' : 'none';
-      el.classList.toggle('selected');
-      render();
-    });
-    luarWrap.appendChild(el);
-  });
-  document.getElementById('putaranWrap').style.display = selectedReviewLuar.has('Memutar Produk Perlahan') ? 'block' : 'none';
-  const dalamWrap = document.getElementById('reviewDalamChips');
-  dalamWrap.innerHTML = "";
-  REVIEW_DALAM_OPTIONS.forEach(opt=>{
-    const el = document.createElement('div');
-    el.className = 'chip' + (selectedReviewDalam.has(opt) ? ' selected' : '');
-    el.textContent = opt;
-    el.addEventListener('click', ()=>{
-      if(selectedReviewDalam.has(opt)) selectedReviewDalam.delete(opt); else selectedReviewDalam.add(opt);
-      document.getElementById('reviewDalamCustomWrap').style.display = selectedReviewDalam.has('Custom') ? 'block' : 'none';
-      el.classList.toggle('selected');
-      render();
-    });
-    dalamWrap.appendChild(el);
-  });
-  document.getElementById('reviewDalamHint').style.display = (reviewProdukTab==='dalam' && !CATEGORY_HAS_INTERIOR[selectedCategory]) ? 'block' : 'none';
-}
-document.getElementById('reviewLuarCustomText').addEventListener('input', render);
-document.getElementById('reviewDalamCustomText').addEventListener('input', render);
-function renderPutaranSeg(){
-  const seg = document.getElementById('putaranSeg');
-  seg.innerHTML = "";
-  ["45°","90°","180°","Custom"].forEach(opt=>{
-    const el = document.createElement('div');
-    el.className = 'seg-btn' + (putaranSudut === opt ? ' selected' : '');
-    el.textContent = opt;
-    el.addEventListener('click', ()=>{
-      putaranSudut = opt;
-      document.getElementById('putaranCustomWrap').style.display = opt==='Custom' ? 'block' : 'none';
-      renderPutaranSeg(); render();
-    });
-    seg.appendChild(el);
-  });
-}
-document.getElementById('putaranCustomText').addEventListener('input', render);
-
-/* ================= ⑤ LOKASI ================= */
-function renderLokasiModeSeg(){
-  const seg = document.getElementById('lokasiModeSeg');
-  seg.innerHTML = "";
-  [["indoor","Indoor"],["outdoor","Outdoor"],["upload","Upload"],["custom","Custom"]].forEach(([id,label])=>{
-    const el = document.createElement('div');
-    el.className = 'seg-btn' + (lokasiMode === id ? ' selected' : '');
-    el.textContent = label;
-    el.addEventListener('click', ()=>{
-      lokasiMode = id;
-      document.getElementById('lokasiIndoorWrap').style.display = id==='indoor' ? 'block' : 'none';
-      document.getElementById('lokasiOutdoorWrap').style.display = id==='outdoor' ? 'block' : 'none';
-      document.getElementById('lokasiUploadWrap').style.display = id==='upload' ? 'block' : 'none';
-      document.getElementById('lokasiCustomWrap').style.display = id==='custom' ? 'block' : 'none';
-      refreshLightingOptions();
-      renderLokasiModeSeg(); updateSummaries(); render();
-    });
-    seg.appendChild(el);
-  });
-}
-function initLokasiSelects(){
-  const indoorEl = document.getElementById('indoorSelect');
-  INDOOR_OPTIONS.forEach(o=>{ const op=document.createElement('option'); op.value=o; op.textContent=o; indoorEl.appendChild(op); });
-  indoorEl.value = selectedIndoor;
-  indoorEl.addEventListener('change', ()=>{
-    selectedIndoor = indoorEl.value;
-    document.getElementById('indoorCustomWrap').style.display = selectedIndoor==='Custom' ? 'block' : 'none';
-    render();
-  });
-  const outdoorEl = document.getElementById('outdoorSelect');
-  OUTDOOR_OPTIONS.forEach(o=>{ const op=document.createElement('option'); op.value=o; op.textContent=o; outdoorEl.appendChild(op); });
-  outdoorEl.value = selectedOutdoor;
-  outdoorEl.addEventListener('change', ()=>{
-    selectedOutdoor = outdoorEl.value;
-    document.getElementById('outdoorCustomWrap').style.display = selectedOutdoor==='Custom' ? 'block' : 'none';
-    render();
-  });
-}
-document.getElementById('indoorCustomText').addEventListener('input', render);
-document.getElementById('outdoorCustomText').addEventListener('input', render);
-document.getElementById('lokasiCustomText').addEventListener('input', render);
-document.getElementById('locBgFileInput').addEventListener('change', function(e){
-  const file = e.target.files[0]; if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(evt){
-    locBgBase64 = evt.target.result.split(',')[1]; locBgMediaType = file.type;
-    const img = document.getElementById('locBgPreview');
-    img.src = evt.target.result; img.style.display = 'block';
-    document.getElementById('locBgUploadPlaceholder').style.display = 'none';
-    document.getElementById('locBgUploadBox').classList.add('has-image');
-    document.getElementById('photoActions-locBg').classList.add('show');
-    render();
-  };
-  reader.readAsDataURL(file);
-});
-
-function resolveLokasi(){
-  if(lokasiMode === 'indoor') return { label: selectedIndoor==='Custom' ? (document.getElementById('indoorCustomText').value.trim()||'lokasi indoor custom') : selectedIndoor, isOutdoor:false };
-  if(lokasiMode === 'outdoor') return { label: selectedOutdoor==='Custom' ? (document.getElementById('outdoorCustomText').value.trim()||'lokasi outdoor custom') : selectedOutdoor, isOutdoor:true };
-  if(lokasiMode === 'upload') return { label: locBgBase64 ? 'sesuai foto lokasi yang diunggah' : 'lokasi upload dipilih tapi foto belum diunggah', isOutdoor:false, isUpload:true };
-  return { label: document.getElementById('lokasiCustomText').value.trim() || 'lokasi custom (belum diisi)', isOutdoor:false };
-}
-
-function lokasiAddCurrent(){
-  if(lokasiList.length >= 3){ showToast('Maksimal 3 lokasi'); return; }
-  const current = resolveLokasi();
-  lokasiList.push(current);
-  renderLokasiList();
-  updateSummaries();
-  render();
-  showToast(`Lokasi ${lokasiList.length} ditambahkan`);
-}
-function lokasiRemove(idx){
-  lokasiList.splice(idx, 1);
-  renderLokasiList();
-  updateSummaries();
-  render();
-}
-function renderLokasiList(){
-  const wrap = document.getElementById('lokasiListWrap');
-  const btn = document.getElementById('lokasiAddBtn');
-  if(btn) btn.disabled = lokasiList.length >= 3;
-  if(!wrap) return;
-  if(!lokasiList.length){ wrap.innerHTML = ''; return; }
-  wrap.innerHTML = lokasiList.map((loc, idx) => `
-    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:9px 12px; background:var(--bg-input); border:1px solid var(--line); border-radius:9px; margin-top:6px;">
-      <span style="font-size:12px;"><b>Lokasi ${idx+1}${idx===0?' (awal)':idx===lokasiList.length-1?' (akhir)':' (tengah)'}:</b> ${loc.label}${loc.isOutdoor?' 🌤️':''}</span>
-      <button class="btn-mini" onclick="lokasiRemove(${idx})">✕</button>
-    </div>
-  `).join('');
-}
-
-// Dipakai di prompt/JSON: kalau user sudah menambahkan lokasi berurutan (maks 3), pakai itu.
-// Kalau belum pernah menambahkan sama sekali, tetap pakai 1 lokasi yang sedang dipilih (kompatibel seperti sebelumnya).
-function resolveLokasiList(){
-  return lokasiList.length ? lokasiList : [resolveLokasi()];
-}
-
-/* ================= ⑥ POSISI KAMERA ================= */
-function renderCamPosChips(){
-  const wrap = document.getElementById('camPosChips');
-  wrap.innerHTML = "";
-  CAM_POS_OPTIONS.forEach(opt=>{
-    const el = document.createElement('div');
-    el.className = 'chip' + (selectedCamPos === opt.id ? ' selected' : '');
-    el.textContent = opt.label;
-    el.addEventListener('click', ()=>{
-      selectedCamPos = opt.id;
-      document.getElementById('camPosCustomWrap').style.display = opt.id === 'custom' ? 'block' : 'none';
-      renderCamPosChips(); render();
-    });
-    wrap.appendChild(el);
-  });
-}
-document.getElementById('camPosCustomText').addEventListener('input', render);
-
-/* ================= ⑦ PENCAHAYAAN (kondisional Indoor/Outdoor) ================= */
-function refreshLightingOptions(){
-  const options = lokasiMode === 'outdoor' ? LIGHTING_OUTDOOR : LIGHTING_INDOOR;
-  if(!options.includes(selectedLighting)) selectedLighting = 'Auto';
-  const el = document.getElementById('lightingSelect');
-  el.innerHTML = "";
-  options.forEach(o=>{ const op=document.createElement('option'); op.value=o; op.textContent=o; el.appendChild(op); });
-  el.value = selectedLighting;
-  document.getElementById('lightingCustomWrap').style.display = selectedLighting==='Custom' ? 'block' : 'none';
-}
-document.getElementById('lightingSelect').addEventListener('change', function(){
-  selectedLighting = this.value;
-  document.getElementById('lightingCustomWrap').style.display = selectedLighting==='Custom' ? 'block' : 'none';
-  render();
-});
-document.getElementById('lightingCustomText').addEventListener('input', render);
-
-/* ================= ⑨ JENIS PROMPT ================= */
-function renderPromptTypeOptions(){
-  const sel = document.getElementById('promptTypeSelect');
-  if(!sel) return;
-  sel.innerHTML = PROMPT_TYPES.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-  sel.value = selectedPromptType;
-  updatePromptTypeHint();
-}
-function updatePromptTypeHint(){
-  const hint = document.getElementById('promptTypeHint');
-  const pt = PROMPT_TYPES.find(p => p.id === selectedPromptType) || PROMPT_TYPES[0];
-  if(hint) hint.textContent = pt.objective;
-}
-document.getElementById('promptTypeSelect').addEventListener('change', function(){
-  selectedPromptType = this.value;
-  safeStorageSet('vw_promptType', selectedPromptType);
-  updatePromptTypeHint();
-  render();
-});
-renderPromptTypeOptions();
-
-document.getElementById('bahasaModelSelect').value = selectedBahasaModel;
-document.getElementById('bahasaModelSelect').addEventListener('change', function(){
-  selectedBahasaModel = this.value;
-  safeStorageSet('vw_bahasaModel', selectedBahasaModel);
-  if(autoHook || autoStorytelling || autoCta){
-    clearAutoHookStoryCta();
-    showToast('Bahasa diganti — tap Generate Prompt / General lagi untuk buat ulang dialog');
-  }
-  if(typeof vgResult !== 'undefined' && vgResult){
-    vgResult = null;
-    if(typeof renderVgStep === 'function' && document.getElementById('vgModal')?.classList.contains('open')){
-      renderVgStep();
-    }
-  }
-  updateSummaries();
-  render();
-});
-
-document.getElementById('voiceGenderSelect').value = selectedVoiceGender;
-document.getElementById('voiceGenderSelect').addEventListener('change', function(){
-  selectedVoiceGender = this.value;
-  safeStorageSet('vw_voiceGender', selectedVoiceGender);
-  render();
-});
 
 /* ================= HOOK & STORYTELLING (AI) ================= */
 function buildVideoContextBlock(){
@@ -2123,6 +1456,212 @@ async function callGemini(promptText, imagePart, signal){
     return text;
   }
   throw new Error('Semua model Gemini di daftar sudah tidak tersedia (' + lastErr?.message + ').');
+}
+
+/* ================= FOTO PRODUK AI ================= */
+const FP_CONCEPTS = [
+  { id:'studio', label:'Studio Profesional' },
+  { id:'katalog', label:'Foto Katalog' },
+  { id:'lifestyle', label:'Lifestyle' },
+  { id:'meja', label:'Produk di Meja' },
+  { id:'dipegang', label:'Produk Dipegang' },
+  { id:'iklan', label:'Foto Iklan' },
+  { id:'custom', label:'Custom' }
+];
+const FP_BACKGROUNDS = [
+  { id:'studio', label:'Studio' },
+  { id:'kamar', label:'Kamar' },
+  { id:'ruangtamu', label:'Ruang Tamu' },
+  { id:'mejakerja', label:'Meja Kerja' },
+  { id:'toko', label:'Toko' },
+  { id:'outdoor', label:'Outdoor' },
+  { id:'minimalis', label:'Minimalis' },
+  { id:'custom', label:'Custom' }
+];
+
+let fpUploadedBase64 = null, fpUploadedMediaType = null;
+let fpConcept = '', fpBackground = '';
+let fpResultBase64 = null, fpResultMime = 'image/png';
+let fpGenerating = false;
+
+function fpRenderConceptGrid(){
+  const grid = document.getElementById('fpConceptGrid');
+  if(!grid) return;
+  grid.innerHTML = '';
+  FP_CONCEPTS.forEach(c=>{
+    const el = document.createElement('div');
+    el.className = 'pill' + (fpConcept===c.id ? ' selected' : '');
+    el.textContent = c.label;
+    el.addEventListener('click', ()=>{
+      fpConcept = c.id;
+      document.getElementById('fpConceptCustomWrap').style.display = c.id==='custom' ? 'block' : 'none';
+      fpRenderConceptGrid();
+      fpUpdateSummary();
+    });
+    grid.appendChild(el);
+  });
+}
+function fpRenderBackgroundGrid(){
+  const grid = document.getElementById('fpBackgroundGrid');
+  if(!grid) return;
+  grid.innerHTML = '';
+  FP_BACKGROUNDS.forEach(b=>{
+    const el = document.createElement('div');
+    el.className = 'pill' + (fpBackground===b.id ? ' selected' : '');
+    el.textContent = b.label;
+    el.addEventListener('click', ()=>{
+      fpBackground = b.id;
+      document.getElementById('fpBackgroundCustomWrap').style.display = b.id==='custom' ? 'block' : 'none';
+      fpRenderBackgroundGrid();
+      fpUpdateSummary();
+    });
+    grid.appendChild(el);
+  });
+}
+
+document.getElementById('fpFileInput').addEventListener('change', function(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async function(evt){
+    // Preview kecil & wajar (bukan layar penuh) — perbaikan bug lama.
+    const img = document.getElementById('fpPreviewImg');
+    img.src = evt.target.result; img.style.display = 'block';
+    document.getElementById('fpUploadPlaceholder').style.display = 'none';
+    document.getElementById('fpPhotoActions').style.display = 'flex';
+    fpUploadedBase64 = await resizeImageForAI(evt.target.result, 1280, 0.85);
+    fpUploadedMediaType = 'image/jpeg';
+    fpUpdateSummary();
+  };
+  reader.readAsDataURL(file);
+});
+function fpRemovePhoto(){
+  fpUploadedBase64 = null; fpUploadedMediaType = null;
+  document.getElementById('fpPreviewImg').style.display = 'none';
+  document.getElementById('fpUploadPlaceholder').style.display = 'block';
+  document.getElementById('fpPhotoActions').style.display = 'none';
+  document.getElementById('fpFileInput').value = '';
+  fpUpdateSummary();
+}
+
+function fpUpdateSummary(){
+  const prodEl = document.getElementById('fpSummaryProduk');
+  if(prodEl) prodEl.textContent = fpUploadedBase64 ? 'Foto sudah diupload ✓' : 'belum upload foto';
+  const konsepObj = FP_CONCEPTS.find(c=>c.id===fpConcept);
+  const konsepEl = document.getElementById('fpSummaryKonsep');
+  if(konsepEl) konsepEl.textContent = konsepObj ? (konsepObj.id==='custom' ? (document.getElementById('fpConceptCustomText').value.trim()||'custom (belum diisi)') : konsepObj.label) : 'belum dipilih';
+  const bgObj = FP_BACKGROUNDS.find(b=>b.id===fpBackground);
+  const bgEl = document.getElementById('fpSummaryBg');
+  if(bgEl) bgEl.textContent = bgObj ? (bgObj.id==='custom' ? (document.getElementById('fpBackgroundCustomText').value.trim()||'custom (belum diisi)') : bgObj.label) : 'belum dipilih';
+}
+
+function fpBuildPrompt(){
+  const konsepObj = FP_CONCEPTS.find(c=>c.id===fpConcept);
+  const konsepText = konsepObj ? (konsepObj.id==='custom' ? (document.getElementById('fpConceptCustomText').value.trim()||'konsep foto produk profesional') : konsepObj.label) : 'konsep foto produk profesional';
+  const bgObj = FP_BACKGROUNDS.find(b=>b.id===fpBackground);
+  const bgText = bgObj ? (bgObj.id==='custom' ? (document.getElementById('fpBackgroundCustomText').value.trim()||'background netral') : bgObj.label) : 'background netral';
+  return `Generate a high-quality product photo based on the uploaded reference image.
+Concept: ${konsepText}.
+Background/location: ${bgText}.
+
+Use the uploaded product photo as the primary and strict visual reference. Preserve the exact product identity, shape, proportions, color, design, logo, text, quantity, and visible details. Do not redesign, replace, modify, add, or remove product elements. Do not invent product details that are not visible in the reference photo.
+
+The background and lighting should support and complement the product according to the chosen concept and background, without altering the product itself. Make it look like a professional, realistic product photograph suitable for e-commerce/marketing use.`;
+}
+
+async function fpGenerateFoto(){
+  if(fpGenerating) return;
+  if(!fpUploadedBase64){ fpShowGenError('Upload foto produk dulu sebelum generate.'); return; }
+  if(!geminiKey){ fpShowGenError('Fitur Generate Foto butuh API Key Gemini. Isi lewat tombol 🔑 AI.'); return; }
+  fpGenerating = true;
+  const btn = document.getElementById('fpGenBtn');
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳ Membuat Foto...';
+  document.getElementById('fpGenError').style.display = 'none';
+  try{
+    const promptText = fpBuildPrompt();
+    const result = await callGeminiImageGen(promptText, { base64: fpUploadedBase64, mediaType: fpUploadedMediaType });
+    fpResultBase64 = result.base64;
+    fpResultMime = result.mimeType;
+    fpRenderResult();
+    document.getElementById('fp-sec-hasil').style.display = 'block';
+    openSection('fp-sec-hasil');
+    showToast('Foto berhasil dibuat!');
+  }catch(err){
+    console.error(err);
+    // Foto & pilihan pengguna TIDAK dihapus kalau error — tetap bisa dicoba lagi.
+    fpShowGenError('Gagal membuat foto: ' + (err.message || 'kesalahan tidak diketahui'));
+  }finally{
+    fpGenerating = false; btn.disabled = false; btn.textContent = original;
+  }
+}
+function fpShowGenError(msg){
+  const el = document.getElementById('fpGenError');
+  el.textContent = '⚠️ ' + msg;
+  el.style.display = 'block';
+}
+function fpRenderResult(){
+  const wrap = document.getElementById('fpResultWrap');
+  wrap.innerHTML = `<img src="data:${fpResultMime};base64,${fpResultBase64}" style="width:100%; max-width:360px; border-radius:12px; display:block; margin:0 auto;">`;
+}
+function fpUseThisPhoto(){
+  if(!fpResultBase64){ showToast('Belum ada hasil foto'); return; }
+  fpUploadedBase64 = fpResultBase64;
+  fpUploadedMediaType = fpResultMime;
+  const img = document.getElementById('fpPreviewImg');
+  img.src = `data:${fpResultMime};base64,${fpResultBase64}`; img.style.display = 'block';
+  document.getElementById('fpUploadPlaceholder').style.display = 'none';
+  document.getElementById('fpPhotoActions').style.display = 'flex';
+  fpUpdateSummary();
+  showToast('Hasil foto dijadikan referensi baru');
+}
+function fpDownloadResult(){
+  if(!fpResultBase64){ showToast('Belum ada hasil foto'); return; }
+  const a = document.createElement('a');
+  a.href = `data:${fpResultMime};base64,${fpResultBase64}`;
+  a.download = 'foto-produk-ai.png';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+document.getElementById('fpConceptCustomText')?.addEventListener('input', fpUpdateSummary);
+document.getElementById('fpBackgroundCustomText')?.addEventListener('input', fpUpdateSummary);
+
+const GEMINI_IMAGE_MODEL_FALLBACKS = ["gemini-3-pro-image-preview", "gemini-2.5-flash-image", "gemini-2.5-flash-image-preview"];
+
+async function callGeminiImageGen(promptText, imagePart, signal){
+  if(!geminiKey) throw new Error('API key Gemini belum diisi. Isi lewat tombol 🔑 AI.');
+  const parts = [];
+  if(imagePart && imagePart.base64){
+    parts.push({ inline_data: { mime_type: imagePart.mediaType, data: imagePart.base64 } });
+  }
+  parts.push({ text: promptText });
+  let lastErr = null;
+  for(const modelName of GEMINI_IMAGE_MODEL_FALLBACKS){
+    if(signal && signal.aborted) throw new DOMException('Aborted', 'AbortError');
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(geminiKey)}`;
+    let response;
+    try{
+      response = await fetch(url, {
+        method:"POST", headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ contents:[{ parts }], generationConfig:{ responseModalities:["IMAGE"] } }),
+        signal
+      });
+    }catch(networkErr){
+      if(networkErr.name === 'AbortError') throw networkErr;
+      throw new Error(explainNetworkError(networkErr, 'Gemini'));
+    }
+    if(response.status === 404){ lastErr = new Error(`Model ${modelName} tidak tersedia lagi`); continue; }
+    if(!response.ok){
+      let errMsg = `HTTP ${response.status}`;
+      try{ const errJson = await response.json(); errMsg += ': ' + (errJson?.error?.message || JSON.stringify(errJson)).slice(0,220); }catch(e){}
+      if(response.status === 400 || response.status === 403) errMsg += ' — kemungkinan API key salah atau belum diaktifkan.';
+      throw new Error(errMsg);
+    }
+    const data = await response.json();
+    const imgPart = data?.candidates?.[0]?.content?.parts?.find(p => p.inlineData || p.inline_data);
+    const inline = imgPart ? (imgPart.inlineData || imgPart.inline_data) : null;
+    if(!inline || !inline.data) throw new Error('Gemini tidak mengembalikan gambar (mungkin diblokir filter keamanan): ' + JSON.stringify(data).slice(0,200));
+    return { base64: inline.data, mimeType: inline.mimeType || inline.mime_type || 'image/png' };
+  }
+  throw new Error('Semua model image generation Gemini di daftar sudah tidak tersedia (' + lastErr?.message + ').');
 }
 
 async function callClaude(promptText, imagePart, signal){
@@ -2736,25 +2275,9 @@ function switchMainTab(tab){
    ditampilkan (bukan macet/blank) dan pengguna dikasih pesan sederhana + tombol
    Coba Lagi — bukan loading yang menyala selamanya. */
 try{
-  renderSubjekGrid();
-  renderModelSourceSeg();
-  renderModelGenderSeg();
-  renderModelStyleChips();
-  renderCategoryGrid();
-  refreshGerakanOptions();
-  renderReviewTabSeg();
-  renderReviewChips();
-  renderPutaranSeg();
-  renderLokasiModeSeg();
-  initLokasiSelects();
-  renderLokasiList();
-  refreshLightingOptions();
-  renderCamPosChips();
-  document.getElementById('modelPhotoSection').style.display = fotoSubjek === 'model' ? 'block' : 'none';
-  document.getElementById('sec-jenisproduk').style.display = fotoSubjek === 'produk' ? 'block' : 'none';
   updateMainAiButton();
-  updateSummaries();
-  render();
+  fpRenderConceptGrid();
+  fpRenderBackgroundGrid();
 }catch(startupErr){
   console.error('Startup error:', startupErr);
   const banner = document.createElement('div');
@@ -2848,6 +2371,7 @@ let vgState = {
   ageCustom: '',
   tone: '',
   toneCustom: '',
+  bahasaReview: 'id', // Bahasa Review khusus Video Generator — default Indonesia
   accent: '',
   accentCustom: '',
   subMode: 'ai', // 'ai' | 'manual' | 'multi'
@@ -2958,7 +2482,16 @@ function vgRenderStep3(){
     <div class="vg-h2">Nada Bicara</div>
     <div class="vg-desc">Emosi/energi karakter saat ngomong — apakah terdengar semangat, kalem, atau misterius.</div>
     <div class="vg-pill-grid">${tonePills}</div>
-    <label class="vg-field-label">Atau tulis sendiri</label>
+    <label class="vg-field-label">🌐 Bahasa Review</label>
+    <select class="vg-input" id="vgBahasaReviewSelect" onchange="vgState.bahasaReview=this.value;">
+      <option value="id" ${vgState.bahasaReview==='id'?'selected':''}>🇮🇩 Indonesia</option>
+      <option value="ace" ${vgState.bahasaReview==='ace'?'selected':''}>🟢 Aceh</option>
+      <option value="su" ${vgState.bahasaReview==='su'?'selected':''}>🟠 Sunda</option>
+      <option value="jv" ${vgState.bahasaReview==='jv'?'selected':''}>🔵 Jawa</option>
+      <option value="en" ${vgState.bahasaReview==='en'?'selected':''}>🇬🇧 Inggris</option>
+    </select>
+    <div class="vg-desc" style="margin-top:4px;">Bahasa yang dipakai model saat review produk (Hook, Storytelling, CTA, voice) — bukan bahasa tampilan aplikasi.</div>
+    <label class="vg-field-label" style="margin-top:10px;">Atau tulis sendiri</label>
     <input class="vg-input" maxlength="80" placeholder="Contoh: lelah tapi tetap ramah" value="${vgState.toneCustom.replace(/"/g,'&quot;')}" oninput="vgState.toneCustom=this.value; if(this.value.trim()) vgState.tone=''; vgUpdateNextBtn3();">
     <div class="vg-count">${vgState.toneCustom.length} / 80</div>
     <div style="display:flex; gap:8px;">
@@ -3132,14 +2665,27 @@ function vgBackBtn(toStep){
   return `<button class="btn-outline" style="flex:1;" onclick="vgGoToStep(${toStep})">← Kembali</button>`;
 }
 
+function vgParseAIJson(rawText){
+  let text = (rawText || '').trim();
+  text = text.replace(/^```json\s*|^```\s*|```$/gi, '').trim();
+  try{ return JSON.parse(text); }catch(e){ /* coba fallback di bawah */ }
+  // Fallback: kalau AI menambahkan kalimat lain di luar JSON (walau sudah diminta jangan),
+  // coba ambil blok {...} pertama yang ada, jangan langsung gagal total.
+  const match = text.match(/\{[\s\S]*\}/);
+  if(match){
+    try{ return JSON.parse(match[0]); }catch(e2){ /* tetap gagal, lempar error di bawah */ }
+  }
+  throw new Error('AI tidak mengembalikan format JSON yang valid. Coba tap generate lagi.');
+}
+
 function vgBuildCharacterContext(){
-  const bahasa = BAHASA_MODEL_MAP[selectedBahasaModel] || BAHASA_MODEL_MAP.id;
+  const bahasa = BAHASA_MODEL_MAP[vgState.bahasaReview] || BAHASA_MODEL_MAP.id;
   return `Karakter di video: ${vgState.gender}, usia ${vgGetAgeText()}. Nada bicara: ${vgGetToneText()}. Gaya bahasa/aksen penyampaian: ${vgGetAccentText()}.
 BAHASA DIALOG WAJIB: ${bahasa.label}. ${bahasa.instruction} DILARANG KERAS memakai ${bahasa.forbidden} sebagai bahasa utama dialog.`;
 }
 
 function vgBuildScriptInstruction(productName){
-  const bahasa = BAHASA_MODEL_MAP[selectedBahasaModel] || BAHASA_MODEL_MAP.id;
+  const bahasa = BAHASA_MODEL_MAP[vgState.bahasaReview] || BAHASA_MODEL_MAP.id;
   return `Kamu adalah copywriter + video strategist konten pendek (TikTok/Reels/Shorts) untuk produk marketplace. Tujuan utama: STOP-SCROLL dalam 0-2 detik pertama dan bikin penonton tertarik ke produk — penonton sering skip di 1-2 detik pertama kalau pembukaannya lemah.
 
 ${vgBuildCharacterContext()}
@@ -3186,8 +2732,7 @@ async function vgGenerateWithAI(){
     const instruction = vgBuildScriptInstruction(vgState.productName);
     const img = vgState.productPhotoBase64 ? { base64: vgState.productPhotoBase64, mediaType: 'image/jpeg' } : false;
     let rawText = activeProvider === 'gemini' ? await callGemini(instruction, img) : await callClaude(instruction, img);
-    rawText = (rawText || '').trim().replace(/^```json\s*|```$/g, '').trim();
-    const parsed = JSON.parse(rawText);
+    const parsed = vgParseAIJson(rawText);
     vgResult = [{
       productName: vgState.productName,
       hook: parsed.hook || '', cerita: parsed.cerita || '', cta: parsed.cta || '',
@@ -3230,8 +2775,7 @@ async function vgGenerateMulti(){
       const instruction = vgBuildScriptInstruction(namaLengkap);
       const img = p.photoBase64 ? { base64: p.photoBase64, mediaType: 'image/jpeg' } : false;
       let rawText = activeProvider === 'gemini' ? await callGemini(instruction, img) : await callClaude(instruction, img);
-      rawText = (rawText || '').trim().replace(/^```json\s*|```$/g, '').trim();
-      const parsed = JSON.parse(rawText);
+      const parsed = vgParseAIJson(rawText);
       results.push({
         productName: p.name.trim(),
         hook: parsed.hook || '', cerita: parsed.cerita || '', cta: parsed.cta || '',
@@ -3254,7 +2798,7 @@ async function vgGenerateMulti(){
 function vgBuildSceneJSON(item, sceneKey, dialogText){
   const refMode = VG_REF_MODES.find(m=>m.id===vgState.refMode);
   const sceneNames = { hook:'HOOK', cerita:'CERITA_PRODUK', cta:'CTA' };
-  const bahasa = BAHASA_MODEL_MAP[selectedBahasaModel] || BAHASA_MODEL_MAP.id;
+  const bahasa = BAHASA_MODEL_MAP[vgState.bahasaReview] || BAHASA_MODEL_MAP.id;
   const data = {
     video_strategy: {
       goal: 'stop_scroll_and_create_product_interest',
@@ -3283,7 +2827,7 @@ function vgBuildSceneJSON(item, sceneKey, dialogText){
       no_product_modification: true,
       no_new_product_details: true
     },
-    voice: buildVoiceCharacterBlock(dialogText).dialogue.voice_character,
+    voice: buildVoiceCharacterBlock(dialogText, vgState.bahasaReview).dialogue.voice_character,
     negative_prompt: ['different product','product redesign','changed product shape','changed product color','changed logo','changed text','changed branding','altered proportions','deformed product','product morphing','warped product','duplicate product','different person','face distortion','identity change','deformed hands','extra fingers','extra hands','stiff movement','robotic motion','jerky animation']
   };
 
