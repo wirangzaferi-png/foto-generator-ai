@@ -1579,7 +1579,10 @@ async function fpGenerateFoto(){
   document.getElementById('fpGenError').style.display = 'none';
   try{
     const promptText = fpBuildPrompt();
-    const result = await callGeminiImageGen(promptText, { base64: fpUploadedBase64, mediaType: fpUploadedMediaType });
+    const result = await callGeminiImageGen(promptText, { base64: fpUploadedBase64, mediaType: fpUploadedMediaType }, undefined, (sec, n, max)=>{
+      btn.textContent = `⏳ Gemini sibuk, mencoba lagi (${n}/${max}) dalam ${sec} detik...`;
+    });
+    btn.textContent = '⏳ Membuat Foto...';
     fpResultBase64 = result.base64;
     fpResultMime = result.mimeType;
     fpRenderResult();
@@ -1616,17 +1619,81 @@ function fpUseThisPhoto(){
 }
 function fpDownloadResult(){
   if(!fpResultBase64){ showToast('Belum ada hasil foto'); return; }
-  const a = document.createElement('a');
-  a.href = `data:${fpResultMime};base64,${fpResultBase64}`;
-  a.download = 'foto-produk-ai.png';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  let url = null;
+  try{
+    // Blob dibuat saat tombol ditekan (data valid), lalu diunduh lewat <a download>.
+    const bin = atob(fpResultBase64);
+    const bytes = new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+    const mime = fpResultMime || 'image/png';
+    const blob = new Blob([bytes], { type: mime });
+    const ext = (mime.split('/')[1] || 'png').replace('jpeg','jpg').replace(/[^a-z0-9]/gi,'') || 'png';
+    const fileName = 'foto-produk-ai.' + ext;
+    url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = fileName; a.rel = 'noopener'; a.style.display = 'none';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    // Blob URL dibebaskan setelah unduhan sempat dimulai.
+    const u = url;
+    setTimeout(()=>{ try{ URL.revokeObjectURL(u); }catch(e){} }, 60000);
+    showToast('Unduhan diminta (' + fileName + '). Jika tidak muncul, tekan lama gambar lalu pilih Simpan gambar.');
+  }catch(err){
+    console.error('Download gagal:', err);
+    if(url){ try{ URL.revokeObjectURL(url); }catch(e){} }
+    showToast('Download gagal: browser menolak menyimpan file. Coba tekan lama gambar lalu pilih Simpan gambar.');
+  }
 }
 document.getElementById('fpConceptCustomText')?.addEventListener('input', fpUpdateSummary);
 document.getElementById('fpBackgroundCustomText')?.addEventListener('input', fpUpdateSummary);
 
 const GEMINI_IMAGE_MODEL_FALLBACKS = ["gemini-3-pro-image-preview", "gemini-2.5-flash-image", "gemini-2.5-flash-image-preview"];
 
-async function callGeminiImageGen(promptText, imagePart, signal){
+// Membaca body error Gemini dan membedakan: kuota habis / batas sementara / billing / key salah.
+async function fpParseGeminiError(response, modelName){
+  let body = null, raw = '';
+  try{ raw = await response.text(); body = JSON.parse(raw); }catch(e){}
+  const err = body && body.error ? body.error : {};
+  const apiMsg = (err.message || raw || '').toString();
+  const details = Array.isArray(err.details) ? err.details : [];
+  let retryDelaySec = null; const quotaIds = [];
+  details.forEach(d=>{
+    if(d && d.retryDelay){ const m = String(d.retryDelay).match(/([\d.]+)/); if(m) retryDelaySec = Math.ceil(parseFloat(m[1])); }
+    if(d && Array.isArray(d.violations)) d.violations.forEach(v=>{ if(v && v.quotaId) quotaIds.push(String(v.quotaId)); });
+  });
+  const ids = quotaIds.join(' ');
+  const short = apiMsg.slice(0,220);
+  const tech = ` [Model: ${modelName}, HTTP ${response.status}${err.status ? ' ' + err.status : ''}]`;
+  if(response.status === 429){
+    const dailyOrZero = /PerDay/i.test(ids) || /limit:\s*0/i.test(apiMsg);
+    const perMinute = /PerMinute/i.test(ids) || /rate limit|per minute/i.test(apiMsg);
+    if(dailyOrZero){
+      return { kind:'quota', message:'Kuota Gemini untuk generate foto sudah habis (atau paket gratis tidak mencakup model gambar ini). Tunggu kuota harian reset, atau cek paket/billing di Google AI Studio. Tidak dicoba ulang otomatis.' + tech + ' ' + short };
+    }
+    if(perMinute || (retryDelaySec !== null && retryDelaySec <= 60)){
+      return { kind:'rate', retryDelaySec, message:'Gemini sedang membatasi jumlah permintaan sementara (terlalu banyak request dalam waktu singkat). Tunggu sekitar satu menit lalu tekan Generate Foto lagi.' + tech };
+    }
+    return { kind:'quota', message:'Permintaan ditolak karena batas kuota Gemini (HTTP 429). Kuota mungkin habis; cek penggunaan & billing di Google AI Studio lalu coba lagi nanti.' + tech + ' ' + short };
+  }
+  if(response.status === 400 && /FAILED_PRECONDITION/i.test(err.status || '')){
+    return { kind:'billing', message:'Model gambar ini belum bisa dipakai dengan akun/API key Anda (billing belum aktif atau wilayah tidak didukung). Cek pengaturan billing di Google AI Studio.' + tech + ' ' + short };
+  }
+  if(response.status === 400 || response.status === 403){
+    return { kind:'auth', message:`HTTP ${response.status}: ${short} — kemungkinan API key salah, belum diaktifkan, atau tidak punya akses ke model gambar.` + tech };
+  }
+  return { kind:'other', message:`HTTP ${response.status}: ${short}` + tech };
+}
+
+function fpSleep(ms, signal){
+  return new Promise((resolve, reject)=>{
+    if(signal && signal.aborted) return reject(new DOMException('Aborted','AbortError'));
+    const t = setTimeout(resolve, ms);
+    if(signal) signal.addEventListener('abort', ()=>{ clearTimeout(t); reject(new DOMException('Aborted','AbortError')); }, { once:true });
+  });
+}
+
+const GEMINI_IMAGE_MAX_RETRY = 3; // maksimal 3x ulang, hanya untuk batas sementara (rate limit)
+
+async function callGeminiImageGen(promptText, imagePart, signal, onWait){
   if(!geminiKey) throw new Error('API key Gemini belum diisi. Isi lewat tombol 🔑 AI.');
   const parts = [];
   if(imagePart && imagePart.base64){
@@ -1634,32 +1701,43 @@ async function callGeminiImageGen(promptText, imagePart, signal){
   }
   parts.push({ text: promptText });
   let lastErr = null;
+  modelLoop:
   for(const modelName of GEMINI_IMAGE_MODEL_FALLBACKS){
-    if(signal && signal.aborted) throw new DOMException('Aborted', 'AbortError');
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(geminiKey)}`;
-    let response;
-    try{
-      response = await fetch(url, {
-        method:"POST", headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ contents:[{ parts }], generationConfig:{ responseModalities:["IMAGE"] } }),
-        signal
-      });
-    }catch(networkErr){
-      if(networkErr.name === 'AbortError') throw networkErr;
-      throw new Error(explainNetworkError(networkErr, 'Gemini'));
+    let attempt = 0;
+    while(true){
+      if(signal && signal.aborted) throw new DOMException('Aborted', 'AbortError');
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(geminiKey)}`;
+      let response;
+      try{
+        response = await fetch(url, {
+          method:"POST", headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify({ contents:[{ parts }], generationConfig:{ responseModalities:["IMAGE"] } }),
+          signal
+        });
+      }catch(networkErr){
+        if(networkErr.name === 'AbortError') throw networkErr;
+        throw new Error(explainNetworkError(networkErr, 'Gemini'));
+      }
+      if(response.status === 404){ lastErr = new Error(`Model ${modelName} tidak tersedia lagi`); continue modelLoop; }
+      if(!response.ok){
+        const info = await fpParseGeminiError(response, modelName);
+        if(info.kind === 'rate' && attempt < GEMINI_IMAGE_MAX_RETRY){
+          // Jeda bertahap: 5s, 10s, 20s (atau lebih lama jika Gemini minta, maks 30s)
+          const base = [5,10,20][attempt];
+          const waitSec = Math.min(30, Math.max(base, info.retryDelaySec || 0));
+          attempt++;
+          if(onWait) onWait(waitSec, attempt, GEMINI_IMAGE_MAX_RETRY);
+          await fpSleep(waitSec*1000, signal);
+          continue;
+        }
+        throw new Error(info.message);
+      }
+      const data = await response.json();
+      const imgPart = data?.candidates?.[0]?.content?.parts?.find(p => p.inlineData || p.inline_data);
+      const inline = imgPart ? (imgPart.inlineData || imgPart.inline_data) : null;
+      if(!inline || !inline.data) throw new Error('Gemini tidak mengembalikan gambar (mungkin diblokir filter keamanan): ' + JSON.stringify(data).slice(0,200));
+      return { base64: inline.data, mimeType: inline.mimeType || inline.mime_type || 'image/png' };
     }
-    if(response.status === 404){ lastErr = new Error(`Model ${modelName} tidak tersedia lagi`); continue; }
-    if(!response.ok){
-      let errMsg = `HTTP ${response.status}`;
-      try{ const errJson = await response.json(); errMsg += ': ' + (errJson?.error?.message || JSON.stringify(errJson)).slice(0,220); }catch(e){}
-      if(response.status === 400 || response.status === 403) errMsg += ' — kemungkinan API key salah atau belum diaktifkan.';
-      throw new Error(errMsg);
-    }
-    const data = await response.json();
-    const imgPart = data?.candidates?.[0]?.content?.parts?.find(p => p.inlineData || p.inline_data);
-    const inline = imgPart ? (imgPart.inlineData || imgPart.inline_data) : null;
-    if(!inline || !inline.data) throw new Error('Gemini tidak mengembalikan gambar (mungkin diblokir filter keamanan): ' + JSON.stringify(data).slice(0,200));
-    return { base64: inline.data, mimeType: inline.mimeType || inline.mime_type || 'image/png' };
   }
   throw new Error('Semua model image generation Gemini di daftar sudah tidak tersedia (' + lastErr?.message + ').');
 }
