@@ -1588,7 +1588,7 @@ async function fpGenerateFoto(){
     fpRenderResult();
     document.getElementById('fp-sec-hasil').style.display = 'block';
     openSection('fp-sec-hasil');
-    showToast('Foto berhasil dibuat!');
+    showToast('Foto berhasil dibuat!' + (result.model ? ' (model: ' + result.model + ')' : ''));
   }catch(err){
     console.error(err);
     // Foto & pilihan pengguna TIDAK dihapus kalau error — tetap bisa dicoba lagi.
@@ -1701,6 +1701,7 @@ async function callGeminiImageGen(promptText, imagePart, signal, onWait){
   }
   parts.push({ text: promptText });
   let lastErr = null;
+  const quotaMsgs = [];
   modelLoop:
   for(const modelName of GEMINI_IMAGE_MODEL_FALLBACKS){
     let attempt = 0;
@@ -1730,14 +1731,22 @@ async function callGeminiImageGen(promptText, imagePart, signal, onWait){
           await fpSleep(waitSec*1000, signal);
           continue;
         }
+        if(info.kind === 'quota'){
+          // Kuota model ini habis -> coba model gambar berikutnya di daftar (semuanya model image generation).
+          quotaMsgs.push(info.message);
+          continue modelLoop;
+        }
         throw new Error(info.message);
       }
       const data = await response.json();
       const imgPart = data?.candidates?.[0]?.content?.parts?.find(p => p.inlineData || p.inline_data);
       const inline = imgPart ? (imgPart.inlineData || imgPart.inline_data) : null;
       if(!inline || !inline.data) throw new Error('Gemini tidak mengembalikan gambar (mungkin diblokir filter keamanan): ' + JSON.stringify(data).slice(0,200));
-      return { base64: inline.data, mimeType: inline.mimeType || inline.mime_type || 'image/png' };
+      return { base64: inline.data, mimeType: inline.mimeType || inline.mime_type || 'image/png', model: modelName };
     }
+  }
+  if(quotaMsgs.length){
+    throw new Error('Semua model gambar yang dicoba kena batas kuota. ' + quotaMsgs.join(' || '));
   }
   throw new Error('Semua model image generation Gemini di daftar sudah tidak tersedia (' + lastErr?.message + ').');
 }
