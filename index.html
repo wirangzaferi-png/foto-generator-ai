@@ -616,13 +616,12 @@ input, textarea, select, [contenteditable="true"] {
 
     <!-- ⑤ HASIL FOTO -->
     <div class="acc" id="fp-sec-hasil" style="display:none;">
-      <div class="acc-head" onclick="toggleSection('fp-sec-hasil')"><span class="num">⑤</span><span class="ttl">Hasil Foto</span><span class="chev">▾</span></div>
+      <div class="acc-head" onclick="toggleSection('fp-sec-hasil')"><span class="num">⑤</span><span class="ttl">Hasil Prompt Foto</span><span class="chev">▾</span></div>
       <div class="acc-body"><div class="acc-body-inner">
         <div id="fpResultWrap"></div>
         <div class="chip-toolbar" style="margin-top:12px;">
+          <button class="btn-mini" onclick="fpCopyPrompt()">📋 Salin Prompt</button>
           <button class="btn-mini" onclick="fpGenerateFoto()">🔄 Generate Lagi</button>
-          <button class="btn-mini" onclick="fpUseThisPhoto()">✅ Gunakan Foto Ini</button>
-          <button class="btn-mini" onclick="fpDownloadResult()">⬇️ Download</button>
         </div>
       </div></div>
     </div>
@@ -1482,6 +1481,7 @@ const FP_BACKGROUNDS = [
 let fpUploadedBase64 = null, fpUploadedMediaType = null;
 let fpConcept = '', fpBackground = '';
 let fpResultBase64 = null, fpResultMime = 'image/png';
+let fpResultPrompt = '';
 let fpGenerating = false;
 
 function fpRenderConceptGrid(){
@@ -1568,33 +1568,21 @@ Use the uploaded product photo as the primary and strict visual reference. Prese
 The background and lighting should support and complement the product according to the chosen concept and background, without altering the product itself. Make it look like a professional, realistic product photograph suitable for e-commerce/marketing use.`;
 }
 
-async function fpGenerateFoto(){
+function fpGenerateFoto(){
+  // Generate Foto = membuat PROMPT (tanpa memanggil API gambar). Prompt disalin lalu ditempel di Google Flow.
   if(fpGenerating) return;
   if(!fpUploadedBase64){ fpShowGenError('Upload foto produk dulu sebelum generate.'); return; }
-  if(!geminiKey){ fpShowGenError('Fitur Generate Foto butuh API Key Gemini. Isi lewat tombol 🔑 AI.'); return; }
-  fpGenerating = true;
-  const btn = document.getElementById('fpGenBtn');
-  const original = btn.textContent;
-  btn.disabled = true; btn.textContent = '⏳ Membuat Foto...';
   document.getElementById('fpGenError').style.display = 'none';
   try{
-    const promptText = fpBuildPrompt();
-    const result = await callGeminiImageGen(promptText, { base64: fpUploadedBase64, mediaType: fpUploadedMediaType }, undefined, (sec, n, max)=>{
-      btn.textContent = `⏳ Gemini sibuk, mencoba lagi (${n}/${max}) dalam ${sec} detik...`;
-    });
-    btn.textContent = '⏳ Membuat Foto...';
-    fpResultBase64 = result.base64;
-    fpResultMime = result.mimeType;
+    fpResultPrompt = fpBuildPrompt();
     fpRenderResult();
     document.getElementById('fp-sec-hasil').style.display = 'block';
     openSection('fp-sec-hasil');
-    showToast('Foto berhasil dibuat!' + (result.model ? ' (model: ' + result.model + ')' : ''));
+    showToast('Prompt foto siap. Tekan Salin Prompt.');
   }catch(err){
     console.error(err);
     // Foto & pilihan pengguna TIDAK dihapus kalau error — tetap bisa dicoba lagi.
-    fpShowGenError('Gagal membuat foto: ' + (err.message || 'kesalahan tidak diketahui'));
-  }finally{
-    fpGenerating = false; btn.disabled = false; btn.textContent = original;
+    fpShowGenError('Gagal membuat prompt: ' + (err.message || 'kesalahan tidak diketahui'));
   }
 }
 function fpShowGenError(msg){
@@ -1604,7 +1592,12 @@ function fpShowGenError(msg){
 }
 function fpRenderResult(){
   const wrap = document.getElementById('fpResultWrap');
-  wrap.innerHTML = `<img src="data:${fpResultMime};base64,${fpResultBase64}" style="width:100%; max-width:360px; border-radius:12px; display:block; margin:0 auto;">`;
+  wrap.innerHTML = `<div id="fpPromptBox" style="white-space:pre-wrap; word-break:break-word; user-select:text; -webkit-user-select:text; font-size:12.5px; line-height:1.6; color:var(--ink); background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:12px;">${escapeHtml(fpResultPrompt)}</div>
+  <div style="font-size:11.5px; color:var(--ink-dim); margin-top:8px; line-height:1.6;">Salin prompt ini, tempel di Google Flow, dan upload foto produk yang sama sebagai referensi.</div>`;
+}
+async function fpCopyPrompt(){
+  if(!fpResultPrompt){ showToast('Belum ada prompt'); return; }
+  await copyText(fpResultPrompt, 'Prompt foto tersalin');
 }
 function fpUseThisPhoto(){
   if(!fpResultBase64){ showToast('Belum ada hasil foto'); return; }
