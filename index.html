@@ -101,7 +101,7 @@
   .vg-progress-track{height:3px; background:var(--bg-input); flex-shrink:0;}
   .vg-progress-bar{height:100%; background:var(--grad); transition:width .25s ease;}
   .vg-stepline{display:flex; align-items:center; justify-content:space-between; padding:10px 16px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-dim); flex-shrink:0; border-bottom:1px solid var(--line);}
-  .vg-body{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:18px 16px 100px;}
+  .vg-body{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior-y:contain; padding:18px 16px 100px;}
   .vg-step-badge{width:26px;height:26px;border-radius:8px;background:var(--ink);color:var(--bg);display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;}
   .vg-h2{font-size:17px; font-weight:800; margin:14px 0 6px;}
   .vg-desc{font-size:12px; color:var(--ink-dim); line-height:1.5; margin-bottom:16px;}
@@ -2427,11 +2427,27 @@ try{
   // dan sedang ditarik ke bawah) — scroll/swipe dari posisi manapun lainnya
   // (atas, tengah, bawah, samping) tetap normal karena tidak pernah masuk kondisi ini.
   let ptrTouchStartY = 0;
+  let ptrScroller = null; // kontainer scroll terdekat (mis. .vg-body, modal) tempat sentuhan dimulai
+  function findScroller(el){
+    while(el && el !== document.body && el !== document.documentElement){
+      if(el.scrollHeight > el.clientHeight + 1){
+        const oy = getComputedStyle(el).overflowY;
+        if(oy === 'auto' || oy === 'scroll') return el;
+      }
+      el = el.parentElement;
+    }
+    return null;
+  }
   document.addEventListener('touchstart', function(e){
-    if(e.touches.length === 1) ptrTouchStartY = e.touches[0].clientY;
+    if(e.touches.length === 1){
+      ptrTouchStartY = e.touches[0].clientY;
+      ptrScroller = findScroller(e.target);
+    }
   }, {passive:true});
   document.addEventListener('touchmove', function(e){
     if(e.touches.length !== 1) return;
+    // Sedang menggulir isi kontainer yang belum di paling atas: biarkan scroll normal.
+    if(ptrScroller && ptrScroller.scrollTop > 0) return;
     const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
     const draggingDown = e.touches[0].clientY > ptrTouchStartY;
     if(scrollTop <= 0 && draggingDown) e.preventDefault();
@@ -2497,15 +2513,69 @@ let vgState = {
   multiNames: '',
   multiCount: 3,
   multiCountConfirmed: false,
-  multiProducts: [] // {name, keunggulan, photoBase64} — tidak dihancurkan saat jumlah dikurangi lalu dinaikkan lagi
+  multiProducts: [], // {name, keunggulan, photoBase64, photoThumb, photoKey} — tidak dihancurkan saat jumlah dikurangi lalu dinaikkan lagi
+  background: '',       // id latar belakang (lihat VG_BACKGROUNDS), '' = belum dipilih
+  backgroundCustom: '', // teks bebas saat memilih "Tulis Sendiri"
+  productPhotoThumb: null,
+  productPhotoKey: ''
 };
+const VG_BACKGROUNDS = [
+  { id:'kamar', label:'Kamar', desc:'a cozy bedroom, tidy home interior' },
+  { id:'ruang_tamu', label:'Ruang Tamu', desc:'a clean living room, warm home interior' },
+  { id:'ruang_kerja', label:'Ruang Kerja', desc:'a tidy home office or work desk area' },
+  { id:'toko', label:'Toko', desc:'a retail shop interior with shelves' },
+  { id:'kafe', label:'Kafe', desc:'a warm cafe interior' },
+  { id:'studio', label:'Studio', desc:'a clean photo/video studio with a simple backdrop' },
+  { id:'jalan_kota', label:'Jalan Kota', desc:'a city street, natural daylight' },
+  { id:'mobil', label:'Di Dalam Mobil', desc:'inside a parked car, natural light through the windows' },
+  { id:'outdoor', label:'Outdoor', desc:'an outdoor setting in natural daylight' },
+  { id:'custom', label:'Tulis Sendiri', desc:'' }
+];
+// Teks latar belakang untuk JSON/prompt. Custom diutamakan kalau diisi; kalau belum dipilih -> netral & aman.
+function vgGetBackgroundText(){
+  const custom = (vgState.backgroundCustom || '').trim();
+  if(custom) return custom;
+  const b = VG_BACKGROUNDS.find(x => x.id === vgState.background);
+  if(b && b.id !== 'custom') return b.label + ' (' + b.desc + ')';
+  return 'neutral clean background that suits the product';
+}
+function vgHasBackgroundChoice(){
+  return !!((vgState.backgroundCustom || '').trim() || (vgState.background && vgState.background !== 'custom'));
+}
+let vgBgRefreshTimer = null;
+function vgScheduleResultRefresh(delay){
+  clearTimeout(vgBgRefreshTimer);
+  vgBgRefreshTimer = setTimeout(vgRefreshResult, delay);
+}
+function vgSetBackground(id){
+  vgState.background = id;
+  if(id !== 'custom') vgState.backgroundCustom = '';
+  document.querySelectorAll('#vgBgGrid .vg-pill').forEach(el => el.classList.toggle('selected', el.dataset.id === id));
+  const wrap = document.getElementById('vgBgCustomWrap');
+  if(wrap) wrap.style.display = id === 'custom' ? 'block' : 'none';
+  const inp = document.getElementById('vgBgCustomInput');
+  if(inp && id !== 'custom') inp.value = '';
+  vgScheduleResultRefresh(0);
+}
+function vgOnBackgroundCustomInput(el){
+  vgState.backgroundCustom = el.value;
+  const cnt = document.getElementById('vgBgCustomCount');
+  if(cnt) cnt.textContent = el.value.length + ' / 120';
+  vgScheduleResultRefresh(350); // jangan render ulang tiap karakter
+}
+function vgRefreshResult(){
+  const wrap = document.getElementById('vgResultWrap');
+  if(wrap) wrap.innerHTML = vgResult ? vgRenderResult() : '';
+}
+let vgResultVersion = 0;
+let vgResultCache = { key:'', html:'' };
+function vgSetResult(arr){ vgResult = arr; vgResultVersion++; }
 let vgResult = null; // { hook, cerita, cta } setelah generate
 let vgGenerating = false;
 
 function openVideoGen(){
+  // Ringan: hanya membuka modal dan menampilkan step aktif (pilihan & hasil sebelumnya tetap tersimpan).
   document.getElementById('vgModal').classList.add('open');
-  vgStep = 1;
-  vgVisitedSteps = new Set([1]);
   renderVgStep();
 }
 function closeVideoGen(){
@@ -2646,31 +2716,31 @@ function vgRenderStep5(){
 
   let body = '';
   if(vgState.subMode === 'ai'){
-    const photoImg = vgState.productPhotoBase64 ? `<img src="data:image/jpeg;base64,${vgState.productPhotoBase64}">` : '📷';
+    const photoImg = vgState.productPhotoThumb ? `<img src="${vgState.productPhotoThumb}">` : '📷';
     const canGen = vgState.productName.trim() && vgState.targetAudience.trim() && !vgGenerating;
     body = `
       <label class="vg-field-label">Nama Produk <span class="vg-required">*wajib</span></label>
       <div class="vg-photo-row">
-        <input class="vg-input" style="flex:1;" id="vgProductName" placeholder="Contoh: Serum Wajah Glow Aura" value="${vgState.productName.replace(/"/g,'&quot;')}" oninput="vgState.productName=this.value; vgUpdateGenBtn();">
-        <div class="vg-photo-box" onclick="document.getElementById('vgPhotoInput').click();">${photoImg}</div>
+        <input class="vg-input" style="flex:1;" id="vgProductName" placeholder="Contoh: Serum Wajah Glow Aura" value="${escapeHtml(vgState.productName)}" oninput="vgState.productName=this.value; vgUpdateGenBtn();">
+        <div class="vg-photo-box" id="vgPhotoBox" onclick="document.getElementById('vgPhotoInput').click();">${photoImg}</div>
         <input type="file" id="vgPhotoInput" accept="image/*" style="display:none;" onchange="vgOnPhotoSelect(this)">
       </div>
       <div class="vg-desc">Foto produk bantu AI biar script lebih sesuai produk asli — opsional.</div>
       <label class="vg-field-label">Target Audience <span class="vg-required">*wajib</span></label>
-      <textarea class="vg-textarea" id="vgTargetAudience" placeholder="Contoh: perempuan usia 20-30 tahun yang peduli perawatan kulit" oninput="vgState.targetAudience=this.value; vgUpdateGenBtn();">${vgState.targetAudience}</textarea>
-      <button class="vg-btn-primary" id="vgGenBtn" ${canGen?'':'disabled'} onclick="vgGenerateWithAI()">${vgGenerating?'⏳ Membuat Script...':'✨ Buatkan 3 Script + JSON dengan AI'}</button>
+      <textarea class="vg-textarea" id="vgTargetAudience" placeholder="Contoh: perempuan usia 20-30 tahun yang peduli perawatan kulit" oninput="vgState.targetAudience=this.value; vgUpdateGenBtn();">${escapeHtml(vgState.targetAudience)}</textarea>
+      <button class="vg-btn-primary" id="vgGenBtn" ${canGen?'':'disabled'} onclick="vgGenerateWithAI()">${vgGenerating?'⏳ Memproses...':'✨ Buatkan 3 Script + JSON dengan AI'}</button>
       <div class="vg-desc" style="margin-top:8px;">AI otomatis buat 3 script sekaligus (Hook, Cerita Produk, CTA) — masing-masing ±25 kata, langsung jadi 3 prompt JSON siap pakai.</div>
     `;
   } else if(vgState.subMode === 'manual'){
     body = `
       <label class="vg-field-label">🪝 Hook — pembuka penasaran</label>
-      <textarea class="vg-textarea" oninput="vgState.manualHook=this.value; vgUpdateWordCounts();" placeholder="Contoh: Kalian yang masih bingung pilih skincare buat kulit berminyak, coba deh merhatiin ini bentar...">${vgState.manualHook}</textarea>
+      <textarea class="vg-textarea" oninput="vgState.manualHook=this.value; vgUpdateWordCounts();" placeholder="Contoh: Kalian yang masih bingung pilih skincare buat kulit berminyak, coba deh merhatiin ini bentar...">${escapeHtml(vgState.manualHook)}</textarea>
       <div class="vg-count" id="vgCountHook">0 kata</div>
       <label class="vg-field-label" style="margin-top:10px;">📖 Cerita Produk</label>
-      <textarea class="vg-textarea" oninput="vgState.manualCerita=this.value; vgUpdateWordCounts();" placeholder="Contoh: Bayangin tiap pagi wajah kalian kerasa lebih segar, minyak berkurang, dan pede tanpa perlu banyak makeup lagi...">${vgState.manualCerita}</textarea>
+      <textarea class="vg-textarea" oninput="vgState.manualCerita=this.value; vgUpdateWordCounts();" placeholder="Contoh: Bayangin tiap pagi wajah kalian kerasa lebih segar, minyak berkurang, dan pede tanpa perlu banyak makeup lagi...">${escapeHtml(vgState.manualCerita)}</textarea>
       <div class="vg-count" id="vgCountCerita">0 kata</div>
       <label class="vg-field-label" style="margin-top:10px;">🎯 CTA — ajak cek keranjang bawah</label>
-      <textarea class="vg-textarea" oninput="vgState.manualCta=this.value; vgUpdateWordCounts();" placeholder="Contoh: Jangan kelamaan mikir, langsung aja cek keranjang di bawah sebelum kehabisan stoknya ya...">${vgState.manualCta}</textarea>
+      <textarea class="vg-textarea" oninput="vgState.manualCta=this.value; vgUpdateWordCounts();" placeholder="Contoh: Jangan kelamaan mikir, langsung aja cek keranjang di bawah sebelum kehabisan stoknya ya...">${escapeHtml(vgState.manualCta)}</textarea>
       <div class="vg-count" id="vgCountCta">0 kata</div>
       <div class="vg-desc">Idealnya masing-masing sekitar 25 kata, natural kayak orang ngomong beneran — bukan bahasa iklan formal.</div>
       <button class="vg-btn-primary" id="vgManualBtn" onclick="vgBuildFromManual()">Buat 3 JSON dari Script Ini →</button>
@@ -2680,15 +2750,23 @@ function vgRenderStep5(){
   }
 
   const resultHtml = vgResult ? vgRenderResult() : '';
+  const bgPills = VG_BACKGROUNDS.map(b => `<div class="vg-pill ${vgState.background===b.id?'selected':''}" data-id="${b.id}" onclick="vgSetBackground('${b.id}')">${b.label}</div>`).join('');
 
   return `
     <span class="vg-step-badge">5</span>
     <div class="vg-h2">Script / Dialog</div>
+    <label class="vg-field-label">🏞️ Latar Belakang</label>
+    <div class="vg-pill-grid" id="vgBgGrid" style="margin-bottom:8px;">${bgPills}</div>
+    <div id="vgBgCustomWrap" style="display:${vgState.background==='custom'?'block':'none'};">
+      <input class="vg-input" id="vgBgCustomInput" maxlength="120" placeholder="Contoh: teras rumah dengan tanaman hijau" value="${escapeHtml(vgState.backgroundCustom)}" oninput="vgOnBackgroundCustomInput(this)">
+      <div class="vg-count" id="vgBgCustomCount">${vgState.backgroundCustom.length} / 120</div>
+    </div>
+    <div class="vg-desc">Latar belakang hanya mengatur lingkungan scene. Produk dan model tetap sama dengan foto referensi.</div>
     <div class="vg-desc">Mau bikin script gimana?</div>
     <div class="vg-submode-tabs">${tabs}</div>
     ${body}
     ${vgState.subMode !== 'multi' ? `<div style="display:flex; gap:8px; margin-top:10px;">${vgBackBtn(4)}</div>` : ''}
-    ${resultHtml}
+    <div id="vgResultWrap">${resultHtml}</div>
   `;
 }
 
@@ -2710,16 +2788,16 @@ function vgRenderMultiMode(){
   for(let i=0;i<vgState.multiCount;i++){
     const p = vgState.multiProducts[i] || { name:'', keunggulan:'', photoBase64:null };
     vgState.multiProducts[i] = p;
-    const photoImg = p.photoBase64 ? `<img src="data:image/jpeg;base64,${p.photoBase64}">` : '📷';
+    const photoImg = p.photoThumb ? `<img src="${p.photoThumb}">` : '📷';
     cards.push(`
       <div class="vg-scene-card" style="margin-bottom:10px;">
         <span class="vg-scene-tag">PRODUK ${i+1}</span>
         <div class="vg-photo-row">
-          <input class="vg-input" style="flex:1;" placeholder="Nama Produk *wajib" value="${p.name.replace(/"/g,'&quot;')}" oninput="vgState.multiProducts[${i}].name=this.value;">
-          <div class="vg-photo-box" onclick="document.getElementById('vgMultiPhotoInput${i}').click();">${photoImg}</div>
+          <input class="vg-input" style="flex:1;" placeholder="Nama Produk *wajib" value="${escapeHtml(p.name)}" oninput="vgState.multiProducts[${i}].name=this.value;">
+          <div class="vg-photo-box" id="vgMultiPhotoBox${i}" onclick="document.getElementById('vgMultiPhotoInput${i}').click();">${photoImg}</div>
           <input type="file" id="vgMultiPhotoInput${i}" accept="image/*" style="display:none;" onchange="vgOnMultiPhotoSelect(this, ${i})">
         </div>
-        <input class="vg-input" style="margin-top:8px;" placeholder="Keunggulan (opsional)" value="${(p.keunggulan||'').replace(/"/g,'&quot;')}" oninput="vgState.multiProducts[${i}].keunggulan=this.value;">
+        <input class="vg-input" style="margin-top:8px;" placeholder="Keunggulan (opsional)" value="${escapeHtml(p.keunggulan||'')}" oninput="vgState.multiProducts[${i}].keunggulan=this.value;">
       </div>
     `);
   }
@@ -2728,7 +2806,7 @@ function vgRenderMultiMode(){
     <div style="font-size:12px; color:var(--ink-dim); margin-bottom:10px; cursor:pointer;" onclick="vgState.multiCountConfirmed=false; renderVgStep();">← Ubah jumlah produk (${vgState.multiCount})</div>
     ${cards.join('')}
     <label class="vg-field-label" style="margin-top:6px;">Target Audience <span class="vg-required">*wajib</span></label>
-    <textarea class="vg-textarea" oninput="vgState.targetAudience=this.value;" placeholder="Contoh: perempuan usia 20-30 tahun">${vgState.targetAudience}</textarea>
+    <textarea class="vg-textarea" oninput="vgState.targetAudience=this.value;" placeholder="Contoh: perempuan usia 20-30 tahun">${escapeHtml(vgState.targetAudience)}</textarea>
     <div style="display:flex; gap:8px; margin-top:10px;">
       ${vgBackBtn(4)}
       <button class="vg-btn-primary" style="flex:2; margin-top:0;" id="vgMultiBtn" onclick="vgGenerateMulti()" ${vgGenerating?'disabled':''}>${vgGenerating?'⏳ Memproses...':'✨ Generate Semua Produk'}</button>
@@ -2739,14 +2817,53 @@ function vgConfirmMultiCount(){
   vgState.multiCountConfirmed = true;
   renderVgStep();
 }
-function vgOnMultiPhotoSelect(input, idx){
+/* Foto referensi untuk AI: diproses sekali (decode lewat Blob URL, resize 1024px, thumbnail kecil untuk tampilan).
+   Hasil disimpan di state & dipakai ulang; foto yang sama tidak diproses lagi. */
+function vgProcessPhotoFile(file){
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    const done = () => { try{ URL.revokeObjectURL(url); }catch(e){} };
+    img.onload = function(){
+      try{
+        const draw = (maxDim, q) => {
+          let w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+          const r = Math.min(1, maxDim / Math.max(w, h));
+          w = Math.max(1, Math.round(w * r)); h = Math.max(1, Math.round(h * r));
+          const c = document.createElement('canvas'); c.width = w; c.height = h;
+          c.getContext('2d').drawImage(img, 0, 0, w, h);
+          const out = c.toDataURL('image/jpeg', q);
+          c.width = 0; c.height = 0;
+          return out;
+        };
+        const main = draw(1024, 0.82).split(',')[1];
+        const thumb = draw(96, 0.7);
+        done(); resolve({ base64: main, thumb: thumb });
+      }catch(e){ done(); reject(e); }
+    };
+    img.onerror = function(){ done(); reject(new Error('Foto tidak bisa dibaca')); };
+    img.src = url;
+  });
+}
+function vgPhotoKey(file){ return file.name + '|' + file.size + '|' + file.lastModified; }
+function vgSetPhotoBox(id, thumb){
+  const box = document.getElementById(id);
+  if(!box) return; // step sudah berganti, state tetap tersimpan
+  box.innerHTML = '';
+  if(thumb){ const im = document.createElement('img'); im.src = thumb; box.appendChild(im); }
+  else box.textContent = '📷';
+}
+async function vgOnMultiPhotoSelect(input, idx){
   const file = input.files[0]; if(!file) return;
-  const reader = new FileReader();
-  reader.onload = async function(evt){
-    vgState.multiProducts[idx].photoBase64 = await resizeImageForAI(evt.target.result, 1280, 0.85);
-    renderVgStep();
-  };
-  reader.readAsDataURL(file);
+  const p = vgState.multiProducts[idx]; if(!p){ input.value = ''; return; }
+  const key = vgPhotoKey(file);
+  input.value = '';
+  if(p.photoKey === key && p.photoBase64) return; // sudah diproses
+  try{
+    const r = await vgProcessPhotoFile(file);
+    p.photoBase64 = r.base64; p.photoThumb = r.thumb; p.photoKey = key;
+    vgSetPhotoBox('vgMultiPhotoBox' + idx, r.thumb);
+  }catch(err){ console.error(err); showToast('Foto tidak bisa dibaca, coba foto lain'); }
 }
 
 function vgUpdateGenBtn(){
@@ -2760,14 +2877,16 @@ function vgUpdateWordCounts(){
   const t = document.getElementById('vgCountCta'); if(t) t.textContent = wc(vgState.manualCta) + ' kata';
 }
 
-function vgOnPhotoSelect(input){
+async function vgOnPhotoSelect(input){
   const file = input.files[0]; if(!file) return;
-  const reader = new FileReader();
-  reader.onload = async function(evt){
-    vgState.productPhotoBase64 = await resizeImageForAI(evt.target.result, 1280, 0.85);
-    renderVgStep();
-  };
-  reader.readAsDataURL(file);
+  const key = vgPhotoKey(file);
+  input.value = '';
+  if(vgState.productPhotoKey === key && vgState.productPhotoBase64) return; // sudah diproses
+  try{
+    const r = await vgProcessPhotoFile(file);
+    vgState.productPhotoBase64 = r.base64; vgState.productPhotoThumb = r.thumb; vgState.productPhotoKey = key;
+    vgSetPhotoBox('vgPhotoBox', r.thumb);
+  }catch(err){ console.error(err); showToast('Foto tidak bisa dibaca, coba foto lain'); }
 }
 
 function vgGetAgeText(){ return vgState.ageCustom.trim() || (VG_AGE_PRESETS.find(a=>a.id===vgState.agePreset)||{}).label + ' (' + (VG_AGE_PRESETS.find(a=>a.id===vgState.agePreset)||{}).sub + ')'; }
@@ -2779,14 +2898,16 @@ function vgBackBtn(toStep){
 }
 
 function vgParseAIJson(rawText){
-  let text = (rawText || '').trim();
-  text = text.replace(/^```json\s*|^```\s*|```$/gi, '').trim();
-  try{ return JSON.parse(text); }catch(e){ /* coba fallback di bawah */ }
-  // Fallback: kalau AI menambahkan kalimat lain di luar JSON (walau sudah diminta jangan),
-  // coba ambil blok {...} pertama yang ada, jangan langsung gagal total.
-  const match = text.match(/\{[\s\S]*\}/);
-  if(match){
-    try{ return JSON.parse(match[0]); }catch(e2){ /* tetap gagal, lempar error di bawah */ }
+  const raw = (rawText || '').trim();
+  // 1) Parse langsung (kasus paling umum, paling murah)
+  try{ return JSON.parse(raw); }catch(e){ /* lanjut fallback */ }
+  // 2) Buang markdown fence
+  const text = raw.replace(/^```json\s*|^```\s*|```$/gi, '').trim();
+  try{ return JSON.parse(text); }catch(e){ /* lanjut fallback */ }
+  // 3) Ambil blok {...} pertama sampai terakhir (tanpa regex mahal)
+  const i = text.indexOf('{'), j = text.lastIndexOf('}');
+  if(i !== -1 && j > i){
+    try{ return JSON.parse(text.slice(i, j + 1)); }catch(e2){ /* tetap gagal, lempar error di bawah */ }
   }
   throw new Error('AI tidak mengembalikan format JSON yang valid. Coba tap generate lagi.');
 }
@@ -2803,7 +2924,7 @@ function vgBuildScriptInstruction(productName){
 
 ${vgBuildCharacterContext()}
 Produk: ${productName}
-Target Audience: ${vgState.targetAudience || 'Gen Z perempuan (default, jangan disebut eksplisit di dialog)'}
+Target Audience: ${vgState.targetAudience || 'Gen Z perempuan (default, jangan disebut eksplisit di dialog)'}${vgHasBackgroundChoice() ? `\nLatar belakang/lokasi video: ${vgGetBackgroundText()}. Aksi visual harus masuk akal di lokasi ini. Latar belakang hanya mengatur lingkungan, JANGAN mengubah produk atau model.` : ''}
 
 === ATURAN HOOK (0-2 DETIK, PRIORITAS TERTINGGI) ===
 JANGAN buka dengan: sapaan panjang, "Hai guys"/"Halo semuanya", perkenalan panjang, penjelasan produk dulu, model diam saja, kamera lama-lama nyari objek, atau produk baru muncul setelah beberapa detik.
@@ -2841,25 +2962,48 @@ Balas HANYA dengan objek JSON mentah (tanpa markdown fences, tanpa penjelasan), 
 }`;
 }
 
-async function vgGenerateWithAI(){
-  if(vgGenerating) return;
-  vgGenerating = true; renderVgStep();
+const VG_AI_TIMEOUT_MS = 60000;
+function vgSetGenUI(label){
+  // Update ringan: hanya tombol Generate, tanpa render ulang seluruh step.
+  [['vgGenBtn', '⏳ Memproses...'], ['vgMultiBtn', '⏳ Memproses...']].forEach(([id, def]) => {
+    const btn = document.getElementById(id);
+    if(btn){ btn.disabled = true; btn.textContent = label || def; }
+  });
+}
+function vgErrText(err){
+  if(err && err.name === 'AbortError') return 'Waktu habis (60 detik). Periksa koneksi lalu coba lagi.';
+  return (err && err.message) || 'kesalahan tidak diketahui';
+}
+// SATU request AI per produk: Hook, Cerita, CTA datang dalam satu respons JSON.
+async function vgRequestScript(productName, photoBase64){
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), VG_AI_TIMEOUT_MS);
   try{
-    const instruction = vgBuildScriptInstruction(vgState.productName);
-    const img = vgState.productPhotoBase64 ? { base64: vgState.productPhotoBase64, mediaType: 'image/jpeg' } : false;
-    let rawText = activeProvider === 'gemini' ? await callGemini(instruction, img) : await callClaude(instruction, img);
+    const instruction = vgBuildScriptInstruction(productName);
+    const img = photoBase64 ? { base64: photoBase64, mediaType: 'image/jpeg' } : false;
+    const rawText = activeProvider === 'gemini' ? await callGemini(instruction, img, ctrl.signal) : await callClaude(instruction, img, ctrl.signal);
     const parsed = vgParseAIJson(rawText);
-    vgResult = [{
-      productName: vgState.productName,
+    return {
       hook: parsed.hook || '', cerita: parsed.cerita || '', cta: parsed.cta || '',
       hookType: parsed.hook_type || '', hookVisualAction: parsed.hook_visual_action || '', hookCamera: parsed.hook_camera || '',
       ceritaVisualAction: parsed.cerita_visual_action || '', ceritaEmotion: parsed.cerita_emotion || '',
       ctaVisualAction: parsed.cta_visual_action || ''
-    }];
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function vgGenerateWithAI(){
+  if(vgGenerating) return; // lock: klik berulang tidak membuat request tambahan
+  vgGenerating = true; vgSetGenUI();
+  try{
+    const r = await vgRequestScript(vgState.productName, vgState.productPhotoBase64);
+    vgSetResult([Object.assign({ productName: vgState.productName }, r)]);
     showToast('Script & JSON siap!');
   }catch(err){
     console.error(err);
-    showToast('Gagal membuat script: ' + (err.message || 'kesalahan tidak diketahui'));
+    showToast('Gagal membuat script: ' + vgErrText(err));
   }finally{
     vgGenerating = false; renderVgStep();
   }
@@ -2870,42 +3014,65 @@ function vgBuildFromManual(){
     showToast('Isi minimal salah satu bagian dulu (Hook/Cerita/CTA)');
     return;
   }
-  vgResult = [{
+  vgSetResult([{
     productName: vgState.productName || '(manual)',
     hook: vgState.manualHook, cerita: vgState.manualCerita, cta: vgState.manualCta
-  }];
+  }]);
   renderVgStep();
   showToast('3 JSON dibuat dari script manual!');
 }
 
+const VG_MULTI_CONCURRENCY = 3; // maksimal 3 request aktif sekaligus
 async function vgGenerateMulti(){
   if(vgGenerating) return;
   const products = vgState.multiProducts.slice(0, vgState.multiCount).filter(p => p && p.name && p.name.trim());
   if(!products.length){ showToast('Isi minimal 1 Nama Produk'); return; }
   if(!vgState.targetAudience.trim()){ showToast('Target Audience wajib diisi'); return; }
-  vgGenerating = true; renderVgStep();
-  const results = [];
-  try{
-    for(const p of products){
-      const namaLengkap = p.keunggulan && p.keunggulan.trim() ? `${p.name.trim()} (keunggulan: ${p.keunggulan.trim()})` : p.name.trim();
-      const instruction = vgBuildScriptInstruction(namaLengkap);
-      const img = p.photoBase64 ? { base64: p.photoBase64, mediaType: 'image/jpeg' } : false;
-      let rawText = activeProvider === 'gemini' ? await callGemini(instruction, img) : await callClaude(instruction, img);
-      const parsed = vgParseAIJson(rawText);
-      results.push({
-        productName: p.name.trim(),
-        hook: parsed.hook || '', cerita: parsed.cerita || '', cta: parsed.cta || '',
-        hookType: parsed.hook_type || '', hookVisualAction: parsed.hook_visual_action || '', hookCamera: parsed.hook_camera || '',
-        ceritaVisualAction: parsed.cerita_visual_action || '', ceritaEmotion: parsed.cerita_emotion || '',
-        ctaVisualAction: parsed.cta_visual_action || ''
-      });
+  vgGenerating = true;
+  const total = products.length;
+  const slots = new Array(total).fill(null);   // hasil per produk, urutan tetap
+  const failed = [];
+  let next = 0, finished = 0, slow = false, rateFails = 0, stopped = false;
+  vgSetGenUI('⏳ Memproses... (0/' + total + ')');
+
+  const runOne = async (p) => {
+    const namaLengkap = p.keunggulan && p.keunggulan.trim() ? `${p.name.trim()} (keunggulan: ${p.keunggulan.trim()})` : p.name.trim();
+    const r = await vgRequestScript(namaLengkap, p.photoBase64);
+    return Object.assign({ productName: p.name.trim() }, r);
+  };
+  const worker = async (wid) => {
+    while(true){
+      if(stopped) return;
+      if(slow && wid > 0) return; // kena rate limit: lanjut sebagai antrean biasa (1 request)
+      const i = next++;
+      if(i >= total) return;
+      try{
+        slots[i] = await runOne(products[i]);
+        rateFails = 0;
+      }catch(err){
+        console.error(err);
+        const msg = vgErrText(err);
+        failed.push(products[i].name.trim() + ': ' + msg);
+        if(/429|RESOURCE_EXHAUSTED|quota|kuota/i.test(msg)){
+          slow = true; rateFails++;
+          if(rateFails >= 2) stopped = true; // kuota habis: jangan menembak sisa produk
+        }
+      }
+      finished++;
+      vgSetGenUI('⏳ Memproses... (' + finished + '/' + total + ')');
     }
-    vgResult = results;
-    showToast(`${results.length} set script & JSON siap!`);
+  };
+  try{
+    const n = Math.min(VG_MULTI_CONCURRENCY, total);
+    await Promise.all(Array.from({ length: n }, (_, w) => worker(w)));
+    const ok = slots.filter(Boolean);
+    if(ok.length) vgSetResult(ok);
+    if(!ok.length) showToast('Gagal: ' + (failed[0] || 'tidak ada hasil'));
+    else if(failed.length || stopped) showToast(ok.length + ' dari ' + total + ' produk selesai. Gagal: ' + (failed[0] || 'dihentikan karena batas kuota'));
+    else showToast(`${ok.length} set script & JSON siap!`);
   }catch(err){
     console.error(err);
-    showToast('Gagal di tengah proses: ' + (err.message || 'kesalahan tidak diketahui') + ' (' + results.length + '/' + products.length + ' selesai)');
-    if(results.length) vgResult = results;
+    showToast('Gagal di tengah proses: ' + vgErrText(err));
   }finally{
     vgGenerating = false; renderVgStep();
   }
@@ -2934,6 +3101,10 @@ function vgBuildSceneJSON(item, sceneKey, dialogText){
     dialog: dialogText,
     timing: sceneKey === 'hook' ? '0-2s' : (sceneKey === 'cta' ? 'final seconds' : 'pertengahan video'),
     duration_seconds: 8,
+    environment: {
+      background: vgGetBackgroundText(),
+      instruction: 'Set this scene in the background/environment above. The background only controls the environment: it must NOT change the product (shape, color, size, logo, text, pattern, material, texture, accessories, quantity) or the model (face, identity, clothing).'
+    },
     preserve_original: {
       enabled: true,
       instruction: PRESERVE_ORIGINAL_TEXT + ' ' + PRESERVE_ORIGINAL_PRODUCT_TEXT + ' ' + ACCURACY_RULES_TEXT
@@ -2944,7 +3115,7 @@ function vgBuildSceneJSON(item, sceneKey, dialogText){
       no_new_product_details: true
     },
     voice: buildVoiceCharacterBlock(dialogText, vgState.bahasaReview).dialogue.voice_character,
-    negative_prompt: ['different product','product redesign','changed product shape','changed product color','changed logo','changed text','changed branding','altered proportions','deformed product','product morphing','warped product','duplicate product','different person','face distortion','identity change','deformed hands','extra fingers','extra hands','stiff movement','robotic motion','jerky animation','exaggerated claims','false product claims','added features not in product','before and after comparison','fake testimonial','floating product','glowing product']
+    negative_prompt: ['different product','product redesign','changed product shape','changed product color','changed logo','changed text','changed branding','altered proportions','deformed product','product morphing','warped product','duplicate product','different person','face distortion','identity change','deformed hands','extra fingers','extra hands','stiff movement','robotic motion','jerky animation','product altered by background','model altered by background','exaggerated claims','false product claims','added features not in product','before and after comparison','fake testimonial','floating product','glowing product']
   };
 
   if(sceneKey === 'hook'){
@@ -2966,26 +3137,34 @@ function vgBuildSceneJSON(item, sceneKey, dialogText){
 }
 
 function vgRenderResult(){
-  return vgResult.map((item, idx) => `
+  // Cache: JSON hanya dibuat ulang kalau hasil/pilihan yang memengaruhi JSON berubah.
+  const key = JSON.stringify([vgResultVersion, vgState.refMode, vgState.gender, vgState.agePreset, vgState.ageCustom,
+    vgState.tone, vgState.toneCustom, vgState.accent, vgState.accentCustom, vgState.bahasaReview, vgState.targetAudience, vgGetBackgroundText()]);
+  if(vgResultCache.key === key) return vgResultCache.html;
+  const preStyle = 'display:block; background:var(--bg-input); border:1px solid var(--line); border-radius:8px; padding:10px; font-size:10px; white-space:pre-wrap; word-break:break-word; max-height:220px; overflow-y:auto; color:#d5f5ef;';
+  const jsonOf = (item, scene, dialog) => escapeHtml(JSON.stringify(vgBuildSceneJSON(item, scene, dialog), null, 2));
+  const html = vgResult.map((item, idx) => `
     <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--line);">
-      ${vgResult.length > 1 ? `<div class="vg-h2" style="font-size:14px;">📦 ${item.productName}</div>` : ''}
+      ${vgResult.length > 1 ? `<div class="vg-h2" style="font-size:14px;">📦 ${escapeHtml(item.productName || '')}</div>` : ''}
       <div class="vg-scene-card">
         <span class="vg-scene-tag">🪝 SCENE 1 — HOOK</span>
-        <pre id="vgJsonHook${idx}" style="display:block; background:var(--bg-input); border:1px solid var(--line); border-radius:8px; padding:10px; font-size:10px; white-space:pre-wrap; word-break:break-word; max-height:220px; overflow-y:auto; color:#d5f5ef;">${JSON.stringify(vgBuildSceneJSON(item,'hook',item.hook), null, 2)}</pre>
+        <pre id="vgJsonHook${idx}" style="${preStyle}">${jsonOf(item,'hook',item.hook)}</pre>
         <button class="btn-outline" style="margin-top:8px;" onclick="vgCopyScene(${idx}, 'Hook')">📋 Copy JSON Hook</button>
       </div>
       <div class="vg-scene-card">
         <span class="vg-scene-tag">📖 SCENE 2 — CERITA PRODUK</span>
-        <pre id="vgJsonCerita${idx}" style="display:block; background:var(--bg-input); border:1px solid var(--line); border-radius:8px; padding:10px; font-size:10px; white-space:pre-wrap; word-break:break-word; max-height:220px; overflow-y:auto; color:#d5f5ef;">${JSON.stringify(vgBuildSceneJSON(item,'cerita',item.cerita), null, 2)}</pre>
+        <pre id="vgJsonCerita${idx}" style="${preStyle}">${jsonOf(item,'cerita',item.cerita)}</pre>
         <button class="btn-outline" style="margin-top:8px;" onclick="vgCopyScene(${idx}, 'Cerita')">📋 Copy JSON Cerita</button>
       </div>
       <div class="vg-scene-card">
         <span class="vg-scene-tag">🎯 SCENE 3 — CTA</span>
-        <pre id="vgJsonCta${idx}" style="display:block; background:var(--bg-input); border:1px solid var(--line); border-radius:8px; padding:10px; font-size:10px; white-space:pre-wrap; word-break:break-word; max-height:220px; overflow-y:auto; color:#d5f5ef;">${JSON.stringify(vgBuildSceneJSON(item,'cta',item.cta), null, 2)}</pre>
+        <pre id="vgJsonCta${idx}" style="${preStyle}">${jsonOf(item,'cta',item.cta)}</pre>
         <button class="btn-outline" style="margin-top:8px;" onclick="vgCopyScene(${idx}, 'Cta')">📋 Copy JSON CTA</button>
       </div>
     </div>
   `).join('');
+  vgResultCache = { key: key, html: html };
+  return html;
 }
 
 async function vgCopyScene(idx, which){
