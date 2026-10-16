@@ -618,6 +618,10 @@ input, textarea, select, [contenteditable="true"] {
     <div class="acc" id="fp-sec-hasil" style="display:none;">
       <div class="acc-head" onclick="toggleSection('fp-sec-hasil')"><span class="num">⑤</span><span class="ttl">Hasil Prompt Foto</span><span class="chev">▾</span></div>
       <div class="acc-body"><div class="acc-body-inner">
+        <div class="chip-toolbar" style="margin-bottom:10px;">
+          <button class="btn-mini" id="fpLangId" onclick="fpSetPromptLang('id')">🇮🇩 Bahasa Indonesia</button>
+          <button class="btn-mini" id="fpLangEn" onclick="fpSetPromptLang('en')">🇬🇧 English</button>
+        </div>
         <div id="fpResultWrap"></div>
         <div class="chip-toolbar" style="margin-top:12px;">
           <button class="btn-mini" onclick="fpCopyPrompt()">📋 Salin Prompt</button>
@@ -879,6 +883,7 @@ const NEGATIVE_PROMPT_BASE_EXTRA = ['face distortion','different person','identi
 const NEGATIVE_PROMPT_PRODUCT_EXTRA = ['wrong product shape','incorrect branding','incorrect logo','incorrect label','incorrect text','altered material','altered color','deformed product'];
 const PRESERVE_ORIGINAL_TEXT = 'Preserve the original subject, identity, facial features, clothing, product design, colors, proportions, logos, text, and all important visual details from the reference image. Do not redesign or replace the original subject. Enhance presentation without changing the subject.';
 const PRESERVE_ORIGINAL_PRODUCT_TEXT = 'Preserve the exact original product design, shape, proportions, material, texture, color, branding, logo, label, and visible text.';
+const ACCURACY_RULES_TEXT = 'ACCURACY RULES (TikTok Shop compliance): show the product exactly as in the reference photo. Do not exaggerate or add claims, features, functions, materials, sizes, colors, variants, accessories, guarantees, return/refund terms, discounts, or results that are not visible in the reference or product listing. No superlatives or absolute promises (best, number 1, 100% effective, guaranteed, instant results), no before/after comparisons, fake testimonials, sales numbers, or viral claims. No impossible product behavior (floating, glowing, morphing, changing shape). Keep movements realistic and wording honest and descriptive.';
 
 let activeProvider = safeStorageGet('vw_activeProvider', "gemini");
 let geminiKey = safeStorageGet('vw_geminiKey', "");
@@ -1482,6 +1487,7 @@ let fpUploadedBase64 = null, fpUploadedMediaType = null;
 let fpConcept = '', fpBackground = '';
 let fpResultBase64 = null, fpResultMime = 'image/png';
 let fpResultPrompt = '';
+let fpPromptLang = 'id'; // 'id' = Bahasa Indonesia, 'en' = English
 let fpGenerating = false;
 
 function fpRenderConceptGrid(){
@@ -1555,17 +1561,29 @@ function fpUpdateSummary(){
 }
 
 function fpBuildPrompt(){
+  const id = fpPromptLang === 'id';
   const konsepObj = FP_CONCEPTS.find(c=>c.id===fpConcept);
-  const konsepText = konsepObj ? (konsepObj.id==='custom' ? (document.getElementById('fpConceptCustomText').value.trim()||'konsep foto produk profesional') : konsepObj.label) : 'konsep foto produk profesional';
+  const konsepText = konsepObj ? (konsepObj.id==='custom' ? (document.getElementById('fpConceptCustomText').value.trim()|| (id ? 'konsep foto produk profesional' : 'professional product photo concept')) : konsepObj.label) : (id ? 'konsep foto produk profesional' : 'professional product photo concept');
   const bgObj = FP_BACKGROUNDS.find(b=>b.id===fpBackground);
-  const bgText = bgObj ? (bgObj.id==='custom' ? (document.getElementById('fpBackgroundCustomText').value.trim()||'background netral') : bgObj.label) : 'background netral';
+  const bgText = bgObj ? (bgObj.id==='custom' ? (document.getElementById('fpBackgroundCustomText').value.trim()|| (id ? 'background netral' : 'neutral background')) : bgObj.label) : (id ? 'background netral' : 'neutral background');
+  if(id){
+    return `Buat foto produk berkualitas tinggi berdasarkan foto referensi yang diunggah.
+Konsep: ${konsepText}.
+Background/lokasi: ${bgText}.
+
+Gunakan foto produk yang diunggah sebagai referensi visual utama dan wajib diikuti. Pertahankan identitas produk secara persis: bentuk, proporsi, warna, desain, logo, tulisan, jumlah, dan semua detail yang terlihat. Jangan mendesain ulang, mengganti, mengubah, menambah, atau menghapus elemen produk. Jangan mengarang detail produk yang tidak terlihat pada foto referensi.
+
+Background dan pencahayaan harus mendukung serta melengkapi produk sesuai konsep dan background yang dipilih, tanpa mengubah produknya. Hasilkan foto produk profesional yang realistis dan cocok untuk e-commerce/marketing.
+
+ATURAN KESESUAIAN PRODUK: tampilkan produk persis seperti foto referensi. Jangan melebih-lebihkan, jangan menambah fitur, fungsi, bahan, ukuran, warna, varian, atau aksesori yang tidak terlihat pada foto referensi, dan jangan menampilkan klaim atau teks promosi berlebihan (mis. terbaik, nomor 1, 100% ampuh, dijamin).`;
+  }
   return `Generate a high-quality product photo based on the uploaded reference image.
 Concept: ${konsepText}.
 Background/location: ${bgText}.
 
 Use the uploaded product photo as the primary and strict visual reference. Preserve the exact product identity, shape, proportions, color, design, logo, text, quantity, and visible details. Do not redesign, replace, modify, add, or remove product elements. Do not invent product details that are not visible in the reference photo.
 
-The background and lighting should support and complement the product according to the chosen concept and background, without altering the product itself. Make it look like a professional, realistic product photograph suitable for e-commerce/marketing use.`;
+The background and lighting should support and complement the product according to the chosen concept and background, without altering the product itself. Make it look like a professional, realistic product photograph suitable for e-commerce/marketing use.\n\nPRODUCT ACCURACY RULES: show the product exactly as in the reference photo. Do not exaggerate, and do not add features, functions, materials, sizes, colors, variants, or accessories that are not visible in the reference photo. Do not show exaggerated promotional claims or text (e.g. best, number 1, 100% effective, guaranteed).`;
 }
 
 function fpGenerateFoto(){
@@ -1576,6 +1594,7 @@ function fpGenerateFoto(){
   try{
     fpResultPrompt = fpBuildPrompt();
     fpRenderResult();
+    fpUpdateLangButtons();
     document.getElementById('fp-sec-hasil').style.display = 'block';
     openSection('fp-sec-hasil');
     showToast('Prompt foto siap. Tekan Salin Prompt.');
@@ -1594,6 +1613,20 @@ function fpRenderResult(){
   const wrap = document.getElementById('fpResultWrap');
   wrap.innerHTML = `<div id="fpPromptBox" style="white-space:pre-wrap; word-break:break-word; user-select:text; -webkit-user-select:text; font-size:12.5px; line-height:1.6; color:var(--ink); background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:12px;">${escapeHtml(fpResultPrompt)}</div>
   <div style="font-size:11.5px; color:var(--ink-dim); margin-top:8px; line-height:1.6;">Salin prompt ini, tempel di Google Flow, dan upload foto produk yang sama sebagai referensi.</div>`;
+}
+function fpUpdateLangButtons(){
+  [['fpLangId','id'],['fpLangEn','en']].forEach(([bid,l])=>{
+    const b = document.getElementById(bid);
+    if(!b) return;
+    const on = fpPromptLang === l;
+    b.style.outline = on ? '2px solid #7c5cff' : 'none';
+    b.style.fontWeight = on ? '700' : '400';
+  });
+}
+function fpSetPromptLang(l){
+  fpPromptLang = (l === 'en') ? 'en' : 'id';
+  fpUpdateLangButtons();
+  if(fpResultPrompt){ fpResultPrompt = fpBuildPrompt(); fpRenderResult(); }
 }
 async function fpCopyPrompt(){
   if(!fpResultPrompt){ showToast('Belum ada prompt'); return; }
@@ -2102,7 +2135,7 @@ function render(){
   // ===== PRODUCT CONSISTENCY LOCK (ringkas — foto referensi sudah jadi sumber visual utama,
   // tidak perlu menulis ulang semua detail fisik produk secara panjang di sini) =====
   const preservasi = `REFERENCE IMAGE PRIORITY: Reference image has priority over generated assumptions — use the uploaded photo as the primary visual source for the subject/product/outfit/environment, do not invent visual details that are not visible in it.
-${PRESERVE_ORIGINAL_TEXT}${fotoSubjek === 'produk' ? ' ' + PRESERVE_ORIGINAL_PRODUCT_TEXT : ''}${fotoSubjek === 'produk' ? ` PRODUCT CONSISTENCY LOCK: produk (${garmentDescription}) harus tetap identik dengan foto referensi sepanjang video — bentuk, proporsi, ukuran visual, warna, logo, tulisan, motif, material, tekstur, desain, tombol/port/aksesori, dan semua detail lain yang terlihat di foto. Jangan membuat versi produk yang berbeda, jangan mengganti desain, jangan mengubah warna, jangan menambahkan detail baru, jangan menghilangkan detail yang terlihat. Kalau produk diputar/berganti sisi, hanya perlihatkan sisi yang secara logis memang bagian dari produk tersebut.` : ''} Gerakan tangan harus realistis, natural, dan tidak kaku (posisi stabil, jangan menembus produk, jangan berpindah tangan tiba-tiba, jangan ada gerakan patah-patah/robotik terutama saat mengambil atau memegang produk).`;
+${PRESERVE_ORIGINAL_TEXT}${fotoSubjek === 'produk' ? ' ' + PRESERVE_ORIGINAL_PRODUCT_TEXT : ''}${fotoSubjek === 'produk' ? ` PRODUCT CONSISTENCY LOCK: produk (${garmentDescription}) harus tetap identik dengan foto referensi sepanjang video — bentuk, proporsi, ukuran visual, warna, logo, tulisan, motif, material, tekstur, desain, tombol/port/aksesori, dan semua detail lain yang terlihat di foto. Jangan membuat versi produk yang berbeda, jangan mengganti desain, jangan mengubah warna, jangan menambahkan detail baru, jangan menghilangkan detail yang terlihat. Kalau produk diputar/berganti sisi, hanya perlihatkan sisi yang secara logis memang bagian dari produk tersebut.` : ''} Gerakan tangan harus realistis, natural, dan tidak kaku (posisi stabil, jangan menembus produk, jangan berpindah tangan tiba-tiba, jangan ada gerakan patah-patah/robotik terutama saat mengambil atau memegang produk).${fotoSubjek === 'produk' ? ' ' + ACCURACY_RULES_TEXT : ''}`;
 
   // ===== MODEL/FACE CONSISTENCY LOCK + NATURAL HUMAN MOTION — hanya kalau subjek = model/manusia =====
   const humanConsistency = fotoSubjek === 'model' ? `
@@ -2256,7 +2289,7 @@ ${preservasi}${humanConsistency}`;
       },
       preserve_original: {
         enabled: true,
-        instruction: PRESERVE_ORIGINAL_TEXT + (fotoSubjek === 'produk' ? ' ' + PRESERVE_ORIGINAL_PRODUCT_TEXT : '')
+        instruction: PRESERVE_ORIGINAL_TEXT + (fotoSubjek === 'produk' ? ' ' + PRESERVE_ORIGINAL_PRODUCT_TEXT + ' ' + ACCURACY_RULES_TEXT : '')
       },
       motion: {
         character: fotoSubjek === 'model' ? 'model bergerak natural sesuai foto referensi, tidak kaku/robotik' : 'tangan/model pendukung bergerak halus dan natural tanpa mengubah produk',
@@ -2786,6 +2819,9 @@ Tunjukkan manfaat produk lewat ADEGAN/aksi (product demonstration), bukan cuma d
 === CTA ===
 Natural, singkat, tidak memaksa, TANPA urgency palsu ("stok terbatas", "buruan", "sebelum kehabisan"). Inti CTA: ajak cek keranjang di bawah — boleh divariasikan kalimatnya asal maksud tetap sama.
 
+=== ATURAN KESESUAIAN PRODUK (WAJIB, TikTok Shop) ===
+Dialog dan aksi visual HARUS sesuai produk sebenarnya. Jangan melebih-lebihkan dan jangan membuat klaim, fitur, fungsi, bahan, ukuran, varian, aksesori, garansi, ketentuan retur/pengembalian dana, diskon, atau hasil yang tidak terlihat di foto referensi atau tidak ada di deskripsi produk. Hindari kata "paling", "nomor 1", "terbaik", "100% ampuh", "pasti", "dijamin", "instan", perbandingan sebelum-sesudah, testimoni palsu, angka penjualan, dan klaim viral. Gerakan produk harus realistis (tidak melayang, menyala, atau berubah bentuk). Kalau suatu detail tidak terlihat atau tidak diketahui, jangan disebutkan.
+
 === ATURAN PANJANG & FORMAT (WAJIB) ===
 Hook = tepat 25 kata. Cerita Produk = tepat 25 kata. CTA = tepat 25 kata. Hitung kata dengan benar sebelum menjawab.
 JANGAN gunakan tanda em dash "—" di mana pun dalam dialog.
@@ -2900,7 +2936,7 @@ function vgBuildSceneJSON(item, sceneKey, dialogText){
     duration_seconds: 8,
     preserve_original: {
       enabled: true,
-      instruction: PRESERVE_ORIGINAL_TEXT + ' ' + PRESERVE_ORIGINAL_PRODUCT_TEXT
+      instruction: PRESERVE_ORIGINAL_TEXT + ' ' + PRESERVE_ORIGINAL_PRODUCT_TEXT + ' ' + ACCURACY_RULES_TEXT
     },
     product_consistency: {
       preserve_reference_exactly: true,
@@ -2908,7 +2944,7 @@ function vgBuildSceneJSON(item, sceneKey, dialogText){
       no_new_product_details: true
     },
     voice: buildVoiceCharacterBlock(dialogText, vgState.bahasaReview).dialogue.voice_character,
-    negative_prompt: ['different product','product redesign','changed product shape','changed product color','changed logo','changed text','changed branding','altered proportions','deformed product','product morphing','warped product','duplicate product','different person','face distortion','identity change','deformed hands','extra fingers','extra hands','stiff movement','robotic motion','jerky animation']
+    negative_prompt: ['different product','product redesign','changed product shape','changed product color','changed logo','changed text','changed branding','altered proportions','deformed product','product morphing','warped product','duplicate product','different person','face distortion','identity change','deformed hands','extra fingers','extra hands','stiff movement','robotic motion','jerky animation','exaggerated claims','false product claims','added features not in product','before and after comparison','fake testimonial','floating product','glowing product']
   };
 
   if(sceneKey === 'hook'){
