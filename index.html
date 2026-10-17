@@ -2729,6 +2729,7 @@ function vgRenderStep5(){
       <label class="vg-field-label">Target Audience <span class="vg-required">*wajib</span></label>
       <textarea class="vg-textarea" id="vgTargetAudience" placeholder="Contoh: perempuan usia 20-30 tahun yang peduli perawatan kulit" oninput="vgState.targetAudience=this.value; vgUpdateGenBtn();">${escapeHtml(vgState.targetAudience)}</textarea>
       <button class="vg-btn-primary" id="vgGenBtn" ${canGen?'':'disabled'} onclick="vgGenerateWithAI()">${vgGenerating?'⏳ Memproses...':'✨ Buatkan 3 Script + JSON dengan AI'}</button>
+      ${vgErrBoxHtml()}
       <div class="vg-desc" style="margin-top:8px;">AI otomatis buat 3 script sekaligus (Hook, Cerita Produk, CTA) — masing-masing ±25 kata, langsung jadi 3 prompt JSON siap pakai.</div>
     `;
   } else if(vgState.subMode === 'manual'){
@@ -2811,6 +2812,7 @@ function vgRenderMultiMode(){
       ${vgBackBtn(4)}
       <button class="vg-btn-primary" style="flex:2; margin-top:0;" id="vgMultiBtn" onclick="vgGenerateMulti()" ${vgGenerating?'disabled':''}>${vgGenerating?'⏳ Memproses...':'✨ Generate Semua Produk'}</button>
     </div>
+    ${vgErrBoxHtml()}
   `;
 }
 function vgConfirmMultiCount(){
@@ -2970,9 +2972,17 @@ function vgSetGenUI(label){
     if(btn){ btn.disabled = true; btn.textContent = label || def; }
   });
 }
+let vgLastError = ''; // pesan error terakhir, ditampilkan permanen di bawah tombol Generate (toast terlalu singkat)
 function vgErrText(err){
   if(err && err.name === 'AbortError') return 'Waktu habis (60 detik). Periksa koneksi lalu coba lagi.';
-  return (err && err.message) || 'kesalahan tidak diketahui';
+  const m = (err && err.message) || 'kesalahan tidak diketahui';
+  if(/429|RESOURCE_EXHAUSTED|exceeded your current quota/i.test(m)){
+    return 'Kuota/batas permintaan AI sedang habis (HTTP 429). Tunggu beberapa menit lalu coba lagi, atau cek kuota dan billing API key di Google AI Studio. Detail: ' + m.slice(0, 180);
+  }
+  return m;
+}
+function vgErrBoxHtml(){
+  return vgLastError ? `<div class="hint" id="vgGenError" style="color:#ff6b8a; margin-top:8px; line-height:1.55;">⚠️ ${escapeHtml(vgLastError)}</div>` : '';
 }
 // SATU request AI per produk: Hook, Cerita, CTA datang dalam satu respons JSON.
 async function vgRequestScript(productName, photoBase64){
@@ -2996,14 +3006,16 @@ async function vgRequestScript(productName, photoBase64){
 
 async function vgGenerateWithAI(){
   if(vgGenerating) return; // lock: klik berulang tidak membuat request tambahan
-  vgGenerating = true; vgSetGenUI();
+  vgGenerating = true; vgLastError = ''; vgSetGenUI();
+  const oldErr = document.getElementById('vgGenError'); if(oldErr) oldErr.remove();
   try{
     const r = await vgRequestScript(vgState.productName, vgState.productPhotoBase64);
     vgSetResult([Object.assign({ productName: vgState.productName }, r)]);
     showToast('Script & JSON siap!');
   }catch(err){
     console.error(err);
-    showToast('Gagal membuat script: ' + vgErrText(err));
+    vgLastError = 'Gagal membuat script: ' + vgErrText(err);
+    showToast('Gagal membuat script');
   }finally{
     vgGenerating = false; renderVgStep();
   }
@@ -3028,7 +3040,7 @@ async function vgGenerateMulti(){
   const products = vgState.multiProducts.slice(0, vgState.multiCount).filter(p => p && p.name && p.name.trim());
   if(!products.length){ showToast('Isi minimal 1 Nama Produk'); return; }
   if(!vgState.targetAudience.trim()){ showToast('Target Audience wajib diisi'); return; }
-  vgGenerating = true;
+  vgGenerating = true; vgLastError = '';
   const total = products.length;
   const slots = new Array(total).fill(null);   // hasil per produk, urutan tetap
   const failed = [];
@@ -3067,12 +3079,13 @@ async function vgGenerateMulti(){
     await Promise.all(Array.from({ length: n }, (_, w) => worker(w)));
     const ok = slots.filter(Boolean);
     if(ok.length) vgSetResult(ok);
-    if(!ok.length) showToast('Gagal: ' + (failed[0] || 'tidak ada hasil'));
-    else if(failed.length || stopped) showToast(ok.length + ' dari ' + total + ' produk selesai. Gagal: ' + (failed[0] || 'dihentikan karena batas kuota'));
+    if(!ok.length){ vgLastError = 'Gagal: ' + (failed[0] || 'tidak ada hasil'); showToast('Gagal membuat script'); }
+    else if(failed.length || stopped){ vgLastError = ok.length + ' dari ' + total + ' produk selesai. Gagal: ' + (failed[0] || 'dihentikan karena batas kuota'); showToast(ok.length + ' dari ' + total + ' produk selesai'); }
     else showToast(`${ok.length} set script & JSON siap!`);
   }catch(err){
     console.error(err);
-    showToast('Gagal di tengah proses: ' + vgErrText(err));
+    vgLastError = 'Gagal di tengah proses: ' + vgErrText(err);
+    showToast('Gagal membuat script');
   }finally{
     vgGenerating = false; renderVgStep();
   }
