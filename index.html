@@ -1437,6 +1437,7 @@ async function callGemini(promptText, imagePart, signal){
   }
   parts.push({ text: promptText });
   let lastErr = null;
+  let lastTransient = false; // true kalau kegagalan terakhir karena server Gemini sibuk (5xx)
   for(const modelName of GEMINI_MODEL_FALLBACKS){
     if(signal && signal.aborted) throw new DOMException('Aborted', 'AbortError');
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(geminiKey)}`;
@@ -1447,7 +1448,14 @@ async function callGemini(promptText, imagePart, signal){
       if(networkErr.name === 'AbortError') throw networkErr;
       throw new Error(explainNetworkError(networkErr, 'Gemini'));
     }
-    if(response.status === 404){ lastErr = new Error(`Model ${modelName} tidak tersedia lagi`); continue; }
+    if(response.status === 404){ lastErr = new Error(`Model ${modelName} tidak tersedia lagi`); lastTransient = false; continue; }
+    if(response.status === 500 || response.status === 502 || response.status === 503 || response.status === 504){
+      // Model sedang kelebihan beban (sementara): coba model teks berikutnya di daftar.
+      let m = `HTTP ${response.status}`;
+      try{ const j = await response.json(); m += ': ' + (j?.error?.message || JSON.stringify(j)).slice(0,220); }catch(e){}
+      lastErr = new Error(m); lastTransient = true;
+      continue;
+    }
     if(!response.ok){
       let errMsg = `HTTP ${response.status}`;
       try{ const errJson = await response.json(); errMsg += ': ' + (errJson?.error?.message || JSON.stringify(errJson)).slice(0,220); }catch(e){}
@@ -1459,6 +1467,7 @@ async function callGemini(promptText, imagePart, signal){
     if(!text) throw new Error('Respons Gemini kosong atau diblokir filter keamanan: ' + JSON.stringify(data).slice(0,200));
     return text;
   }
+  if(lastTransient && lastErr) throw lastErr; // server sibuk di semua model: teruskan pesan HTTP 5xx apa adanya
   throw new Error('Semua model Gemini di daftar sudah tidak tersedia (' + lastErr?.message + ').');
 }
 
@@ -2976,6 +2985,9 @@ let vgLastError = ''; // pesan error terakhir, ditampilkan permanen di bawah tom
 function vgErrText(err){
   if(err && err.name === 'AbortError') return 'Waktu habis (60 detik). Periksa koneksi lalu coba lagi.';
   const m = (err && err.message) || 'kesalahan tidak diketahui';
+  if(/\b50[0234]\b|high demand|UNAVAILABLE|overloaded/i.test(m)){
+    return 'Server AI sedang sibuk (kelebihan permintaan, bersifat sementara). Sudah dicoba ulang otomatis tapi belum berhasil. Tunggu 1 sampai 2 menit lalu tekan tombol Generate lagi. Detail: ' + m.slice(0, 160);
+  }
   if(/429|RESOURCE_EXHAUSTED|exceeded your current quota/i.test(m)){
     return 'Kuota/batas permintaan AI sedang habis (HTTP 429). Tunggu beberapa menit lalu coba lagi, atau cek kuota dan billing API key di Google AI Studio. Detail: ' + m.slice(0, 180);
   }
@@ -2985,7 +2997,9 @@ function vgErrBoxHtml(){
   return vgLastError ? `<div class="hint" id="vgGenError" style="color:#ff6b8a; margin-top:8px; line-height:1.55;">⚠️ ${escapeHtml(vgLastError)}</div>` : '';
 }
 // SATU request AI per produk: Hook, Cerita, CTA datang dalam satu respons JSON.
-async function vgRequestScript(productName, photoBase64){
+const VG_TRANSIENT_RE = /\b50[0234]\b|high demand|UNAVAILABLE|overloaded/i;
+function vgSleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+async function vgRequestScriptOnce(productName, photoBase64){
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), VG_AI_TIMEOUT_MS);
   try{
@@ -3001,6 +3015,21 @@ async function vgRequestScript(productName, photoBase64){
     };
   } finally {
     clearTimeout(timer);
+  }
+}
+// SATU request AI per produk (Hook, Cerita, CTA dalam satu respons JSON).
+// Kalau server AI sibuk (5xx), diulang maksimal 2x dengan jeda bertahap 4 dan 8 detik, tidak lebih.
+async function vgRequestScript(productName, photoBase64){
+  for(let attempt = 0; ; attempt++){
+    try{
+      return await vgRequestScriptOnce(productName, photoBase64);
+    }catch(err){
+      const transient = err && err.name !== 'AbortError' && VG_TRANSIENT_RE.test(err.message || '');
+      if(!transient || attempt >= 2) throw err;
+      const single = document.getElementById('vgGenBtn');
+      if(single) single.textContent = '⏳ Server sibuk, mencoba lagi (' + (attempt + 1) + '/2)...';
+      await vgSleep(4000 * (attempt + 1));
+    }
   }
 }
 
