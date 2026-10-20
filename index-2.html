@@ -1,0 +1,3237 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#05060d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="VERRY WIRANZA AI">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"></noscript>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>WIRANZA AI — AI Photo &amp; Content Generator</title>
+<style>
+  /* Font Space Grotesk & JetBrains Mono dimuat async lewat <link> di <head> (lihat atas)
+     supaya tidak memblokir render halaman — pakai fallback system font dulu sampai font custom siap. */
+
+  :root{
+    --bg:#0c0c12;
+    --bg-panel:#16171f;
+    --bg-panel-2:#1d1e29;
+    --bg-input:#0e0f16;
+    --line:#282a36;
+    --ink:#f4f4f7;
+    --ink-dim:#8a8c99;
+    --accent1:#fe2c55;
+    --accent2:#7c4dff;
+    --accent3:#25f4ee;
+    --grad: linear-gradient(120deg, var(--accent1), var(--accent2) 55%, var(--accent3));
+    --ok:#3ddc97;
+    --warn:#ffb454;
+  }
+  *{box-sizing:border-box;}
+  html, body{ overflow-x:hidden; max-width:100%; }
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 15% 0%, rgba(124,77,255,.12), transparent 40%),
+      radial-gradient(circle at 90% 10%, rgba(37,244,238,.08), transparent 35%),
+      var(--bg);
+    color:var(--ink);
+    font-family:'Space Grotesk',sans-serif;
+    min-height:100vh;
+  }
+  .wrap{max-width:1000px; margin:0 auto; padding:0 16px 100px;}
+
+  .topbar{
+    position:sticky; top:0; z-index:60;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:11px 16px;
+    background:rgba(12,12,18,.9);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .brand-mini{display:flex; align-items:center; gap:7px; font-weight:800; font-size:12.5px; letter-spacing:-0.01em;}
+  .brand-mini .logo{width:20px;height:20px;border-radius:6px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:10px;}
+  .provider-badge{
+    display:flex; align-items:center; gap:6px;
+    font-family:'JetBrains Mono',monospace; font-size:10.5px;
+    background:var(--bg-panel); border:1px solid var(--line);
+    border-radius:999px; padding:6px 10px; cursor:pointer; transition:.15s;
+  }
+  .provider-badge{
+    display:flex; align-items:center; gap:6px;
+    font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700;
+    background:var(--bg-panel); border:1px solid var(--line);
+    border-radius:999px; padding:7px 13px; cursor:pointer; transition:.15s; color:var(--ink);
+  }
+  .provider-badge:hover{border-color:var(--accent2);}
+  .provider-badge.connected{color:var(--ok); border-color:rgba(61,220,151,.35);}
+
+  /* ---------- modal Sambungkan AI ---------- */
+  .ai-modal-overlay{position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:150; display:none;}
+  .ai-modal-overlay.open{display:block;}
+  .ai-modal{
+    position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+    z-index:160; width:calc(100% - 32px); max-width:400px; max-height:85vh;
+    background:var(--bg-panel-2); border:1px solid var(--line); border-radius:18px;
+    display:none; flex-direction:column; box-shadow:0 24px 60px rgba(0,0,0,.6);
+  }
+  .ai-modal.open{display:flex;}
+  .ai-modal-head{display:flex; align-items:center; justify-content:space-between; padding:16px 18px; flex-shrink:0; border-bottom:1px solid var(--line);}
+  .ai-modal-title{font-size:14.5px; font-weight:800;}
+  .ai-modal-close{background:var(--bg-input); border:1px solid var(--line); color:var(--ink); width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:14px; flex-shrink:0;}
+  .ai-modal-body{overflow-y:auto; padding:16px 18px 20px;}
+
+  /* ===== VIDEO GENERATOR — wizard 5 step, terpisah dari alur generate produk ===== */
+  .vg-modal{
+    position:fixed; inset:0; z-index:180;
+    background:var(--bg); display:none; flex-direction:column;
+  }
+  .vg-modal.open{display:flex;}
+  .vg-head{display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--line); flex-shrink:0;}
+  .vg-title{font-weight:800; font-size:14px; display:flex; align-items:center; gap:8px;}
+  .vg-close{background:var(--bg-input); border:1px solid var(--line); color:var(--ink); width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:14px; flex-shrink:0;}
+  .vg-progress-track{height:3px; background:var(--bg-input); flex-shrink:0;}
+  .vg-progress-bar{height:100%; background:var(--grad); transition:width .25s ease;}
+  .vg-stepline{display:flex; align-items:center; justify-content:space-between; padding:10px 16px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-dim); flex-shrink:0; border-bottom:1px solid var(--line);}
+  .vg-body{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior-y:contain; padding:18px 16px 100px;}
+  .vg-step-badge{width:26px;height:26px;border-radius:8px;background:var(--ink);color:var(--bg);display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;}
+  .vg-h2{font-size:17px; font-weight:800; margin:14px 0 6px;}
+  .vg-desc{font-size:12px; color:var(--ink-dim); line-height:1.5; margin-bottom:16px;}
+  .vg-pill-grid{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;}
+  .vg-pill{padding:12px 16px; border-radius:14px; background:var(--bg-panel); border:1px solid var(--line); cursor:pointer; font-size:13px; font-weight:600; transition:.15s;}
+  .vg-pill .sub{color:var(--ink-dim); font-weight:500; font-size:11.5px;}
+  .vg-pill.selected{border-color:var(--accent2); background:rgba(124,77,255,.12); color:var(--accent2);}
+  .vg-pill.block{width:100%; text-align:left;}
+  .vg-pill-note{font-size:11.5px; color:var(--ink-dim); line-height:1.55; margin:4px 0 14px; padding:12px; background:var(--bg-input); border-radius:10px; border:1px solid var(--line);}
+  .vg-input, .vg-textarea{width:100%; background:var(--bg-input); border:1px solid var(--line); border-radius:10px; padding:11px 12px; color:var(--ink); font-size:13px; font-family:inherit;}
+  .vg-textarea{min-height:74px; resize:vertical;}
+  .vg-count{text-align:right; font-size:10.5px; color:var(--ink-dim); margin-top:4px;}
+  .vg-field-label{font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.04em; margin-bottom:7px; display:block;}
+  .vg-required{color:#ff6b8a;}
+  .vg-btn-primary{width:100%; padding:15px; border-radius:12px; border:none; background:var(--grad); color:#0c0c12; font-weight:800; font-size:14px; cursor:pointer; margin-top:6px;}
+  .vg-btn-primary:disabled{opacity:.5;}
+  .vg-submode-tabs{display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;}
+  .vg-submode-tab{flex:1; min-width:100px; padding:10px 8px; text-align:center; border-radius:10px; background:var(--bg-panel); border:1px solid var(--line); font-size:11.5px; font-weight:700; cursor:pointer;}
+  .vg-submode-tab.selected{border-color:var(--accent2); color:var(--accent2); background:rgba(124,77,255,.12);}
+  .vg-photo-row{display:flex; gap:10px; align-items:flex-start;}
+  .vg-photo-box{width:64px; height:64px; border-radius:12px; border:1.3px dashed var(--line); display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer; overflow:hidden; background:var(--bg-input);}
+  .vg-photo-box img{width:100%; height:100%; object-fit:cover;}
+  .vg-scene-card{background:var(--bg-panel); border:1px solid var(--line); border-radius:13px; padding:14px; margin-bottom:14px;}
+  .vg-scene-tag{font-size:11px; font-weight:800; letter-spacing:.05em; color:var(--accent2); margin-bottom:8px; display:block;}
+
+  .provider-status-row{display:flex; align-items:center; gap:8px; margin:2px 0 14px;}
+  .provider-status-row .pname{font-size:14px; font-weight:700;}
+  .provider-status-row .pstatus{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-dim); margin-left:auto;}
+  .provider-status-row .pstatus.on{color:var(--ok);}
+
+  .step-list{margin:0 0 14px; padding:0; list-style:none; display:flex; flex-direction:column; gap:8px;}
+  .step-list li{display:flex; gap:8px; font-size:12px; color:var(--ink-dim); line-height:1.5;}
+  .step-list .step-num{flex-shrink:0; width:20px;height:20px; border-radius:50%; background:var(--bg-input); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:var(--ink);}
+
+  .link-actions{display:flex; gap:6px; margin-bottom:14px;}
+  .link-actions button{flex:1; font-family:'Space Grotesk',sans-serif; font-size:11.5px; font-weight:700; background:var(--bg-input); border:1px solid var(--line); color:var(--ink); border-radius:8px; padding:9px 6px; cursor:pointer;}
+  .link-actions button:hover{border-color:var(--accent2);}
+
+  .key-row{display:flex; gap:6px;}
+  .key-row input{flex:1; padding-right:8px;}
+  .key-eye{flex-shrink:0; background:var(--bg-input); border:1px solid var(--line); color:var(--ink-dim); border-radius:8px; padding:0 12px; cursor:pointer; font-size:14px;}
+  .key-warn{font-size:11px; color:var(--warn); margin-top:7px; min-height:14px;}
+
+  .connected-box{background:rgba(61,220,151,.07); border:1px solid rgba(61,220,151,.25); border-radius:12px; padding:14px; margin-bottom:6px;}
+  .connected-box .row-actions{display:flex; gap:8px; margin-top:12px;}
+  .connected-box .row-actions button{flex:1; font-family:'Space Grotesk',sans-serif; font-size:12px; font-weight:700; border-radius:8px; padding:9px 0; cursor:pointer;}
+  .btn-replace{background:var(--bg-input); border:1px solid var(--line); color:var(--ink);}
+  .btn-remove{background:var(--bg-input); border:1px solid rgba(255,180,84,.4); color:var(--warn);}
+
+  .ai-key-warning{font-size:10.5px; color:var(--ink-dim); margin-top:10px; line-height:1.5;}
+
+  /* hook & storytelling */
+  .hookstory-row{display:flex; align-items:center; gap:8px;}
+  .hookstory-label{font-size:12.5px; font-weight:700;}
+  .hookstory-badge{
+    font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700;
+    background:var(--grad); color:#fff; padding:2px 8px; border-radius:999px;
+  }
+  .hookstory-preview{
+    display:block; width:100%; box-sizing:border-box; resize:vertical;
+    font-family:inherit; font-size:12.5px; color:var(--ink-dim); line-height:1.55;
+    background:var(--bg-input); border:1px solid var(--line); border-radius:9px;
+    padding:10px 12px; margin-top:6px; white-space:pre-wrap;
+  }
+  .hookstory-preview.filled{color:var(--ink);}
+  .hookstory-badge.manual{background:var(--bg-input); border:1px solid var(--line); color:var(--ink-dim);}
+
+  .main-tab-nav{
+    position:sticky; top:45px; z-index:55;
+    display:flex; gap:6px; padding:8px 16px;
+    background:rgba(12,12,18,.92); backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .main-tab{
+    flex:1; text-align:center; padding:9px 4px; border-radius:10px;
+    font-family:'Space Grotesk',sans-serif; font-size:12px; font-weight:700;
+    background:var(--bg-panel); border:1px solid var(--line); color:var(--ink-dim); cursor:pointer;
+  }
+  .main-tab.active{background:var(--grad); color:#fff; border-color:transparent;}
+
+  .hero{ padding:34px 0 22px; text-align:center; }
+  .hero .kicker{font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:12px;}
+  .hero h1{font-size:clamp(26px,7vw,42px); font-weight:800; letter-spacing:-0.02em; margin:0 0 6px; background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; line-height:1.05;}
+  .hero .subtitle{font-size:13px; color:var(--ink-dim); font-weight:500; letter-spacing:.02em; margin:0 0 18px;}
+  .cta-btn{display:inline-flex; align-items:center; gap:8px; background:var(--grad); color:#fff; border:none; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:13.5px; padding:12px 26px; border-radius:999px; cursor:pointer; box-shadow:0 10px 26px rgba(124,77,255,.3);}
+
+  header.tool-header{margin:20px 0 14px;}
+  .eyebrow{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent3);margin-bottom:5px;font-weight:700;}
+  h2.tool-title{font-size:18px;line-height:1.1;margin:0 0 4px;font-weight:700;}
+  header.tool-header p{color:var(--ink-dim); font-size:12.5px; margin:0; line-height:1.45;}
+
+  .layout{display:grid; grid-template-columns:1fr; gap:10px;}
+  @media(min-width:840px){.layout{grid-template-columns:1fr 380px;}}
+
+  .acc{background:var(--bg-panel); border:1px solid var(--line); border-radius:13px; overflow:hidden;}
+  .acc + .acc{margin-top:8px;}
+  .acc-head{ display:flex; align-items:center; gap:9px; padding:12px 14px; cursor:pointer; user-select:none; }
+  .acc-head .num{ width:19px;height:19px;border-radius:6px;background:var(--grad); display:flex;align-items:center;justify-content:center; font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;color:#fff;flex-shrink:0; }
+  .acc-head .ttl{font-size:12.5px; font-weight:700; flex-shrink:0;}
+  .acc-head .summary{ font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--accent3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; text-align:right; margin-right:4px; }
+  .acc-head .chev{color:var(--ink-dim); font-size:11px; transition:.2s; flex-shrink:0;}
+  .acc.open .chev{transform:rotate(180deg);}
+  .acc-body{max-height:0; overflow:hidden; transition:max-height .25s ease;}
+  .acc.open .acc-body{max-height:6000px;}
+  .acc-body-inner{padding:0 14px 14px;}
+
+  .g3{display:grid; grid-template-columns:repeat(3,1fr); gap:6px;}
+  .g2{display:grid; grid-template-columns:repeat(2,1fr); gap:6px;}
+  @media(min-width:520px){ .g3{grid-template-columns:repeat(3,1fr);} .g2{grid-template-columns:repeat(3,1fr);} }
+  @media(max-width:340px){ .pill{padding:7px 4px; font-size:10.5px;} .pill .ic{font-size:14px;} }
+
+  .pill{
+    position:relative;
+    border:1.3px solid var(--line); background:var(--bg-input); color:var(--ink-dim);
+    border-radius:9px; padding:9px 6px; text-align:center; cursor:pointer;
+    font-size:11.5px; font-weight:600; transition:.13s; line-height:1.3;
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+  }
+  .pill .ic{font-size:16px; line-height:1;}
+  .pill:hover{border-color:var(--accent2);}
+  .pill.selected{border-color:transparent; background:linear-gradient(var(--bg-input),var(--bg-input)) padding-box, var(--grad) border-box; border:1.5px solid transparent; color:#fff;}
+  .pill .star{position:absolute; top:3px; right:5px; font-size:8px;}
+
+  .segmented{display:flex; background:var(--bg-input); border:1px solid var(--line); border-radius:10px; padding:3px; gap:3px;}
+  .seg-btn{flex:1; text-align:center; padding:9px 4px; border-radius:8px; font-size:11.5px; font-weight:600; color:var(--ink-dim); cursor:pointer; transition:.13s;}
+  .seg-btn.selected{background:var(--grad); color:#fff;}
+
+  .chip-wrap{display:flex; flex-wrap:wrap; gap:6px;}
+  .chip{ position:relative; font-size:11.5px; font-weight:600; padding:8px 12px; border-radius:999px; border:1.3px solid var(--line); background:var(--bg-input); color:var(--ink-dim); cursor:pointer; transition:.13s; }
+  .chip.selected{background:var(--grad); color:#fff; border-color:transparent;}
+  .chip .star{font-size:8.5px; margin-right:3px;}
+  .chip-toolbar{display:flex; gap:6px; margin-bottom:8px;}
+  .btn-mini{font-family:'JetBrains Mono',monospace;font-size:10.5px;background:var(--bg-input);border:1px solid var(--line);color:var(--ink-dim);border-radius:7px;padding:6px 10px;cursor:pointer;}
+  .btn-mini.primary{background:var(--grad); color:#fff; border:none; font-weight:600;}
+
+  select, textarea, input[type=text]{width:100%;background:var(--bg-input);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:9px 11px;font-family:'Space Grotesk',sans-serif;font-size:13px;}
+  select:focus, textarea:focus, input:focus{outline:none; border-color:var(--accent2);}
+  textarea{resize:vertical; min-height:44px; line-height:1.5;}
+  label.field-label{display:block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:6px;}
+  .field{margin-bottom:12px;}
+  .field:last-child{margin-bottom:0;}
+  .hint{font-size:10.5px; color:var(--ink-dim); margin-top:6px; line-height:1.45;}
+  .badge-info{font-size:10.5px;color:var(--accent3);background:rgba(37,244,238,.08);border:1px solid rgba(37,244,238,.2);border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.45;}
+
+  .upload-box{border:1.3px dashed var(--line);border-radius:11px;padding:14px;text-align:center;cursor:pointer;position:relative;background:var(--bg-input);overflow:hidden;}
+  .upload-box.has-image{padding:0; border-style:solid;}
+  .upload-box input[type=file]{position:absolute; inset:0; opacity:0; cursor:pointer;}
+  .upload-placeholder{color:var(--ink-dim); font-size:12px;}
+  .upload-placeholder .icon{width:32px;height:32px;border-radius:10px;background:var(--grad);display:flex;align-items:center;justify-content:center;margin:0 auto 7px;font-size:15px;color:#fff;}
+  #previewImg, #modelPreviewImg, #bgPreviewImg, #gvPhotoPreview, #gvBgPreview, #modelLocBgPreview{display:none; width:100%; max-width:100%; max-height:220px; height:auto; object-fit:contain; border-radius:10px; background:var(--bg-input); cursor:zoom-in;}
+  #gvVideoPreview{display:none; width:100%; max-width:100%; max-height:220px; height:auto; object-fit:contain; border-radius:10px; background:#000;}
+  @media(min-width:840px){
+    #previewImg, #modelPreviewImg, #bgPreviewImg, #gvPhotoPreview, #gvBgPreview, #gvVideoPreview, #modelLocBgPreview{max-height:320px;}
+  }
+  .photo-actions{display:none; gap:6px; margin-top:8px;}
+  .photo-actions.show{display:flex;}
+  .photo-actions button{flex:1; font-size:10.5px; font-family:'JetBrains Mono',monospace; background:var(--bg-input); border:1px solid var(--line); color:var(--ink-dim); border-radius:7px; padding:7px 0; cursor:pointer;}
+  .photo-actions button:hover{border-color:var(--accent2); color:var(--ink);}
+  .lightbox{position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.9); display:none; align-items:center; justify-content:center; padding:24px;}
+  .lightbox.open{display:flex;}
+  .lightbox img{max-width:100%; max-height:100%; object-fit:contain; border-radius:8px;}
+  .lightbox-close{position:absolute; top:16px; right:16px; background:var(--bg-panel); border:1px solid var(--line); color:#fff; width:36px; height:36px; border-radius:50%; font-size:16px; cursor:pointer;}
+  button.detect{font-family:'Space Grotesk',sans-serif;font-size:12.5px;font-weight:700;background:var(--grad);color:#fff;border:none;border-radius:9px;padding:10px 12px;cursor:pointer;width:100%;margin-top:9px;}
+  button.detect:disabled{opacity:.4; cursor:not-allowed;}
+  .detect-status{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-dim);min-height:14px;margin-top:8px;line-height:1.5;white-space:pre-wrap;}
+  .detect-status.ok{color:var(--ok);}
+  .detect-status.err{color:var(--warn);}
+  .err-actions{display:flex; gap:6px; margin-top:6px;}
+
+  .ai-tabs{display:flex; background:var(--bg-input); border-radius:9px; padding:3px; margin-bottom:10px; gap:3px;}
+  .ai-tab{flex:1;text-align:center;padding:8px 0;font-family:'JetBrains Mono',monospace;font-size:11px;border-radius:7px;border:none;background:transparent;color:var(--ink-dim);cursor:pointer;font-weight:600;}
+  .ai-tab.active{background:var(--grad); color:#fff;}
+  .ai-save-btn{width:100%;margin-top:6px;background:var(--grad);color:#fff;border:none;border-radius:9px;padding:10px 0;font-weight:700;font-size:12.5px;cursor:pointer;}
+  .ai-save-btn.secondary{background:var(--bg-input); border:1px solid var(--line); color:var(--ink);}
+  .ai-key-warning{font-size:10px; color:var(--warn); margin-top:8px; line-height:1.45;}
+
+  .range-row{display:flex; align-items:center; gap:10px;}
+  .range-val{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent3);min-width:78px;text-align:right;font-weight:600;}
+  input[type=range]{width:100%; accent-color:var(--accent2); height:4px;}
+
+  .output-panel{background:var(--bg-panel); border:1px solid var(--line); border-radius:13px; padding:14px;}
+  @media(min-width:840px){.output-panel{position:sticky; top:60px;}}
+  .output-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px;}
+  .output-head h2{font-size:11px; font-family:'JetBrains Mono',monospace; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-dim); margin:0;}
+  select.platform-select{margin-bottom:10px; font-size:12px;}
+  .prompt-box{background:var(--bg-input); border:1px solid var(--line); border-radius:10px; padding:12px; font-size:12.5px; line-height:1.6; color:var(--ink); min-height:100px; resize:vertical; width:100%; font-family:'Space Grotesk',sans-serif;}
+  .prompt-box[readonly]{color:#d8d9e0;}
+  .prompt-actions{display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;}
+  .btn-outline{font-family:'Space Grotesk',sans-serif; font-size:11.5px; font-weight:700; background:var(--bg-input); border:1px solid var(--line); color:var(--ink); border-radius:8px; padding:8px 10px; cursor:pointer; flex:1; min-width:96px;}
+  .btn-outline:hover{border-color:var(--accent2);}
+  .json-toggle{font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--ink-dim); cursor:pointer; margin:14px 0 8px; display:flex; align-items:center; gap:6px;}
+  pre{background:var(--bg-input);border:1px solid var(--line);border-radius:10px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.55;color:#d5f5ef;overflow-x:auto;white-space:pre-wrap;word-break:break-word;margin:0;max-height:340px;overflow-y:auto;display:none;}
+  pre.show{display:block;}
+  .json-actions{display:flex; gap:8px; margin-top:8px;}
+  .key{color:#8fb8ff;}
+  .str{color:#ffcf86;}
+  button.copy{font-family:'Space Grotesk',sans-serif;font-size:11.5px;font-weight:700;background:var(--grad);color:#fff;border:none;border-radius:8px;padding:8px 12px;cursor:pointer;}
+
+  .toast{position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--grad); color:#fff; font-family:'Space Grotesk',sans-serif; font-size:12.5px; font-weight:700; padding:10px 18px; border-radius:999px; opacity:0; pointer-events:none; transition:.25s; z-index:80;}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  .sticky-bar{
+    position:fixed; left:0; right:0; bottom:0; z-index:70;
+    padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+    background:rgba(12,12,18,.92);
+    backdrop-filter:blur(12px);
+    border-top:1px solid var(--line);
+    display:flex; gap:8px; justify-content:center;
+  }
+  .sticky-bar .wrap-inner{max-width:1000px; width:100%; display:flex; gap:8px;}
+  .gen-btn{ flex:1; background:var(--grad); color:#fff; border:none; font-weight:700; font-size:13px; padding:13px 0; border-radius:11px; cursor:pointer; font-family:'Space Grotesk',sans-serif; }
+  .sticky-bar .btn-outline{padding:12px 8px; font-size:11.5px;}
+
+  footer.brand-footer{text-align:center; padding:20px 0 4px; color:var(--ink-dim); font-size:10px; font-family:'JetBrains Mono',monospace;}
+
+  /* mode toggle & drawer trigger di halaman utama */
+  .mode-toggle-card{background:var(--bg-panel); border:1px solid var(--line); border-radius:13px; padding:14px; margin-top:8px;}
+  .drawer-trigger{
+    width:100%; margin-top:8px; background:var(--bg-panel); border:1px solid var(--line); border-radius:13px;
+    padding:13px 14px; text-align:left; cursor:pointer; display:flex; flex-direction:column; gap:2px;
+  }
+  .drawer-trigger:hover{border-color:var(--accent2);}
+  .drawer-trigger span:first-child{font-size:13px; font-weight:700; color:var(--ink);}
+  .drawer-trigger-sub{font-size:10.5px; color:var(--ink-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+
+  /* drawer (bottom sheet) */
+  .drawer-overlay{position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:120; display:none;}
+  .drawer-overlay.open{display:block;}
+  .drawer{
+    position:fixed; left:0; right:0; bottom:0; z-index:130;
+    background:var(--bg); border-top:1px solid var(--line); border-radius:20px 20px 0 0;
+    max-height:88vh; display:flex; flex-direction:column;
+    transform:translateY(100%); transition:transform .25s ease;
+    box-shadow:0 -16px 40px rgba(0,0,0,.5);
+  }
+  .drawer.open{transform:translateY(0);}
+  .drawer-head{display:flex; align-items:center; justify-content:space-between; padding:14px 16px 10px; flex-shrink:0;}
+  .drawer-title{font-size:14px; font-weight:800;}
+  .drawer-close{background:var(--bg-panel); border:1px solid var(--line); color:var(--ink); width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:14px;}
+  .drawer-tabs{display:flex; gap:4px; padding:0 16px 10px; flex-shrink:0;}
+  .drawer-tab{flex:1; text-align:center; padding:9px 4px; border-radius:9px; font-size:12px; font-weight:700; background:var(--bg-panel); border:1px solid var(--line); color:var(--ink-dim); cursor:pointer;}
+  .drawer-tab.active{background:var(--grad); color:#fff; border-color:transparent;}
+  .drawer-tab:disabled{opacity:.35; cursor:not-allowed;}
+  .drawer-body{overflow-y:auto; -webkit-overflow-scrolling:touch; padding:0 16px 24px; flex:1;}
+  .drawer-body .acc{display:none;}
+  .drawer-body .acc.tab-visible{display:block;}
+
+
+/* ===== APP / MOBILE LOCK ===== */
+html, body {
+  width:100%; max-width:100%; min-height:100%;
+  margin:0; padding:0;
+  overflow-x:hidden !important;
+  overscroll-behavior-x:none;
+  -webkit-text-size-adjust:100%;
+  touch-action:pan-y;
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-touch-callout:none;
+}
+body { -webkit-tap-highlight-color:transparent; }
+img, svg { -webkit-user-drag:none; user-drag:none; }
+input, textarea, select, [contenteditable="true"] {
+  user-select:text !important;
+  -webkit-user-select:text !important;
+  -webkit-touch-callout:default;
+  touch-action:auto;
+}
+/* Tidak menampilkan scrollbar, tetapi scrolling tetap aktif */
+* { scrollbar-width:none; }
+*::-webkit-scrollbar { width:0 !important; height:0 !important; display:none !important; }
+
+/* ===== WIRANZA AI SPLASH SCREEN — logo presisi + urutan sparkle→V→sisi ===== */
+#wiranzaSplash{
+  position:fixed; inset:0; z-index:999999;
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
+  background:#05060d;
+  transition:opacity .5s ease, visibility .5s ease;
+}
+#wiranzaSplash.hide{opacity:0;visibility:hidden;pointer-events:none}
+
+#wiranzaSplash .wz-aura{
+  position:absolute; inset:-20%;
+  background:
+    radial-gradient(28% 22% at 30% 30%, rgba(47,107,255,0.18), transparent 60%),
+    radial-gradient(28% 22% at 72% 60%, rgba(255,79,216,0.14), transparent 60%);
+  filter:blur(40px);
+  opacity:0;
+  animation:wzAuraIn 1.5s ease .26s forwards, wzDrift 9s ease-in-out 1.2s infinite alternate;
+}
+@keyframes wzAuraIn{ to{opacity:1} }
+@keyframes wzDrift{ 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(2%,-3%) scale(1.06)} }
+
+#wiranzaSplash .wz-particles{ position:absolute; inset:0; overflow:hidden; opacity:0; animation:wzAuraIn 1.5s ease .39s forwards; }
+#wiranzaSplash .wz-dot{
+  position:absolute; width:3px; height:3px; border-radius:50%;
+  background:#9a4fff; box-shadow:0 0 8px 1px rgba(154,79,255,.8);
+  animation:wzFloaty 6s ease-in-out infinite;
+}
+@keyframes wzFloaty{ 0%,100%{transform:translateY(0); opacity:.5} 50%{transform:translateY(-18px); opacity:1} }
+
+.wz-splash-inner{ position:relative; text-align:center; width:min(88vw,420px); padding:24px; box-sizing:border-box; }
+
+.wz-mark{ width:168px; height:auto; margin:0 auto 14px; overflow:visible; display:block; }
+.wz-mark polygon, .wz-mark path{ opacity:0; }
+
+.wz-spark{ transform-origin:96px 70px;
+  animation:wzSparkIn .7s cubic-bezier(.2,.8,.2,1) .1s forwards, wzSparkPulse 2.4s ease-in-out .9s infinite;
+}
+@keyframes wzSparkIn{ 0%{opacity:0; transform:scale(.2) rotate(-25deg)} 60%{opacity:1; transform:scale(1.25) rotate(4deg)} 100%{opacity:1; transform:scale(1) rotate(0)} }
+@keyframes wzSparkPulse{ 0%,100%{filter:drop-shadow(0 0 6px rgba(154,79,255,.5))} 50%{filter:drop-shadow(0 0 15px rgba(154,79,255,.9))} }
+
+.wz-blade-mid{ animation:wzStrokeIn .85s ease-out .36s forwards; transform-origin:96px 92px; }
+.wz-blade-left{ animation:wzStrokeIn .85s ease-out .55s forwards; transform-origin:55px 76px; }
+.wz-blade-right{ animation:wzStrokeIn .85s ease-out .55s forwards; transform-origin:140px 76px; }
+@keyframes wzStrokeIn{ 0%{opacity:0; transform:translateY(14px) scale(.92)} 100%{opacity:1; transform:translateY(0) scale(1)} }
+
+.wz-title{
+  margin:0; font:800 clamp(26px,7.5vw,42px)/1 'Space Grotesk',sans-serif; letter-spacing:.06em;
+  background:linear-gradient(90deg,#2f6bff,#9a4fff 55%,#ff4fd8);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  opacity:0; filter:blur(6px);
+  animation:wzTextReveal .8s ease-out .81s forwards;
+}
+@keyframes wzTextReveal{ 0%{opacity:0; filter:blur(6px); transform:translateY(6px)} 100%{opacity:1; filter:blur(0); transform:translateY(0)} }
+
+.wz-sub{
+  margin-top:10px; font-size:12px; letter-spacing:.28em; color:#9aa0b4;
+  font-family:'Space Grotesk',sans-serif;
+  opacity:0; animation:wzFadeUp .6s ease-out 1.07s forwards;
+}
+.wz-divider{ display:flex; align-items:center; justify-content:center; gap:14px; margin-top:26px; opacity:0; animation:wzFadeUp .6s ease-out 1.24s forwards; }
+.wz-divider-line{ height:1px; width:36px; background:linear-gradient(90deg,transparent,#2f6bff); }
+.wz-divider-line.right{ background:linear-gradient(90deg,#ff4fd8,transparent); }
+.wz-divider-glow{ height:2px; width:60px; border-radius:2px; background:linear-gradient(90deg,#2f6bff,#9a4fff,#ff4fd8); box-shadow:0 0 10px rgba(122,92,255,.7); }
+.wz-author{
+  margin-top:16px; font-size:13px; letter-spacing:.24em; color:#e6e8f0;
+  font-family:'Space Grotesk',sans-serif;
+  opacity:0; animation:wzFadeUp .6s ease-out 1.37s forwards;
+}
+@keyframes wzFadeUp{ 0%{opacity:0; transform:translateY(8px)} 100%{opacity:1; transform:translateY(0)} }
+
+@media (prefers-reduced-motion:reduce){
+  #wiranzaSplash *{animation:none!important}
+  .wz-mark polygon, .wz-mark path, .wz-title, .wz-sub, .wz-divider, .wz-author, .wz-aura, .wz-particles{opacity:1}
+}
+
+</style>
+</head>
+<body>
+<div id="wiranzaSplash" aria-label="Memuat Wiranza AI">
+  <div class="wz-aura"></div>
+  <div class="wz-particles" id="wzParticles"></div>
+  <div class="wz-splash-inner">
+    <svg class="wz-mark" viewBox="20 40 150 115" aria-hidden="true">
+      <defs>
+        <linearGradient id="wzLeft" x1="0" y1="0" x2="0.5" y2="1">
+          <stop offset="0%" stop-color="#4fd8ff"/><stop offset="100%" stop-color="#2f6bff"/>
+        </linearGradient>
+        <linearGradient id="wzMidFull" x1="0" y1="0" x2="1" y2="0.2">
+          <stop offset="0%" stop-color="#4f7dff"/><stop offset="50%" stop-color="#8a5bff"/><stop offset="100%" stop-color="#c04fff"/>
+        </linearGradient>
+        <linearGradient id="wzRight" x1="1" y1="0" x2="0.4" y2="1">
+          <stop offset="0%" stop-color="#ff4fd8"/><stop offset="100%" stop-color="#a24fff"/>
+        </linearGradient>
+        <linearGradient id="wzSpark" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#4fd8ff"/><stop offset="50%" stop-color="#7a6bff"/><stop offset="100%" stop-color="#ff4fd8"/>
+        </linearGradient>
+        <filter id="wzGlow" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="2.6" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <g filter="url(#wzGlow)">
+        <polygon class="wz-spark" fill="url(#wzSpark)" points="95.8,52.0 95.3,52.5 94.1,61.2 91.9,65.2 88.0,68.0 81.4,69.3 80.4,70.4 87.0,71.8 91.7,74.7 94.1,78.9 95.3,87.2 96.4,87.9 97.8,79.4 100.1,75.1 103.2,72.6 108.1,71.1 111.2,70.8 111.6,69.8 110.8,69.2 104.2,68.0 100.3,65.2 97.9,61.0 97.0,56.9 96.8,52.6"/>
+
+        <path class="wz-blade-mid" fill="url(#wzMidFull)" d="M 67.4,87.5 L 89.4,138.1 L 96,144.7 L 102.6,138.1 L 124.6,87.5 L 104.8,87.5 L 96,118.3 L 87.2,87.5 Z"/>
+
+        <polygon class="wz-blade-left" fill="url(#wzLeft)" points="31,76.3 30.5,77.8 65.7,145.2 68.2,145.7 77.8,126.0 54.2,78.8 51.2,76.7"/>
+
+        <polygon class="wz-blade-right" fill="url(#wzRight)" points="161.0,76.3 161.5,77.8 126.3,145.2 123.8,145.7 114.2,126.0 137.8,78.8 140.8,76.7"/>
+      </g>
+    </svg>
+
+    <h1 class="wz-title">WIRANZA AI</h1>
+    <div class="wz-sub">AI PHOTO &amp; CONTENT GENERATOR</div>
+    <div class="wz-divider">
+      <div class="wz-divider-line"></div>
+      <div class="wz-divider-glow"></div>
+      <div class="wz-divider-line right"></div>
+    </div>
+    <div class="wz-author">VERRY WIRANZA</div>
+  </div>
+</div>
+<script>
+(function(){
+  var wrap = document.getElementById('wzParticles');
+  if(!wrap) return;
+  for(var i=0;i<14;i++){
+    var d = document.createElement('div');
+    d.className = 'wz-dot';
+    d.style.left = (Math.random()*100)+'%';
+    d.style.top = (Math.random()*100)+'%';
+    d.style.animationDelay = (Math.random()*4)+'s';
+    d.style.animationDuration = (5+Math.random()*4)+'s';
+    d.style.opacity = (0.3+Math.random()*0.5);
+    wrap.appendChild(d);
+  }
+})();
+</script>
+
+
+
+  <div class="topbar">
+    <div class="brand-mini"><span class="logo">✨</span> VERRY WIRANZA AI</div>
+    <div style="display:flex; gap:6px;">
+      <button class="provider-badge" id="providerBadgeBtn" onclick="openAiModal()">
+        <span id="aiMenuLabel">🔑 AI</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="ai-modal-overlay" id="aiModalOverlay" onclick="closeAiModal()"></div>
+  <div class="ai-modal" id="aiModal" role="dialog" aria-modal="true">
+    <div class="ai-modal-head">
+      <span class="ai-modal-title">🔑 Sambungkan AI</span>
+      <button class="ai-modal-close" onclick="closeAiModal()">✕</button>
+    </div>
+    <div class="ai-modal-body">
+      <div class="ai-tabs">
+        <button class="ai-tab active" data-provider="gemini" onclick="switchProviderTab(this)">Gemini</button>
+        <button class="ai-tab" data-provider="claude" onclick="switchProviderTab(this)">Claude</button>
+      </div>
+      <div id="aiProviderContent"></div>
+    </div>
+  </div>
+
+<div class="main-tab-nav">
+  <button class="main-tab active" data-tab="foto" onclick="switchMainTab('foto')">📷 Foto</button>
+  <button class="main-tab" onclick="openVideoGen()">🎬 Video</button>
+  <button class="main-tab" data-tab="panduan" onclick="switchMainTab('panduan')">📖 Panduan</button>
+</div>
+
+<div class="wrap">
+
+<div id="tabContent-foto">
+
+  <section class="hero" style="padding:20px 16px 8px;">
+    <div class="kicker">FOTO PRODUK AI</div>
+    <h1 style="font-size:20px;">Buat Foto Produk Berkualitas Tinggi</h1>
+    <p style="font-size:12.5px; color:var(--ink-dim); margin-top:4px;">Upload foto produk, pilih konsep & background, AI buatkan foto baru — produk tetap identik dengan aslinya.</p>
+  </section>
+
+  <div class="wrap">
+
+    <!-- ① UPLOAD FOTO PRODUK -->
+    <div class="acc open" id="fp-sec-upload">
+      <div class="acc-head"><span class="num">①</span><span class="ttl">Upload Foto Produk</span></div>
+      <div class="acc-body"><div class="acc-body-inner">
+        <div class="upload-box" id="fpUploadBox" onclick="document.getElementById('fpFileInput').click();">
+          <div id="fpUploadPlaceholder">
+            <div style="font-size:28px;">📷</div>
+            <div style="font-size:12.5px; color:var(--ink-dim); margin-top:6px;">Tap untuk Upload Foto Produk</div>
+          </div>
+          <img id="fpPreviewImg" style="display:none; max-width:160px; max-height:160px; border-radius:10px; object-fit:cover;">
+        </div>
+        <input type="file" id="fpFileInput" accept="image/*" style="display:none;">
+        <div class="chip-toolbar" id="fpPhotoActions" style="display:none; margin-top:10px;">
+          <button class="btn-mini" onclick="document.getElementById('fpFileInput').click();">➕ Tambah Foto</button>
+          <button class="btn-mini" onclick="fpRemovePhoto()">🗑️ Hapus</button>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ② PILIH KONSEP FOTO -->
+    <div class="acc" id="fp-sec-konsep">
+      <div class="acc-head" onclick="toggleSection('fp-sec-konsep')"><span class="num">②</span><span class="ttl">Pilih Konsep Foto</span><span class="chev">▾</span></div>
+      <div class="acc-body"><div class="acc-body-inner">
+        <div class="g3" id="fpConceptGrid"></div>
+        <div class="field" id="fpConceptCustomWrap" style="display:none; margin-top:8px;">
+          <textarea id="fpConceptCustomText" placeholder="Contoh: Produk diletakkan di atas meja kayu dengan suasana premium."></textarea>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ③ BACKGROUND / LOKASI -->
+    <div class="acc" id="fp-sec-bg">
+      <div class="acc-head" onclick="toggleSection('fp-sec-bg')"><span class="num">③</span><span class="ttl">Background / Lokasi</span><span class="chev">▾</span></div>
+      <div class="acc-body"><div class="acc-body-inner">
+        <div class="g3" id="fpBackgroundGrid"></div>
+        <div class="field" id="fpBackgroundCustomWrap" style="display:none; margin-top:8px;">
+          <input type="text" id="fpBackgroundCustomText" placeholder="Jelaskan background sendiri">
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ④ GENERATE FOTO -->
+    <div class="acc" id="fp-sec-generate">
+      <div class="acc-head" onclick="toggleSection('fp-sec-generate')"><span class="num">④</span><span class="ttl">Generate Foto</span><span class="chev">▾</span></div>
+      <div class="acc-body"><div class="acc-body-inner">
+        <div style="font-size:12px; line-height:1.8; color:var(--ink-dim);">
+          <b style="color:var(--ink);">Produk:</b> <span id="fpSummaryProduk">belum upload foto</span><br>
+          <b style="color:var(--ink);">Konsep:</b> <span id="fpSummaryKonsep">belum dipilih</span><br>
+          <b style="color:var(--ink);">Background:</b> <span id="fpSummaryBg">belum dipilih</span>
+        </div>
+        <button class="vg-btn-primary" id="fpGenBtn" style="margin-top:14px;" onclick="fpGenerateFoto()">✨ Generate Foto</button>
+        <div class="hint" id="fpGenError" style="display:none; color:#ff6b8a;"></div>
+      </div></div>
+    </div>
+
+    <!-- ⑤ HASIL FOTO -->
+    <div class="acc" id="fp-sec-hasil" style="display:none;">
+      <div class="acc-head" onclick="toggleSection('fp-sec-hasil')"><span class="num">⑤</span><span class="ttl">Hasil Prompt Foto</span><span class="chev">▾</span></div>
+      <div class="acc-body"><div class="acc-body-inner">
+        <div class="chip-toolbar" style="margin-bottom:10px;">
+          <button class="btn-mini" id="fpLangId" onclick="fpSetPromptLang('id')">🇮🇩 Bahasa Indonesia</button>
+          <button class="btn-mini" id="fpLangEn" onclick="fpSetPromptLang('en')">🇬🇧 English</button>
+        </div>
+        <div id="fpResultWrap"></div>
+        <div class="chip-toolbar" style="margin-top:12px;">
+          <button class="btn-mini" onclick="fpCopyPrompt()">📋 Salin Prompt</button>
+          <button class="btn-mini" onclick="fpGenerateFoto()">🔄 Generate Lagi</button>
+        </div>
+      </div></div>
+    </div>
+
+  </div>
+
+  <footer class="brand-footer">VERRY WIRANZA AI — Foto Produk AI</footer>
+
+</div><!-- /tabContent-foto -->
+
+<div id="tabContent-panduan" style="display:none;">
+  <header class="tool-header">
+    <div class="eyebrow">Bantuan</div>
+    <h2 class="tool-title">📖 Panduan Penggunaan</h2>
+    <p>Cara cepat memakai VERRY WIRANZA AI.</p>
+  </header>
+
+  <div class="acc open">
+    <div class="acc-head" onclick="this.parentElement.classList.toggle('open')"><span class="ttl">🔑 Menghubungkan AI</span><span class="chev">▾</span></div>
+    <div class="acc-body"><div class="acc-body-inner">
+      <p style="font-size:12.5px; color:var(--ink-dim); line-height:1.6;">Tap tombol <b>🔑 AI</b> di pojok kanan atas → pilih Gemini atau Claude → ikuti langkah membuat API Key → paste → tap "Simpan & Mulai". Key gratis tersedia di Google AI Studio untuk Gemini.</p>
+    </div></div>
+  </div>
+  <div class="acc">
+    <div class="acc-head" onclick="this.parentElement.classList.toggle('open')"><span class="ttl">📷 Fitur Foto</span><span class="chev">▾</span></div>
+    <div class="acc-body"><div class="acc-body-inner">
+      <p style="font-size:12.5px; color:var(--ink-dim); line-height:1.6;">Upload foto → pilih Subjek (Model/Produk) → atur Jenis Produk, Gerakan, Review Produk (jika relevan), Lokasi, Posisi Kamera, dan Pencahayaan → tap Generate Prompt. Detail produk dari foto asli selalu dikunci otomatis agar tidak berubah bentuk, warna, atau desainnya.</p>
+    </div></div>
+  </div>
+</div><!-- /tabContent-panduan -->
+
+</div><!-- /wrap -->
+
+<div class="toast" id="toast">Tersalin ke clipboard</div>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightboxImg" src="" alt="preview besar" onclick="event.stopPropagation()">
+</div>
+
+<div class="sticky-bar">
+  <div class="wrap-inner" id="stickyBarInner">
+    <button class="gen-btn" id="mainGenBtn" onclick="onGenerateTap()">✨ Generate Prompt</button>
+  </div>
+</div>
+
+<script>
+/* ================= DATA ================= */
+const CATEGORIES = [
+  { id:"tas", label:"Tas", icon:"👜" }, { id:"sepatu", label:"Sepatu", icon:"👟" },
+  { id:"sandal", label:"Sandal", icon:"🩴" }, { id:"kosmetik", label:"Kosmetik", icon:"💄" },
+  { id:"baju", label:"Baju", icon:"👕" }, { id:"celana", label:"Celana", icon:"👖" },
+  { id:"aksesori", label:"Aksesori", icon:"💍" }, { id:"elektronik", label:"Elektronik", icon:"⚡" },
+  { id:"lainnya", label:"Lainnya", icon:"📦" },
+  { id:"custom", label:"Custom", icon:"✏️" },
+];
+const CATEGORY_HAS_INTERIOR = { tas:true, sepatu:true, sandal:false, kosmetik:true, baju:false, celana:false, aksesori:false, elektronik:false, lainnya:false, custom:false };
+const KATEGORI_KAIN = ["baju","celana"];
+
+const ELEKTRONIK_PRODUCTS = [
+  "TWS Bluetooth","Earphone Bluetooth","Headset","Radio","Speaker Bluetooth","Smartwatch",
+  "Charger","Power Bank","Kabel & Adaptor","Aksesori HP","Mouse","Keyboard","Game Controller",
+  "Lampu LED","Kamera","Aksesori Komputer","Elektronik Rumah Tangga","Lainnya","Custom"
+];
+
+// Gerakan otomatis per produk elektronik spesifik — jika produk tidak ada di sini,
+// AI/gerakan umum yang dipakai (AI menentukan berdasarkan foto).
+const ELEKTRONIK_GERAKAN_MAP = {
+  "TWS Bluetooth": ["Dipegang","Diperlihatkan Dekat Kamera","Membuka Charging Case","Mengeluarkan TWS dari Case","Memasukkan Kembali ke Case","Menunjukkan Detail Penggunaan","Simulasi Penggunaan Secara Natural","Custom"],
+  "Earphone Bluetooth": ["Dipegang","Diperlihatkan Dekat Kamera","Menunjukkan Bagian Earphone","Memakai Earphone Secara Natural","Menunjukkan Charging Port/Case","Simulasi Penggunaan","Custom"],
+  "Headset": ["Dipegang","Diputar Perlahan","Menunjukkan Sisi Kiri dan Kanan","Menunjukkan Earcup","Dipakai Secara Natural","Simulasi Penggunaan","Custom"],
+  "Radio": ["Dipegang","Diputar Perlahan","Menunjukkan Bagian Depan","Menunjukkan Tombol","Diletakkan di Meja","Simulasi Penggunaan","Custom"],
+  "Speaker Bluetooth": ["Dipegang","Diputar Perlahan","Menunjukkan Beberapa Sisi","Menunjukkan Tombol","Diletakkan di Meja","Simulasi Penggunaan","Custom"],
+  "Smartwatch": ["Dipegang","Diperlihatkan Dekat Kamera","Menunjukkan Layar","Dipakai pada Pergelangan Tangan","Menunjukkan Penggunaan Secara Natural","Custom"],
+  "Charger": ["Dipegang","Diperlihatkan Dekat Kamera","Menunjukkan Konektor","Diletakkan di Meja","Simulasi Penggunaan","Custom"],
+  "Power Bank": ["Dipegang","Diputar Perlahan","Menunjukkan Port","Diletakkan di Meja","Simulasi Penggunaan","Custom"],
+  "Mouse": ["Dipegang","Diperlihatkan Dekat Kamera","Diletakkan di Meja","Digunakan Secara Natural","Custom"],
+  "Keyboard": ["Diperlihatkan dari Atas","Dipegang","Diletakkan di Meja","Tangan Mengetik Secara Natural","Custom"],
+  "Game Controller": ["Dipegang","Diperlihatkan dari Beberapa Sisi","Tombol Digunakan Secara Natural","Simulasi Bermain","Custom"],
+  "Lampu LED": ["Dipegang","Diletakkan","Dinyalakan","Menunjukkan Efek Pencahayaan Secara Natural","Custom"],
+  "Kamera": ["Dipegang","Diputar Perlahan","Menunjukkan Bagian Depan","Menunjukkan Bagian Belakang","Simulasi Penggunaan","Custom"]
+};
+
+// Lokasi yang disarankan otomatis per produk elektronik (dipakai sebagai default,
+// tidak memaksa — kalau user pilih lokasi manual, pilihan user tetap dipakai).
+const ELEKTRONIK_LOKASI_MAP = {
+  "TWS Bluetooth": { mode:"indoor", label:"Kamar Modern" },
+  "Earphone Bluetooth": { mode:"indoor", label:"Kamar Modern" },
+  "Headset": { mode:"indoor", label:"Gaming Setup" },
+  "Radio": { mode:"indoor", label:"Ruang Tamu" },
+  "Speaker Bluetooth": { mode:"indoor", label:"Kamar Modern" },
+  "Smartwatch": { mode:"indoor", label:"Ruang Kerja" },
+  "Charger": { mode:"indoor", label:"Meja Kerja" },
+  "Power Bank": { mode:"indoor", label:"Meja Kerja" },
+  "Mouse": { mode:"indoor", label:"Meja Komputer" },
+  "Keyboard": { mode:"indoor", label:"Gaming Setup" },
+  "Game Controller": { mode:"indoor", label:"Gaming Setup" },
+  "Lampu LED": { mode:"indoor", label:"Kamar Modern" },
+  "Kamera": { mode:"indoor", label:"Studio" }
+};
+
+const GERAKAN_MODEL = ["Berdiri Natural","Berjalan Natural","Duduk di Kursi","Memegang Produk","Memperlihatkan Produk","Custom"];
+const GERAKAN_PRODUK_UMUM = ["Dipegang","Diputar Perlahan","Dielus","Ditekan jika sesuai","Memperlihatkan Detail","Review Produk","Custom"];
+const GERAKAN_PRODUK_KAIN = ["Dipegang","Diputar Perlahan","Dielus pada kain","Memperlihatkan tekstur","Memperlihatkan detail","Review Produk","Custom"];
+
+const REVIEW_LUAR_OPTIONS = ["Memperlihatkan Bagian Depan","Memperlihatkan Bagian Samping","Memperlihatkan Bagian Belakang","Memutar Produk Perlahan","Menunjukkan Detail Produk","Mendekatkan Produk ke Kamera","Review Natural","Custom"];
+const REVIEW_DALAM_OPTIONS = ["Membuka Produk","Memperlihatkan Bagian Dalam","Menunjukkan Detail Interior","Memperlihatkan Kantong / Kompartemen","Kamera Melihat ke Dalam Produk","Menutup Produk Secara Natural","Review Natural","Custom"];
+
+const INDOOR_OPTIONS = ["Studio","Boutique","Kamar Modern","Dressing Room","Cafe Indoor","Mall","Meja Kerja","Ruang Kerja","Ruang Tamu","Meja Komputer","Gaming Setup","Toko Elektronik","Dalam Rumah","Custom"];
+const OUTDOOR_OPTIONS = ["Di Dalam Mobil","Taman","Pantai","Trotoar","Area Gedung","Cafe Outdoor","Custom"];
+
+const CAM_POS_OPTIONS = [
+  { id:"static", label:"Static / Stabil", phrase:"kamera diam stabil, tidak bergerak" },
+  { id:"atas", label:"Dari Atas", phrase:"kamera dari sudut lebih tinggi mengarah ke bawah, sudut realistis tidak ekstrem" },
+  { id:"bawah", label:"Dari Bawah", phrase:"kamera dari sudut lebih rendah mengarah ke atas, proporsi tetap realistis" },
+  { id:"dada", label:"Sejajar Dada", phrase:"kamera sejajar area dada, framing natural dan nyaman dilihat" },
+  { id:"ikuti", label:"Ikuti Gerakan Model", phrase:"kamera mengikuti gerakan model secara otomatis dengan tracking halus dan stabil, tanpa zoom cepat atau orbit ekstrem" },
+  { id:"custom", label:"Custom", phrase:null },
+];
+
+const LIGHTING_INDOOR = ["Natural Window Light","Soft Light","Studio Softbox","Bright Commercial","Warm Indoor","Luxury Soft","Auto","Custom"];
+const LIGHTING_OUTDOOR = ["Natural Daylight","Overcast","Shade","Golden Hour","Sunrise","Sunset","Auto","Custom"];
+
+const MODEL_STYLES = ["Casual","Elegan","Fashion","Streetwear","Sporty","Luxury","Natural"];
+
+/* ================= STATE ================= */
+let fotoSubjek = "model"; // 'model' | 'produk'
+let selectedCategory = "tas";
+let selectedElektronikProduk = "";
+let gerakanUtama = ""; // diisi otomatis sesuai subjek/kategori
+let uploadedBase64 = null, uploadedMediaType = null;
+let modelSource = "upload", modelBase64 = null, modelMediaType = null, modelGender = "wanita", modelStyle = "Casual";
+let reviewProdukTab = "luar";
+let selectedReviewLuar = new Set();
+let selectedReviewDalam = new Set();
+let putaranSudut = "90°";
+let lokasiMode = "indoor";
+let lokasiList = []; // maks 3 lokasi berurutan (scene 1/2/3) — boleh campur indoor/outdoor/upload/custom
+let selectedIndoor = "Studio";
+let selectedOutdoor = "Di Dalam Mobil";
+let locBgBase64 = null, locBgMediaType = null;
+let selectedCamPos = "dada";
+let selectedLighting = "Auto";
+/* ================= JENIS PROMPT — 16 gaya kreatif, lokal (tanpa API request tambahan) ================= */
+const PROMPT_TYPES = [
+  { id:'general', name:'GENERAL', objective:'Prompt fotografi/video natural dan profesional dengan mempertahankan foto asli semaksimal mungkin.', strategy:'Keep the treatment clean, natural, and professional. No stylistic exaggeration — just a well-composed, well-lit, true-to-reference presentation.' },
+  { id:'hook', name:'HOOK / BIKIN PENONTON PENASARAN', objective:'Membuat konsep visual yang menarik perhatian dan menimbulkan rasa penasaran.', strategy:'Open with a visually intriguing composition or angle that immediately grabs attention and creates curiosity, using framing and timing to tease before revealing.' },
+  { id:'stopscroll', name:'STOP SCROLL', objective:'Membuat visual lebih menarik secara komposisi, lighting, dan framing agar kuat saat dilihat di media sosial.', strategy:'Maximize visual impact for a fast-scrolling feed: bold composition, strong contrast lighting, and a framing choice that reads instantly and stands out in the first second.' },
+  { id:'storytelling', name:'STORYTELLING', objective:'Memberikan nuansa cerita pada foto tanpa mengubah subjek utama.', strategy:'Frame the shot to imply a small narrative moment — a sense of before/after or an implied action — using composition and mood rather than changing the subject itself.' },
+  { id:'product_selling', name:'PRODUCT SELLING', objective:'Jika terdapat produk, fokus pada produk agar terlihat menarik dan profesional.', strategy:"Push the product as the clear hero of the frame: tighter focus, clean background separation, and lighting that flatters the product's material and detail." },
+  { id:'soft_sell', name:'SOFT SELL', objective:'Promosi natural dan tidak terasa seperti iklan keras.', strategy:'Keep the mood relaxed and lifestyle-driven — the product/subject feels like a natural part of the scene, not a hard advertisement.' },
+  { id:'hard_sell', name:'HARD SELL', objective:'Promosi lebih kuat dengan fokus utama pada produk.', strategy:'Make the product unmistakably the focal point with confident, punchy lighting and a direct, commercial-ad style composition.' },
+  { id:'premium', name:'PREMIUM / LUXURY', objective:'Memberikan kesan premium, elegan, mahal, dan profesional.', strategy:'Use refined, elegant lighting with soft controlled shadows, a restrained color palette, and clean minimal framing to convey a premium, high-end feel.' },
+  { id:'cinematic', name:'CINEMATIC', objective:'Memberikan nuansa cinematic melalui lighting, depth, atmosphere, dan color grading.', strategy:'Apply cinematic depth: layered lighting, atmospheric mood, shallow depth of field, and a film-like color grade.' },
+  { id:'lifestyle', name:'LIFESTYLE', objective:'Membuat foto terasa natural seperti bagian dari kehidupan sehari-hari.', strategy:'Keep everything candid and everyday-natural — relaxed framing, natural light feel, as if captured in a real lifestyle moment.' },
+  { id:'aesthetic', name:'AESTHETIC', objective:'Memperkuat komposisi, warna, pencahayaan, dan keindahan visual.', strategy:'Emphasize visual beauty: balanced composition, harmonious color palette, and soft flattering light for an aesthetically pleasing result.' },
+  { id:'emotional', name:'EMOTIONAL', objective:'Memperkuat suasana dan emosi yang sudah ada dalam foto.', strategy:'Amplify the existing mood/emotion already present in the reference through lighting warmth/coolness and framing intimacy — do not invent a different emotion.' },
+  { id:'social_media', name:'SOCIAL MEDIA', objective:'Mengoptimalkan framing dan visual untuk tampilan layar HP/media sosial.', strategy:'Optimize framing and visual clarity specifically for a vertical mobile-feed viewing experience — clear subject silhouette, readable at small size.' },
+  { id:'curiosity', name:'CURIOSITY / MYSTERY', objective:'Membuat penonton penasaran tanpa membuat informasi palsu.', strategy:'Use partial reveals, framing, or angle choices that build intrigue and curiosity — without fabricating any detail not present in the reference.' },
+  { id:'viral', name:'VIRAL', objective:'Membuat konsep visual yang memiliki stopping power dan menarik perhatian.', strategy:'Prioritize maximum stopping power: a bold, memorable visual moment/composition that stands out and is highly shareable.' },
+  { id:'attention_story_cta', name:'ATTENTION + STORY + CTA', objective:'Menghasilkan konsep HOOK → STORY → VALUE → CTA.', strategy:'Structure the visual progression as Hook (grab attention) → Story (brief narrative moment) → Value (show the benefit) → CTA (clear closing direction), all through framing/pacing, not by altering the subject.' },
+  { id:'video_produk', name:'VIDEO PRODUK', objective:'Struktur khusus video produk terarah — motion, kamera, hook, storytelling, CTA, dan negative prompt dalam satu JSON siap pakai.', strategy:'Produce a structured product-video treatment: clear character/product motion, deliberate camera movement, and product-focused framing throughout — while keeping every visual detail of the reference product completely unchanged.' }
+];
+/* ================= STORAGE AMAN — tidak pernah membuat startup gagal/stuck ================= */
+function safeStorageGet(key, fallback){
+  try{ const v = localStorage.getItem(key); return (v === null || v === undefined) ? fallback : v; }
+  catch(e){ console.warn('localStorage tidak bisa diakses (get):', key, e); return fallback; }
+}
+function safeStorageSet(key, value){
+  try{ localStorage.setItem(key, value); return true; }
+  catch(e){ console.warn('localStorage tidak bisa diakses (set):', key, e); return false; }
+}
+function safeStorageRemove(key){
+  try{ localStorage.removeItem(key); return true; }
+  catch(e){ console.warn('localStorage tidak bisa diakses (remove):', key, e); return false; }
+}
+
+let selectedPromptType = safeStorageGet('vw_promptType', 'general');
+let selectedBahasaModel = safeStorageGet('vw_bahasaModel', 'id'); // default Bahasa Indonesia
+const BAHASA_MODEL_MAP = {
+  id: { label: 'Bahasa Indonesia', instruction: 'Bahasa Indonesia sehari-hari yang natural dan santai, seperti berbicara dengan teman — bukan bahasa baku/formal.', forbidden: 'Bahasa Jawa, Sunda, Aceh, atau English' },
+  ace: { label: 'Bahasa Aceh', instruction: 'Bahasa Aceh (bahasa daerah Aceh) yang natural dan santai, seperti percakapan sehari-hari penutur asli — BUKAN terjemahan kata-per-kata dari Bahasa Indonesia. Istilah produk umum (nama produk, istilah teknis seperti "TWS Bluetooth", "Power Bank") boleh tetap memakai istilah aslinya, tidak perlu dipaksakan diterjemahkan.', forbidden: 'Bahasa Indonesia sebagai bahasa utama' },
+  su: { label: 'Bahasa Sunda', instruction: 'Bahasa Sunda yang natural dan santai (loma), seperti percakapan sehari-hari penutur asli — BUKAN terjemahan kata-per-kata dari Bahasa Indonesia. Istilah produk umum boleh tetap memakai istilah aslinya.', forbidden: 'Bahasa Jawa, Aceh, English, atau Bahasa Indonesia sebagai bahasa utama' },
+  jv: { label: 'Bahasa Jawa', instruction: 'Bahasa Jawa ngoko/natural yang santai, seperti percakapan sehari-hari penutur asli — BUKAN terjemahan kata-per-kata dari Bahasa Indonesia. Gunakan gaya percakapan yang sesuai target audiens. Istilah produk umum boleh tetap memakai istilah aslinya.', forbidden: 'Bahasa Indonesia sebagai bahasa utama' },
+  en: { label: 'English', instruction: 'Natural conversational English (like talking to a friend), NOT a literal/stiff translation from Indonesian. Common product terms may stay in their original form.', forbidden: 'Indonesian or any regional language as the main language' }
+};
+
+/* ================= VOICE GENDER — konsisten di seluruh JSON, usia tetap 20 tahun ================= */
+let selectedVoiceGender = safeStorageGet('vw_voiceGender', 'female');
+const VOICE_GENDER_MAP = {
+  female: { label: 'Perempuan', genderValue: 'female' },
+  male: { label: 'Laki-laki', genderValue: 'male' }
+};
+const VOICE_AGE_FIXED = 20;
+
+function buildVoiceCharacterBlock(scriptText, langOverride){
+  const gender = VOICE_GENDER_MAP[selectedVoiceGender] || VOICE_GENDER_MAP.female;
+  const langCode = langOverride || selectedBahasaModel; // 'id' | 'ace' | 'su' | 'jv' | 'en' — langsung dari pilihan Bahasa Model (atau Bahasa Review kalau dipanggil dari Video Generator), tidak pernah hardcode
+  const bahasa = BAHASA_MODEL_MAP[langCode] || BAHASA_MODEL_MAP.id;
+  const voiceIdentity = `young ${bahasa.label} ${gender.genderValue} voice, age ${VOICE_AGE_FIXED}`;
+  return {
+    dialogue: {
+      voice_character: {
+        age: VOICE_AGE_FIXED,
+        gender: gender.genderValue,
+        voice_identity: voiceIdentity,
+        voice_profile: {
+          pitch: 'cheerful and natural',
+          tone: 'friendly, warm, and expressive',
+          accent: `Natural ${bahasa.label} intonation`,
+          speaking_style: 'casual, relaxed, and conversational',
+          speaking_speed: 'natural',
+          emotion: 'confident and playful',
+          pronunciation: 'clear and natural'
+        },
+        language: bahasa.label,
+        language_code: langCode,
+        script: scriptText || 'Teks Hook, Storytelling, dan CTA'
+      }
+    },
+    voice_consistency_rules: [
+      'Keep the same voice identity throughout the entire video',
+      'Keep the voice age fixed at 20 years old',
+      'Keep the selected gender unchanged throughout the video',
+      'Keep the same pitch, tone, accent, emotion, and speaking style',
+      'Do not switch between male and female voice',
+      'Do not make the voice sound older or younger',
+      'Use the same voice for Hook, Storytelling, CTA, and all model dialogue'
+    ],
+    audio: {
+      voice_gender: gender.genderValue,
+      voice_age: VOICE_AGE_FIXED,
+      voice_language: bahasa.label,
+      voice_language_code: langCode,
+      voice_language_lock: true,
+      voice_consistency: 'strict',
+      voice_stability: 'high',
+      voice_change: 'not allowed',
+      selected_model_language_is_authoritative: true,
+      voice_language_must_match_selected_language: true,
+      never_fallback_to_aceh: true,
+      never_mix_languages_unless_explicitly_requested: true
+    },
+    language_validation: {
+      selected_language: bahasa.label,
+      selected_language_code: langCode,
+      script_language: bahasa.label,
+      voice_language: bahasa.label,
+      status: 'matched'
+    }
+  };
+}
+
+const NEGATIVE_PROMPT_BASE_EXTRA = ['face distortion','different person','identity change','different clothing','changed clothing color','product deformation','product redesign','changed logo','changed text','altered proportions','extra objects','missing objects','extra fingers','bad anatomy','unnatural skin','plastic skin','unrealistic texture','blurry subject','duplicate objects'];
+const NEGATIVE_PROMPT_PRODUCT_EXTRA = ['wrong product shape','incorrect branding','incorrect logo','incorrect label','incorrect text','altered material','altered color','deformed product'];
+const PRESERVE_ORIGINAL_TEXT = 'Preserve the original subject, identity, facial features, clothing, product design, colors, proportions, logos, text, and all important visual details from the reference image. Do not redesign or replace the original subject. Enhance presentation without changing the subject.';
+const PRESERVE_ORIGINAL_PRODUCT_TEXT = 'Preserve the exact original product design, shape, proportions, material, texture, color, branding, logo, label, and visible text.';
+const ACCURACY_RULES_TEXT = 'ACCURACY RULES (TikTok Shop compliance): show the product exactly as in the reference photo. Do not exaggerate or add claims, features, functions, materials, sizes, colors, variants, accessories, guarantees, return/refund terms, discounts, or results that are not visible in the reference or product listing. No superlatives or absolute promises (best, number 1, 100% effective, guaranteed, instant results), no before/after comparisons, fake testimonials, sales numbers, or viral claims. No impossible product behavior (floating, glowing, morphing, changing shape). Keep movements realistic and wording honest and descriptive.';
+
+let activeProvider = safeStorageGet('vw_activeProvider', "gemini");
+let geminiKey = safeStorageGet('vw_geminiKey', "");
+let claudeKey = safeStorageGet('vw_claudeKey', "");
+let detectedProductDetails = "";
+let garmentDescription = "produk";
+let detectedProductMaterial = "";
+let detectedProductColor = "";
+let detectedProductTexture = "";
+let detectedProductLogo = "";
+let detectedSubjectPose = "";
+let detectedSubjectExpression = "";
+let detectedComposition = "";
+let detectedLighting = "";
+let detectedEnvironment = "";
+let detectedColors = []; // array warna dominan hasil analisis foto
+let detectedStyle = "";
+let promptManuallyEdited = false;
+let autoHook = "";
+let autoStorytelling = "";
+let autoCta = "";
+let hookFieldBusy = { hook:false, story:false, cta:false }; // lock per-bagian: cegah double request saat Buat Ulang ditekan berkali-kali
+const DEFAULT_CTA_OBJECTIVE = "Mengarahkan penonton untuk melihat produk di keranjang bawah."; // ctaObjective internal, bukan kalimat tetap
+const DEFAULT_CTA_FALLBACK = "Cek keranjang di bawah ya!"; // dipakai hanya kalau AI gagal & belum diisi manual
+let hookGenerating = false;
+let mainGenerating = false; // extra lock so Generate Prompt can never fire twice at once
+const GENERATE_TIMEOUT_MS = 30000; // 30s hard timeout for the whole Generate Prompt flow
+
+function toggleSection(id){ document.getElementById(id).classList.toggle('open'); }
+function openSection(id){ document.getElementById(id).classList.add('open'); }
+function closeSection(id){ document.getElementById(id).classList.remove('open'); }
+function autoAdvance(fromId, toId){
+  // Buka bagian berikutnya tanpa menutup bagian sebelumnya.
+  // Menutup (mengecilkan tinggi) section sebelumnya bisa membuat konten
+  // di bawahnya "naik" dan terasa seperti halaman berpindah, walau tidak
+  // ada scrollTo/scrollIntoView yang dipanggil. Section sebelumnya sengaja
+  // dibiarkan tetap terbuka agar posisi visual pengguna benar-benar diam.
+  openSection(toId);
+}
+function jumpToSection(id){
+  // Tidak melakukan scroll otomatis. Hanya membuka section.
+  openSection(id);
+}
+
+/* ================= Kompresi foto sebelum dikirim ke AI (mempercepat generate) ================= */
+function resizeImageForAI(dataUrl, maxDim, quality){
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = function(){
+      try{
+        let w = img.width, h = img.height;
+        if(w <= maxDim && h <= maxDim){
+          // Sudah cukup kecil, tidak perlu diperkecil lagi — cukup re-encode ringan.
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', quality).split(',')[1]);
+          return;
+        }
+        if(w > h){ h = Math.round(h * (maxDim / w)); w = maxDim; }
+        else { w = Math.round(w * (maxDim / h)); h = maxDim; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality).split(',')[1]);
+      }catch(e){
+        resolve(dataUrl.split(',')[1]); // fallback: pakai foto asli kalau resize gagal
+      }
+    };
+    img.onerror = function(){ resolve(dataUrl.split(',')[1]); };
+    img.src = dataUrl;
+  });
+}
+
+/* ================= ① REFERENSI (upload produk + deteksi AI) ================= */
+function clearAutoHookStoryCta(){
+  autoHook = ""; autoStorytelling = ""; autoCta = "";
+  ['hookPreview','storyPreview','ctaPreview'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  ['hookBadge','storyBadge','ctaBadge'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.textContent = HOOKSTORY_FIELD_CFG[id==='hookBadge'?'hook':id==='storyBadge'?'story':'cta'].autoLabel;
+  });
+}
+
+
+/* ================= HOOK & STORYTELLING (AI) ================= */
+function buildVideoContextBlock(){
+  const catObj = CATEGORIES.find(c=>c.id===selectedCategory) || CATEGORIES[0];
+  const catLabel = resolveCategoryLabel(catObj);
+  const subjekText = fotoSubjek === 'model' ? 'Model / manusia' : `Produk (${catLabel})`;
+  const gerakanText = gerakanUtama === 'Custom' ? (document.getElementById('gerakanCustomText').value.trim()||'gerakan custom') : gerakanUtama;
+  const lokasiArr = resolveLokasiList();
+  const lokasiLine = lokasiArr.length > 1 ? lokasiArr.map((l,i)=>`Lokasi ${i+1}${i===0?' (awal)':i===lokasiArr.length-1?' (akhir)':' (tengah)'}: ${l.label}`).join('; ') : lokasiArr[0].label;
+  const pt = PROMPT_TYPES.find(p => p.id === selectedPromptType) || PROMPT_TYPES[0];
+  const bahasa = BAHASA_MODEL_MAP[selectedBahasaModel] || BAHASA_MODEL_MAP.id;
+  return `=== B. TECHNICAL VIDEO INSTRUCTIONS (kunci, tidak boleh diubah/ditafsirkan ulang) ===
+- Subjek: ${subjekText}
+- Deskripsi produk: ${garmentDescription}
+- Detail produk yang terlihat (jangan mengarang di luar ini): ${detectedProductDetails || 'tidak ada detail spesifik terdeteksi'}
+- Gerakan: ${gerakanText}
+- Lokasi: ${lokasiLine}
+- Jenis Prompt terpilih: ${pt.name} — ${pt.objective} Arahan gaya: ${pt.strategy}
+JANGAN membuat Hook/Storytelling/CTA yang menyebut atau menyiratkan gerakan atau lokasi LAIN selain yang tertulis di atas — narasi harus konsisten 100% dengan gerakan dan lokasi ini, bukan versi lain yang dikarang AI.
+
+=== A. MODEL DIALOGUE — BAHASA WAJIB: ${bahasa.label} ===
+Tulis Hook, Storytelling, dan CTA dalam ${bahasa.label}. ${bahasa.instruction}
+DILARANG KERAS memakai ${bahasa.forbidden} sebagai bahasa utama dialog — apa pun jenis produk, lokasi, atau isi fotonya. Bahasa HANYA ditentukan oleh pilihan menu Bahasa Model di atas, bukan oleh nama produk/lokasi/isi foto.
+Bagian ini HANYA mengatur bahasa dialog/ucapan model — tidak mengubah instruksi teknis di bagian B di atas.
+
+PENTING: Subjek utama, produk, wajah, pakaian, dan semua detail dari foto asli TIDAK BOLEH diubah/dikarang. Jenis Prompt di atas hanya menentukan gaya penyampaian (hook/storytelling/CTA), bukan mengubah apa yang ada di foto.`;
+}
+
+function buildHookStoryInstruction(){
+  return `Kamu adalah copywriter video pendek (TikTok/Reels/Shorts) yang ahli membuat hook & storytelling natural yang tidak terdengar seperti iklan.
+
+${buildVideoContextBlock()}
+
+Buat secara berurutan — HOOK dulu, baru STORYTELLING yang mengalir dari hook, baru CTA yang menutup dari storytelling:
+1. HOOK — satu kalimat pembuka singkat yang menarik perhatian dan membuat penasaran, natural, TIDAK terdengar seperti iklan yang memaksa. Jangan mulai dengan "Halo guys, hari ini...".
+2. STORYTELLING — 2-3 kalimat singkat yang mengalir dari hook, menunjukkan/mereview produk secara natural sesuai gerakan yang dipilih, lalu menyebutkan detail atau kegunaan produk. Gunakan HANYA informasi yang tersedia di atas — jangan membuat klaim atau fitur yang tidak diketahui dari detail produk.
+3. CTA — kalimat penutup 1 kalimat pendek (maksimal 2 kalimat jika benar-benar perlu) yang menjadi kelanjutan alami dari storytelling. Tujuan CTA SELALU mengarahkan penonton untuk mengecek produk di keranjang bawah (jangan mengarahkan ke follow/like/subscribe/klik link/kirim pesan). CTA harus terdengar natural, santai, sesuai bahasa konten, tidak memaksa, tidak seperti robot, dan JANGAN memakai frasa berlebihan seperti "buruan sebelum kehabisan", "wajib beli sekarang", "jangan sampai rugi", atau klaim yang tidak bisa dibuktikan. Variasikan kalimat CTA setiap kali dibuat — jangan selalu memakai kalimat yang sama.
+
+Hook, storytelling, dan CTA harus satu konsep yang konsisten dan saling berhubungan — jangan hook tentang satu hal tapi storytelling atau CTA membahas hal lain.
+
+Balas HANYA dengan objek JSON mentah (tanpa markdown fences, tanpa penjelasan): {"hook": "...", "storytelling": "...", "cta": "..."}`;
+}
+
+/* Instruksi untuk regenerate SATU bagian saja (Hook / Storytelling / CTA).
+   Dua bagian lain disertakan hanya sebagai konteks — AI diminta TIDAK mengubahnya,
+   dan kode di regenerateField() memang cuma menyimpan hasil field yang diminta. */
+function buildSingleFieldInstruction(field){
+  const existingBlock = `Hook saat ini (hanya konteks, JANGAN ditulis ulang): ${autoHook || '(belum ada)'}
+Storytelling saat ini (hanya konteks, JANGAN ditulis ulang): ${autoStorytelling || '(belum ada)'}
+CTA saat ini (hanya konteks, JANGAN ditulis ulang): ${autoCta || '(belum ada)'}`;
+
+  if(field === 'hook'){
+    return `Kamu adalah copywriter video pendek (TikTok/Reels/Shorts) yang ahli membuat hook natural yang tidak terdengar seperti iklan.
+
+${buildVideoContextBlock()}
+
+${existingBlock}
+
+Tugasmu HANYA membuat ULANG HOOK — satu kalimat pembuka singkat yang menarik perhatian dan membuat penasaran, natural, TIDAK terdengar seperti iklan yang memaksa. Jangan mulai dengan "Halo guys, hari ini...". Buat variasi baru yang berbeda dari hook lama. Hook baru harus tetap nyambung secara konsep dengan Storytelling & CTA di atas (kalau sudah ada).
+
+Balas HANYA dengan objek JSON mentah (tanpa markdown fences, tanpa penjelasan): {"hook": "..."}`;
+  }
+
+  if(field === 'story'){
+    return `Kamu adalah copywriter video pendek (TikTok/Reels/Shorts) yang ahli membuat storytelling produk secara natural.
+
+${buildVideoContextBlock()}
+
+${existingBlock}
+
+Tugasmu HANYA membuat ULANG STORYTELLING — 2-3 kalimat singkat yang mengalir dari Hook di atas (kalau sudah ada), menunjukkan/mereview produk secara natural sesuai gerakan yang dipilih, lalu menyebutkan detail atau kegunaan produk. Gunakan HANYA informasi yang tersedia di atas — jangan membuat klaim atau fitur yang tidak diketahui dari detail produk. Buat variasi baru yang berbeda dari storytelling lama. Storytelling baru harus tetap nyambung dengan Hook & CTA di atas (kalau sudah ada).
+
+Balas HANYA dengan objek JSON mentah (tanpa markdown fences, tanpa penjelasan): {"storytelling": "..."}`;
+  }
+
+  // field === 'cta'
+  return `Kamu adalah copywriter video pendek (TikTok/Reels/Shorts) yang ahli membuat CTA natural yang tidak terdengar seperti iklan.
+
+${buildVideoContextBlock()}
+
+${existingBlock}
+
+Tugasmu HANYA membuat ULANG CTA — kalimat penutup 1 kalimat pendek (maksimal 2 kalimat jika benar-benar perlu) yang menjadi kelanjutan alami dari Storytelling di atas (kalau sudah ada). Tujuan CTA SELALU mengarahkan penonton untuk mengecek produk di keranjang bawah (jangan mengarahkan ke follow/like/subscribe/klik link/kirim pesan). CTA harus terdengar natural, santai, sesuai bahasa konten, tidak memaksa, tidak seperti robot, dan JANGAN memakai frasa berlebihan seperti "buruan sebelum kehabisan", "wajib beli sekarang", "jangan sampai rugi", atau klaim yang tidak bisa dibuktikan. Buat variasi baru yang berbeda dari CTA lama.
+
+Balas HANYA dengan objek JSON mentah (tanpa markdown fences, tanpa penjelasan): {"cta": "..."}`;
+}
+
+async function generateHookStory(isManualRegen, signal){
+  if(hookGenerating) return;
+  if(hookFieldBusy.hook || hookFieldBusy.story || hookFieldBusy.cta){
+    showToast('Tunggu proses Buat Ulang per-bagian selesai dulu...');
+    return;
+  }
+  hookGenerating = true;
+  const hookPrev = document.getElementById('hookPreview');
+  const storyPrev = document.getElementById('storyPreview');
+  const ctaPrev = document.getElementById('ctaPreview');
+  const hookBadge = document.getElementById('hookBadge');
+  const storyBadge = document.getElementById('storyBadge');
+  const ctaBadge = document.getElementById('ctaBadge');
+  // Kunci textarea sesaat supaya ketikan manual tidak tertimpa/tabrakan saat AI sedang menulis
+  hookPrev.readOnly = true; storyPrev.readOnly = true; ctaPrev.readOnly = true;
+  hookPrev.value = 'AI sedang membuat hook...'; hookPrev.className = 'hookstory-preview';
+  storyPrev.value = 'AI sedang membuat storytelling...'; storyPrev.className = 'hookstory-preview';
+  ctaPrev.value = 'AI sedang membuat CTA...'; ctaPrev.className = 'hookstory-preview';
+
+  try{
+    const instruction = buildHookStoryInstruction();
+    const imgOverride = uploadedBase64 ? { base64: uploadedBase64, mediaType: uploadedMediaType } : null;
+    let rawText = activeProvider === 'gemini' ? await callGemini(instruction, imgOverride, signal) : await callClaude(instruction, imgOverride, signal);
+    rawText = rawText.replace(/```json|```/g, "").trim();
+    const parsed = JSON.parse(rawText);
+    autoHook = parsed.hook || '';
+    autoStorytelling = parsed.storytelling || '';
+    autoCta = parsed.cta || '';
+    hookPrev.value = autoHook; hookPrev.classList.toggle('filled', !!autoHook);
+    storyPrev.value = autoStorytelling; storyPrev.classList.toggle('filled', !!autoStorytelling);
+    ctaPrev.value = autoCta; ctaPrev.classList.toggle('filled', !!autoCta);
+    if(hookBadge){ hookBadge.textContent = 'Auto'; hookBadge.classList.remove('manual'); }
+    if(storyBadge){ storyBadge.textContent = 'Auto'; storyBadge.classList.remove('manual'); }
+    if(ctaBadge){ ctaBadge.textContent = 'Otomatis'; ctaBadge.classList.remove('manual'); }
+    updateSummaries();
+    if(isManualRegen) render();
+  }catch(err){
+    console.error(err);
+    autoHook = ''; autoStorytelling = ''; autoCta = '';
+    const timedOut = err && err.name === 'AbortError';
+    const msg = timedOut ? 'Proses terlalu lama. Silakan coba lagi, atau ketik hook manual di sini.' : ('Gagal membuat hook: ' + (err.message || 'kesalahan tidak diketahui') + ' — bisa diketik manual di sini.');
+    hookPrev.value = msg;
+    hookPrev.className = 'hookstory-preview';
+    storyPrev.value = 'Storytelling dilewati karena hook gagal dibuat — bisa diketik manual di sini.';
+    storyPrev.className = 'hookstory-preview';
+    ctaPrev.value = `CTA dilewati karena gagal dibuat — bisa diketik manual, atau nanti pakai fallback "${DEFAULT_CTA_FALLBACK}" di prompt akhir.`;
+    ctaPrev.className = 'hookstory-preview';
+    if(hookBadge){ hookBadge.textContent = 'Gagal'; hookBadge.classList.add('manual'); }
+    if(storyBadge){ storyBadge.textContent = 'Gagal'; storyBadge.classList.add('manual'); }
+    if(ctaBadge){ ctaBadge.textContent = 'Gagal'; ctaBadge.classList.add('manual'); }
+    throw err; // biar onGenerateTap tahu ini gagal/timeout dan bisa tampilkan tombol Coba Lagi
+  }finally{
+    hookGenerating = false;
+    hookPrev.readOnly = false; storyPrev.readOnly = false; ctaPrev.readOnly = false;
+  }
+}
+
+async function generateAllHookStoryCta(){
+  const btn = document.getElementById('hookGeneralBtn');
+  if(hookGenerating || hookFieldBusy.hook || hookFieldBusy.story || hookFieldBusy.cta){
+    showToast('Masih ada proses lain yang berjalan, tunggu sebentar...');
+    return;
+  }
+  if(!geminiKey && !claudeKey){
+    showToast('Isi API Key dulu lewat tombol 🔑 AI');
+    return;
+  }
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳ Memproses Hook, Storytelling & CTA...';
+  try{
+    await generateHookStory(true);
+    showToast('Hook, Storytelling & CTA selesai diproses!');
+  }catch(e){
+    // pesan error sudah ditampilkan langsung di masing-masing textarea oleh generateHookStory
+  }finally{
+    btn.disabled = false; btn.textContent = original;
+  }
+}
+
+/* ============ REGENERATE PER-BAGIAN (Hook / Storytelling / CTA terpisah total) ============ */
+const HOOKSTORY_FIELD_CFG = {
+  hook: { prevId:'hookPreview', badgeId:'hookBadge', btnId:'hookRegenBtn', autoLabel:'Auto', name:'Hook', jsonKey:'hook' },
+  story:{ prevId:'storyPreview', badgeId:'storyBadge', btnId:'storyRegenBtn', autoLabel:'Auto', name:'Storytelling', jsonKey:'storytelling' },
+  cta:  { prevId:'ctaPreview', badgeId:'ctaBadge', btnId:'ctaRegenBtn', autoLabel:'Otomatis', name:'CTA', jsonKey:'cta' }
+};
+
+async function regenerateField(field){
+  const cfg = HOOKSTORY_FIELD_CFG[field];
+  if(!cfg) return;
+  if(hookFieldBusy[field]) return; // anti double request: klik kedua saat masih proses diabaikan
+  if(hookGenerating){ showToast('Tunggu proses Generate Prompt selesai dulu...'); return; }
+  hookFieldBusy[field] = true;
+
+  const prevEl = document.getElementById(cfg.prevId);
+  const badgeEl = document.getElementById(cfg.badgeId);
+  const btnEl = document.getElementById(cfg.btnId);
+  const originalBtnText = btnEl ? btnEl.textContent : '';
+
+  if(btnEl){ btnEl.disabled = true; btnEl.textContent = '⏳ Membuat...'; }
+  prevEl.readOnly = true; // isi lama tetap tampil apa adanya selama proses, tidak ditimpa placeholder
+
+  try{
+    const instruction = buildSingleFieldInstruction(field);
+    const imgOverride = uploadedBase64 ? { base64: uploadedBase64, mediaType: uploadedMediaType } : null;
+    let rawText = activeProvider === 'gemini' ? await callGemini(instruction, imgOverride) : await callClaude(instruction, imgOverride);
+    rawText = rawText.replace(/```json|```/g, "").trim();
+    const parsed = JSON.parse(rawText);
+    const newValue = (parsed[cfg.jsonKey] || '').trim();
+    if(!newValue) throw new Error('Hasil AI kosong');
+
+    if(field === 'hook') autoHook = newValue;
+    else if(field === 'story') autoStorytelling = newValue;
+    else autoCta = newValue;
+
+    prevEl.value = newValue;
+    prevEl.classList.toggle('filled', !!newValue);
+    if(badgeEl){ badgeEl.textContent = cfg.autoLabel; badgeEl.classList.remove('manual'); }
+    updateSummaries();
+  }catch(err){
+    console.error(err);
+    const timedOut = err && err.name === 'AbortError';
+    const msg = timedOut ? `Buat ulang ${cfg.name} terlalu lama, coba lagi.` : `Gagal membuat ulang ${cfg.name}: ${err.message || 'kesalahan tidak diketahui'}`;
+    showToast(msg);
+    if(badgeEl){ badgeEl.textContent = 'Gagal'; badgeEl.classList.add('manual'); }
+    // Isi lama di textarea SENGAJA tidak diubah/ditimpa — hanya bagian ini yang error, dua bagian lain tetap aman.
+  }finally{
+    hookFieldBusy[field] = false;
+    prevEl.readOnly = false;
+    if(btnEl){ btnEl.disabled = false; btnEl.textContent = originalBtnText; }
+  }
+}
+
+function regenerateHook(){ return regenerateField('hook'); }
+function regenerateStorytelling(){ return regenerateField('story'); }
+function regenerateCTA(){ return regenerateField('cta'); }
+
+function onHookStoryManualInput(which, value){
+  // Dipanggil saat pengguna mengetik langsung di kotak Hook/Storytelling/CTA.
+  // Isi manual ini dipakai apa adanya ke prompt akhir, tidak akan ditimpa AI kecuali tap "Buat Ulang" lagi.
+  if(which === 'hook'){
+    autoHook = value;
+    const hookPrev = document.getElementById('hookPreview');
+    const hookBadge = document.getElementById('hookBadge');
+    hookPrev.classList.toggle('filled', !!value);
+    if(hookBadge){ hookBadge.textContent = 'Manual'; hookBadge.classList.add('manual'); }
+  } else if(which === 'cta'){
+    autoCta = value;
+    const ctaPrev = document.getElementById('ctaPreview');
+    const ctaBadge = document.getElementById('ctaBadge');
+    ctaPrev.classList.toggle('filled', !!value);
+    if(ctaBadge){ ctaBadge.textContent = 'Manual'; ctaBadge.classList.add('manual'); }
+  } else {
+    autoStorytelling = value;
+    const storyPrev = document.getElementById('storyPreview');
+    const storyBadge = document.getElementById('storyBadge');
+    storyPrev.classList.toggle('filled', !!value);
+    if(storyBadge){ storyBadge.textContent = 'Manual'; storyBadge.classList.add('manual'); }
+  }
+  updateSummaries();
+}
+
+/* ================= EXPORT / IMPORT PENGATURAN (API KEY) ================= */
+
+/* ================= SUMMARY BADGES ================= */
+function updateSummaries(){
+  document.getElementById('sum-foto').textContent = uploadedBase64 ? 'Foto ✓' : '';
+  document.getElementById('sum-subjek').textContent = fotoSubjek === 'model' ? 'Model / Manusia' : 'Produk';
+  document.getElementById('sum-jenisproduk').textContent = resolveCategoryLabel((CATEGORIES.find(c=>c.id===selectedCategory)||{}));
+  document.getElementById('sum-bahasa').textContent = (BAHASA_MODEL_MAP[selectedBahasaModel] || BAHASA_MODEL_MAP.id).label;
+  document.getElementById('sum-gerakan').textContent = gerakanUtama;
+  document.getElementById('sum-lokasi').textContent = lokasiList.length > 1 ? `${lokasiList.length} lokasi` : resolveLokasi().label.slice(0,22);
+  document.getElementById('sum-kamera').textContent = (CAM_POS_OPTIONS.find(c=>c.id===selectedCamPos)||{}).label || '';
+  document.getElementById('sum-cahaya').textContent = selectedLighting;
+  document.getElementById('sum-hook').textContent = (autoHook || autoStorytelling || autoCta) ? '✓ Dibuat' : '';
+}
+
+/* ================= AI PROVIDER MODAL, LIGHTBOX, COPY HELPERS (dipertahankan) ================= */
+let geminiForceEdit = false;
+let claudeForceEdit = false;
+
+function updateMainAiButton(){
+  const connected = geminiKey.length > 0 || claudeKey.length > 0;
+  document.getElementById('aiMenuLabel').textContent = connected ? '🟢 AI' : '🔑 AI';
+  document.getElementById('providerBadgeBtn').classList.toggle('connected', connected);
+}
+
+function openAiModal(){
+  document.getElementById('aiModal').classList.add('open');
+  document.getElementById('aiModalOverlay').classList.add('open');
+  renderAiProviderContent();
+}
+function closeAiModal(){
+  document.getElementById('aiModal').classList.remove('open');
+  document.getElementById('aiModalOverlay').classList.remove('open');
+}
+function switchProviderTab(btn){
+  document.querySelectorAll('.ai-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  activeProvider = btn.dataset.provider;
+  renderAiProviderContent();
+}
+
+const PROVIDER_META = {
+  gemini: {
+    name: "Gemini", icon: "🟣",
+    officialUrl: "https://aistudio.google.com/apikey",
+    officialLabel: "🌐 Buka Google AI Studio",
+    steps: ["Buka Google AI Studio", "Login dengan akun Google", "Buat API Key", "Copy API Key", "Kembali ke sini dan paste API Key"],
+    placeholder: "AIza..."
+  },
+  claude: {
+    name: "Claude", icon: "🟠",
+    officialUrl: "https://console.anthropic.com/settings/keys",
+    officialLabel: "🌐 Buka Anthropic Console",
+    steps: ["Buka halaman API resmi Anthropic", "Login atau buat akun", "Buat API Key", "Copy API Key", "Kembali ke sini dan paste API Key"],
+    placeholder: "sk-ant-..."
+  }
+};
+
+function renderAiProviderContent(){
+  const provider = activeProvider;
+  const meta = PROVIDER_META[provider];
+  const key = provider === 'gemini' ? geminiKey : claudeKey;
+  const forceEdit = provider === 'gemini' ? geminiForceEdit : claudeForceEdit;
+  const container = document.getElementById('aiProviderContent');
+  const isConnected = key.length > 0 && !forceEdit;
+
+  if(isConnected){
+    container.innerHTML = `
+      <div class="provider-status-row"><span class="pname">${meta.icon} ${meta.name}</span><span class="pstatus on">🟢 Terhubung</span></div>
+      <div class="connected-box">
+        <div style="font-size:12px; color:var(--ink-dim);">API Key tersimpan di sesi browser ini dan siap dipakai untuk deteksi foto.</div>
+        <div class="row-actions">
+          <button class="btn-replace" onclick="startReplaceKey('${provider}')">Ganti API Key</button>
+          <button class="btn-remove" onclick="removeApiKey('${provider}')">Hapus API Key</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const stepsHtml = meta.steps.map((s,i)=>`<li><span class="step-num">${i+1}</span><span>${s}</span></li>`).join('');
+  container.innerHTML = `
+    <div class="provider-status-row"><span class="pname">${meta.icon} ${meta.name}</span><span class="pstatus">⚪ Belum Terhubung</span></div>
+    <ul class="step-list">${stepsHtml}</ul>
+    <div class="link-actions">
+      <button onclick="window.open('${meta.officialUrl}','_blank','noopener')">${meta.officialLabel}</button>
+      
+    </div>
+    <label class="field-label">API Key</label>
+    <div class="key-row">
+      <input type="password" id="apiKeyInput" placeholder="Paste API Key di sini" value="${escapeHtml(key)}">
+      <button class="key-eye" onclick="toggleKeyVisibility()">👁</button>
+    </div>
+    <div class="key-warn" id="apiKeyWarn"></div>
+    <button class="ai-save-btn" onclick="saveAndConnect('${provider}')">✓ Simpan &amp; Mulai →</button>
+    <div class="ai-key-warning">Key hanya tersimpan sementara di memori browser ini (hilang saat halaman ditutup/refresh — batasan platform, bukan bug) dan dikirim langsung ke server ${meta.name}, tidak lewat server lain mana pun.</div>
+  `;
+  document.getElementById('apiKeyInput').addEventListener('keydown', e=>{ if(e.key==='Enter') saveAndConnect(provider); });
+}
+
+function toggleKeyVisibility(){
+  const input = document.getElementById('apiKeyInput');
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+function copyProviderLink(url){ return false; }
+function startReplaceKey(provider){
+  if(provider === 'gemini') geminiForceEdit = true; else claudeForceEdit = true;
+  renderAiProviderContent();
+}
+function removeApiKey(provider){
+  if(provider === 'gemini'){ geminiKey = ''; geminiForceEdit = false; safeStorageRemove('vw_geminiKey'); }
+  else { claudeKey = ''; claudeForceEdit = false; safeStorageRemove('vw_claudeKey'); }
+  updateMainAiButton();
+  renderAiProviderContent();
+}
+
+async function saveAndConnect(provider){
+  const input = document.getElementById('apiKeyInput');
+  const warn = document.getElementById('apiKeyWarn');
+  const val = input.value.trim();
+  if(!val){ warn.textContent = '⚠️ Masukkan API Key terlebih dahulu.'; return; }
+  warn.textContent = '';
+  if(provider === 'gemini') geminiKey = val; else claudeKey = val;
+
+  const btn = event.target;
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Menghubungkan...';
+
+  try{
+    await (provider === 'gemini' ? callGemini('Balas hanya dengan kata: OK', false) : callClaude('Balas hanya dengan kata: OK', false));
+    if(provider === 'gemini') geminiForceEdit = false; else claudeForceEdit = false;
+    if(provider === 'gemini') safeStorageSet('vw_geminiKey', geminiKey);
+    else safeStorageSet('vw_claudeKey', claudeKey);
+    safeStorageSet('vw_activeProvider', provider);
+    warn.textContent = '';
+    updateMainAiButton();
+    const container = document.getElementById('aiProviderContent');
+    const successMsg = document.createElement('div');
+    successMsg.style.cssText = 'text-align:center; color:var(--ok); font-size:12.5px; font-weight:700; margin-bottom:10px;';
+    successMsg.textContent = '✓ AI berhasil terhubung';
+    container.prepend(successMsg);
+    setTimeout(()=> renderAiProviderContent(), 900);
+  }catch(err){
+    console.error('Koneksi AI gagal:', err.message);
+    let msg = '⚠️ Tidak dapat terhubung ke AI. Silakan coba lagi.';
+    const m = (err.message || '').toLowerCase();
+    if(m.includes('401') || m.includes('403') || m.includes('api key') || m.includes('invalid')){
+      msg = '⚠️ API Key tidak valid. Periksa kembali API Key Anda.';
+    } else if(m.includes('404') || m.includes('tidak tersedia')){
+      msg = '⚠️ AI belum siap digunakan.';
+    } else if(m.includes('failed to fetch') || m.includes('tidak bisa menghubungi') || m.includes('networkerror') || m.includes('load failed')){
+      msg = '⚠️ Gagal terhubung ke internet/server AI. Pastikan koneksi internet aktif (bukan mode pesawat/data terbatas), lalu coba lagi. Kalau masih gagal, coba jaringan lain (WiFi ⇄ data seluler).';
+    } else if(err.message){
+      msg = '⚠️ ' + err.message;
+    }
+    warn.textContent = msg;
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeAiModal(); });
+
+/* ================= LIGHTBOX & GANTI/HAPUS FOTO ================= */
+function openLightbox(imgId){
+  const src = document.getElementById(imgId).src;
+  if(!src) return;
+  document.getElementById('lightboxImg').src = src;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox(){ document.getElementById('lightbox').classList.remove('open'); }
+
+function removePhoto(which){
+  if(which === 'produk'){
+    uploadedBase64 = null; uploadedMediaType = null;
+    document.getElementById('fileInput').value = '';
+    document.getElementById('previewImg').style.display = 'none';
+    document.getElementById('uploadPlaceholder').style.display = 'block';
+    document.getElementById('uploadBox').classList.remove('has-image');
+    document.getElementById('photoActions-produk').classList.remove('show');
+    document.getElementById('detectBtn').disabled = true;
+  } else if(which === 'model'){
+    modelBase64 = null; modelMediaType = null;
+    document.getElementById('modelFileInput').value = '';
+    document.getElementById('modelPreviewImg').style.display = 'none';
+    document.getElementById('modelUploadPlaceholder').style.display = 'block';
+    document.getElementById('modelUploadBox').classList.remove('has-image');
+    document.getElementById('photoActions-model').classList.remove('show');
+  } else if(which === 'locBg'){
+    locBgBase64 = null; locBgMediaType = null;
+    document.getElementById('locBgFileInput').value = '';
+    document.getElementById('locBgPreview').style.display = 'none';
+    document.getElementById('locBgUploadPlaceholder').style.display = 'block';
+    document.getElementById('locBgUploadBox').classList.remove('has-image');
+    document.getElementById('photoActions-locBg').classList.remove('show');
+  }
+  updateSummaries(); render();
+}
+
+/* ================= PANGGILAN AI (GEMINI/CLAUDE) ================= */
+function explainNetworkError(err, providerLabel){
+  if(err instanceof TypeError){
+    return `Tidak bisa menghubungi server ${providerLabel}. Kemungkinan: (1) file ini masih dibuka di dalam viewer/app in-app browser (bukan Chrome/browser asli), (2) tidak ada koneksi internet, atau (3) API key salah format. Coba buka file ini lewat "Buka di browser" lalu ulangi.`;
+  }
+  return err.message || 'Kesalahan tidak diketahui';
+}
+const GEMINI_MODEL_FALLBACKS = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-flash", "gemini-flash-latest"];
+
+async function callGemini(promptText, imagePart, signal){
+  if(!geminiKey) throw new Error('API key Gemini belum diisi. Isi lewat tombol 🔑 AI.');
+  const parts = [];
+  if(imagePart){
+    const img = (typeof imagePart === 'object') ? imagePart : { base64: uploadedBase64, mediaType: uploadedMediaType };
+    if(img.base64) parts.push({ inline_data: { mime_type: img.mediaType, data: img.base64 } });
+  }
+  parts.push({ text: promptText });
+  let lastErr = null;
+  let lastTransient = false; // true kalau kegagalan terakhir karena server Gemini sibuk (5xx)
+  for(const modelName of GEMINI_MODEL_FALLBACKS){
+    if(signal && signal.aborted) throw new DOMException('Aborted', 'AbortError');
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(geminiKey)}`;
+    let response;
+    try{
+      response = await fetch(url, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ contents:[{ parts }] }), signal });
+    }catch(networkErr){
+      if(networkErr.name === 'AbortError') throw networkErr;
+      throw new Error(explainNetworkError(networkErr, 'Gemini'));
+    }
+    if(response.status === 404){ lastErr = new Error(`Model ${modelName} tidak tersedia lagi`); lastTransient = false; continue; }
+    if(response.status === 500 || response.status === 502 || response.status === 503 || response.status === 504){
+      // Model sedang kelebihan beban (sementara): coba model teks berikutnya di daftar.
+      let m = `HTTP ${response.status}`;
+      try{ const j = await response.json(); m += ': ' + (j?.error?.message || JSON.stringify(j)).slice(0,220); }catch(e){}
+      lastErr = new Error(m); lastTransient = true;
+      continue;
+    }
+    if(!response.ok){
+      let errMsg = `HTTP ${response.status}`;
+      try{ const errJson = await response.json(); errMsg += ': ' + (errJson?.error?.message || JSON.stringify(errJson)).slice(0,220); }catch(e){}
+      if(response.status === 400 || response.status === 403) errMsg += ' — kemungkinan API key salah atau belum diaktifkan.';
+      throw new Error(errMsg);
+    }
+    const data = await response.json();
+    const text = data?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("") || "";
+    if(!text) throw new Error('Respons Gemini kosong atau diblokir filter keamanan: ' + JSON.stringify(data).slice(0,200));
+    return text;
+  }
+  if(lastTransient && lastErr) throw lastErr; // server sibuk di semua model: teruskan pesan HTTP 5xx apa adanya
+  throw new Error('Semua model Gemini di daftar sudah tidak tersedia (' + lastErr?.message + ').');
+}
+
+/* ================= FOTO PRODUK AI ================= */
+const FP_CONCEPTS = [
+  { id:'studio', label:'Studio Profesional' },
+  { id:'katalog', label:'Foto Katalog' },
+  { id:'lifestyle', label:'Lifestyle' },
+  { id:'meja', label:'Produk di Meja' },
+  { id:'dipegang', label:'Produk Dipegang' },
+  { id:'iklan', label:'Foto Iklan' },
+  { id:'custom', label:'Custom' }
+];
+const FP_BACKGROUNDS = [
+  { id:'studio', label:'Studio' },
+  { id:'kamar', label:'Kamar' },
+  { id:'ruangtamu', label:'Ruang Tamu' },
+  { id:'mejakerja', label:'Meja Kerja' },
+  { id:'toko', label:'Toko' },
+  { id:'outdoor', label:'Outdoor' },
+  { id:'minimalis', label:'Minimalis' },
+  { id:'custom', label:'Custom' }
+];
+
+let fpUploadedBase64 = null, fpUploadedMediaType = null;
+let fpConcept = '', fpBackground = '';
+let fpResultBase64 = null, fpResultMime = 'image/png';
+let fpResultPrompt = '';
+let fpPromptLang = 'id'; // 'id' = Bahasa Indonesia, 'en' = English
+let fpGenerating = false;
+
+function fpRenderConceptGrid(){
+  const grid = document.getElementById('fpConceptGrid');
+  if(!grid) return;
+  grid.innerHTML = '';
+  FP_CONCEPTS.forEach(c=>{
+    const el = document.createElement('div');
+    el.className = 'pill' + (fpConcept===c.id ? ' selected' : '');
+    el.textContent = c.label;
+    el.addEventListener('click', ()=>{
+      fpConcept = c.id;
+      document.getElementById('fpConceptCustomWrap').style.display = c.id==='custom' ? 'block' : 'none';
+      fpRenderConceptGrid();
+      fpUpdateSummary();
+    });
+    grid.appendChild(el);
+  });
+}
+function fpRenderBackgroundGrid(){
+  const grid = document.getElementById('fpBackgroundGrid');
+  if(!grid) return;
+  grid.innerHTML = '';
+  FP_BACKGROUNDS.forEach(b=>{
+    const el = document.createElement('div');
+    el.className = 'pill' + (fpBackground===b.id ? ' selected' : '');
+    el.textContent = b.label;
+    el.addEventListener('click', ()=>{
+      fpBackground = b.id;
+      document.getElementById('fpBackgroundCustomWrap').style.display = b.id==='custom' ? 'block' : 'none';
+      fpRenderBackgroundGrid();
+      fpUpdateSummary();
+    });
+    grid.appendChild(el);
+  });
+}
+
+document.getElementById('fpFileInput').addEventListener('change', function(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async function(evt){
+    // Preview kecil & wajar (bukan layar penuh) — perbaikan bug lama.
+    const img = document.getElementById('fpPreviewImg');
+    img.src = evt.target.result; img.style.display = 'block';
+    document.getElementById('fpUploadPlaceholder').style.display = 'none';
+    document.getElementById('fpPhotoActions').style.display = 'flex';
+    fpUploadedBase64 = await resizeImageForAI(evt.target.result, 1280, 0.85);
+    fpUploadedMediaType = 'image/jpeg';
+    fpUpdateSummary();
+  };
+  reader.readAsDataURL(file);
+});
+function fpRemovePhoto(){
+  fpUploadedBase64 = null; fpUploadedMediaType = null;
+  document.getElementById('fpPreviewImg').style.display = 'none';
+  document.getElementById('fpUploadPlaceholder').style.display = 'block';
+  document.getElementById('fpPhotoActions').style.display = 'none';
+  document.getElementById('fpFileInput').value = '';
+  fpUpdateSummary();
+}
+
+function fpUpdateSummary(){
+  const prodEl = document.getElementById('fpSummaryProduk');
+  if(prodEl) prodEl.textContent = fpUploadedBase64 ? 'Foto sudah diupload ✓' : 'belum upload foto';
+  const konsepObj = FP_CONCEPTS.find(c=>c.id===fpConcept);
+  const konsepEl = document.getElementById('fpSummaryKonsep');
+  if(konsepEl) konsepEl.textContent = konsepObj ? (konsepObj.id==='custom' ? (document.getElementById('fpConceptCustomText').value.trim()||'custom (belum diisi)') : konsepObj.label) : 'belum dipilih';
+  const bgObj = FP_BACKGROUNDS.find(b=>b.id===fpBackground);
+  const bgEl = document.getElementById('fpSummaryBg');
+  if(bgEl) bgEl.textContent = bgObj ? (bgObj.id==='custom' ? (document.getElementById('fpBackgroundCustomText').value.trim()||'custom (belum diisi)') : bgObj.label) : 'belum dipilih';
+}
+
+function fpBuildPrompt(){
+  const id = fpPromptLang === 'id';
+  const konsepObj = FP_CONCEPTS.find(c=>c.id===fpConcept);
+  const konsepText = konsepObj ? (konsepObj.id==='custom' ? (document.getElementById('fpConceptCustomText').value.trim()|| (id ? 'konsep foto produk profesional' : 'professional product photo concept')) : konsepObj.label) : (id ? 'konsep foto produk profesional' : 'professional product photo concept');
+  const bgObj = FP_BACKGROUNDS.find(b=>b.id===fpBackground);
+  const bgText = bgObj ? (bgObj.id==='custom' ? (document.getElementById('fpBackgroundCustomText').value.trim()|| (id ? 'background netral' : 'neutral background')) : bgObj.label) : (id ? 'background netral' : 'neutral background');
+  if(id){
+    return `Buat foto produk berkualitas tinggi berdasarkan foto referensi yang diunggah.
+Konsep: ${konsepText}.
+Background/lokasi: ${bgText}.
+
+Gunakan foto produk yang diunggah sebagai referensi visual utama dan wajib diikuti. Pertahankan identitas produk secara persis: bentuk, proporsi, warna, desain, logo, tulisan, jumlah, dan semua detail yang terlihat. Jangan mendesain ulang, mengganti, mengubah, menambah, atau menghapus elemen produk. Jangan mengarang detail produk yang tidak terlihat pada foto referensi.
+
+Background dan pencahayaan harus mendukung serta melengkapi produk sesuai konsep dan background yang dipilih, tanpa mengubah produknya. Hasilkan foto produk profesional yang realistis dan cocok untuk e-commerce/marketing.
+
+ATURAN KESESUAIAN PRODUK: tampilkan produk persis seperti foto referensi. Jangan melebih-lebihkan, jangan menambah fitur, fungsi, bahan, ukuran, warna, varian, atau aksesori yang tidak terlihat pada foto referensi, dan jangan menampilkan klaim atau teks promosi berlebihan (mis. terbaik, nomor 1, 100% ampuh, dijamin).`;
+  }
+  return `Generate a high-quality product photo based on the uploaded reference image.
+Concept: ${konsepText}.
+Background/location: ${bgText}.
+
+Use the uploaded product photo as the primary and strict visual reference. Preserve the exact product identity, shape, proportions, color, design, logo, text, quantity, and visible details. Do not redesign, replace, modify, add, or remove product elements. Do not invent product details that are not visible in the reference photo.
+
+The background and lighting should support and complement the product according to the chosen concept and background, without altering the product itself. Make it look like a professional, realistic product photograph suitable for e-commerce/marketing use.\n\nPRODUCT ACCURACY RULES: show the product exactly as in the reference photo. Do not exaggerate, and do not add features, functions, materials, sizes, colors, variants, or accessories that are not visible in the reference photo. Do not show exaggerated promotional claims or text (e.g. best, number 1, 100% effective, guaranteed).`;
+}
+
+function fpGenerateFoto(){
+  // Generate Foto = membuat PROMPT (tanpa memanggil API gambar). Prompt disalin lalu ditempel di Google Flow.
+  if(fpGenerating) return;
+  if(!fpUploadedBase64){ fpShowGenError('Upload foto produk dulu sebelum generate.'); return; }
+  document.getElementById('fpGenError').style.display = 'none';
+  try{
+    fpResultPrompt = fpBuildPrompt();
+    fpRenderResult();
+    fpUpdateLangButtons();
+    document.getElementById('fp-sec-hasil').style.display = 'block';
+    openSection('fp-sec-hasil');
+    showToast('Prompt foto siap. Tekan Salin Prompt.');
+  }catch(err){
+    console.error(err);
+    // Foto & pilihan pengguna TIDAK dihapus kalau error — tetap bisa dicoba lagi.
+    fpShowGenError('Gagal membuat prompt: ' + (err.message || 'kesalahan tidak diketahui'));
+  }
+}
+function fpShowGenError(msg){
+  const el = document.getElementById('fpGenError');
+  el.textContent = '⚠️ ' + msg;
+  el.style.display = 'block';
+}
+function fpRenderResult(){
+  const wrap = document.getElementById('fpResultWrap');
+  wrap.innerHTML = `<div id="fpPromptBox" style="white-space:pre-wrap; word-break:break-word; user-select:text; -webkit-user-select:text; font-size:12.5px; line-height:1.6; color:var(--ink); background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:12px;">${escapeHtml(fpResultPrompt)}</div>
+  <div style="font-size:11.5px; color:var(--ink-dim); margin-top:8px; line-height:1.6;">Salin prompt ini, tempel di Google Flow, dan upload foto produk yang sama sebagai referensi.</div>`;
+}
+function fpUpdateLangButtons(){
+  [['fpLangId','id'],['fpLangEn','en']].forEach(([bid,l])=>{
+    const b = document.getElementById(bid);
+    if(!b) return;
+    const on = fpPromptLang === l;
+    b.style.outline = on ? '2px solid #7c5cff' : 'none';
+    b.style.fontWeight = on ? '700' : '400';
+  });
+}
+function fpSetPromptLang(l){
+  fpPromptLang = (l === 'en') ? 'en' : 'id';
+  fpUpdateLangButtons();
+  if(fpResultPrompt){ fpResultPrompt = fpBuildPrompt(); fpRenderResult(); }
+}
+async function fpCopyPrompt(){
+  if(!fpResultPrompt){ showToast('Belum ada prompt'); return; }
+  await copyText(fpResultPrompt, 'Prompt foto tersalin');
+}
+function fpUseThisPhoto(){
+  if(!fpResultBase64){ showToast('Belum ada hasil foto'); return; }
+  fpUploadedBase64 = fpResultBase64;
+  fpUploadedMediaType = fpResultMime;
+  const img = document.getElementById('fpPreviewImg');
+  img.src = `data:${fpResultMime};base64,${fpResultBase64}`; img.style.display = 'block';
+  document.getElementById('fpUploadPlaceholder').style.display = 'none';
+  document.getElementById('fpPhotoActions').style.display = 'flex';
+  fpUpdateSummary();
+  showToast('Hasil foto dijadikan referensi baru');
+}
+function fpDownloadResult(){
+  if(!fpResultBase64){ showToast('Belum ada hasil foto'); return; }
+  let url = null;
+  try{
+    // Blob dibuat saat tombol ditekan (data valid), lalu diunduh lewat <a download>.
+    const bin = atob(fpResultBase64);
+    const bytes = new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+    const mime = fpResultMime || 'image/png';
+    const blob = new Blob([bytes], { type: mime });
+    const ext = (mime.split('/')[1] || 'png').replace('jpeg','jpg').replace(/[^a-z0-9]/gi,'') || 'png';
+    const fileName = 'foto-produk-ai.' + ext;
+    url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = fileName; a.rel = 'noopener'; a.style.display = 'none';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    // Blob URL dibebaskan setelah unduhan sempat dimulai.
+    const u = url;
+    setTimeout(()=>{ try{ URL.revokeObjectURL(u); }catch(e){} }, 60000);
+    showToast('Unduhan diminta (' + fileName + '). Jika tidak muncul, tekan lama gambar lalu pilih Simpan gambar.');
+  }catch(err){
+    console.error('Download gagal:', err);
+    if(url){ try{ URL.revokeObjectURL(url); }catch(e){} }
+    showToast('Download gagal: browser menolak menyimpan file. Coba tekan lama gambar lalu pilih Simpan gambar.');
+  }
+}
+document.getElementById('fpConceptCustomText')?.addEventListener('input', fpUpdateSummary);
+document.getElementById('fpBackgroundCustomText')?.addEventListener('input', fpUpdateSummary);
+
+const GEMINI_IMAGE_MODEL_FALLBACKS = ["gemini-3-pro-image-preview", "gemini-2.5-flash-image", "gemini-2.5-flash-image-preview"];
+
+// Membaca body error Gemini dan membedakan: kuota habis / batas sementara / billing / key salah.
+async function fpParseGeminiError(response, modelName){
+  let body = null, raw = '';
+  try{ raw = await response.text(); body = JSON.parse(raw); }catch(e){}
+  const err = body && body.error ? body.error : {};
+  const apiMsg = (err.message || raw || '').toString();
+  const details = Array.isArray(err.details) ? err.details : [];
+  let retryDelaySec = null; const quotaIds = [];
+  details.forEach(d=>{
+    if(d && d.retryDelay){ const m = String(d.retryDelay).match(/([\d.]+)/); if(m) retryDelaySec = Math.ceil(parseFloat(m[1])); }
+    if(d && Array.isArray(d.violations)) d.violations.forEach(v=>{ if(v && v.quotaId) quotaIds.push(String(v.quotaId)); });
+  });
+  const ids = quotaIds.join(' ');
+  const short = apiMsg.slice(0,220);
+  const tech = ` [Model: ${modelName}, HTTP ${response.status}${err.status ? ' ' + err.status : ''}]`;
+  if(response.status === 429){
+    const dailyOrZero = /PerDay/i.test(ids) || /limit:\s*0/i.test(apiMsg);
+    const perMinute = /PerMinute/i.test(ids) || /rate limit|per minute/i.test(apiMsg);
+    if(dailyOrZero){
+      return { kind:'quota', message:'Kuota Gemini untuk generate foto sudah habis (atau paket gratis tidak mencakup model gambar ini). Tunggu kuota harian reset, atau cek paket/billing di Google AI Studio. Tidak dicoba ulang otomatis.' + tech + ' ' + short };
+    }
+    if(perMinute || (retryDelaySec !== null && retryDelaySec <= 60)){
+      return { kind:'rate', retryDelaySec, message:'Gemini sedang membatasi jumlah permintaan sementara (terlalu banyak request dalam waktu singkat). Tunggu sekitar satu menit lalu tekan Generate Foto lagi.' + tech };
+    }
+    return { kind:'quota', message:'Permintaan ditolak karena batas kuota Gemini (HTTP 429). Kuota mungkin habis; cek penggunaan & billing di Google AI Studio lalu coba lagi nanti.' + tech + ' ' + short };
+  }
+  if(response.status === 400 && /FAILED_PRECONDITION/i.test(err.status || '')){
+    return { kind:'billing', message:'Model gambar ini belum bisa dipakai dengan akun/API key Anda (billing belum aktif atau wilayah tidak didukung). Cek pengaturan billing di Google AI Studio.' + tech + ' ' + short };
+  }
+  if(response.status === 400 || response.status === 403){
+    return { kind:'auth', message:`HTTP ${response.status}: ${short} — kemungkinan API key salah, belum diaktifkan, atau tidak punya akses ke model gambar.` + tech };
+  }
+  return { kind:'other', message:`HTTP ${response.status}: ${short}` + tech };
+}
+
+function fpSleep(ms, signal){
+  return new Promise((resolve, reject)=>{
+    if(signal && signal.aborted) return reject(new DOMException('Aborted','AbortError'));
+    const t = setTimeout(resolve, ms);
+    if(signal) signal.addEventListener('abort', ()=>{ clearTimeout(t); reject(new DOMException('Aborted','AbortError')); }, { once:true });
+  });
+}
+
+const GEMINI_IMAGE_MAX_RETRY = 3; // maksimal 3x ulang, hanya untuk batas sementara (rate limit)
+
+async function callGeminiImageGen(promptText, imagePart, signal, onWait){
+  if(!geminiKey) throw new Error('API key Gemini belum diisi. Isi lewat tombol 🔑 AI.');
+  const parts = [];
+  if(imagePart && imagePart.base64){
+    parts.push({ inline_data: { mime_type: imagePart.mediaType, data: imagePart.base64 } });
+  }
+  parts.push({ text: promptText });
+  let lastErr = null;
+  const quotaMsgs = [];
+  modelLoop:
+  for(const modelName of GEMINI_IMAGE_MODEL_FALLBACKS){
+    let attempt = 0;
+    while(true){
+      if(signal && signal.aborted) throw new DOMException('Aborted', 'AbortError');
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(geminiKey)}`;
+      let response;
+      try{
+        response = await fetch(url, {
+          method:"POST", headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify({ contents:[{ parts }], generationConfig:{ responseModalities:["IMAGE"] } }),
+          signal
+        });
+      }catch(networkErr){
+        if(networkErr.name === 'AbortError') throw networkErr;
+        throw new Error(explainNetworkError(networkErr, 'Gemini'));
+      }
+      if(response.status === 404){ lastErr = new Error(`Model ${modelName} tidak tersedia lagi`); continue modelLoop; }
+      if(!response.ok){
+        const info = await fpParseGeminiError(response, modelName);
+        if(info.kind === 'rate' && attempt < GEMINI_IMAGE_MAX_RETRY){
+          // Jeda bertahap: 5s, 10s, 20s (atau lebih lama jika Gemini minta, maks 30s)
+          const base = [5,10,20][attempt];
+          const waitSec = Math.min(30, Math.max(base, info.retryDelaySec || 0));
+          attempt++;
+          if(onWait) onWait(waitSec, attempt, GEMINI_IMAGE_MAX_RETRY);
+          await fpSleep(waitSec*1000, signal);
+          continue;
+        }
+        if(info.kind === 'quota'){
+          // Kuota model ini habis -> coba model gambar berikutnya di daftar (semuanya model image generation).
+          quotaMsgs.push(info.message);
+          continue modelLoop;
+        }
+        throw new Error(info.message);
+      }
+      const data = await response.json();
+      const imgPart = data?.candidates?.[0]?.content?.parts?.find(p => p.inlineData || p.inline_data);
+      const inline = imgPart ? (imgPart.inlineData || imgPart.inline_data) : null;
+      if(!inline || !inline.data) throw new Error('Gemini tidak mengembalikan gambar (mungkin diblokir filter keamanan): ' + JSON.stringify(data).slice(0,200));
+      return { base64: inline.data, mimeType: inline.mimeType || inline.mime_type || 'image/png', model: modelName };
+    }
+  }
+  if(quotaMsgs.length){
+    throw new Error('Semua model gambar yang dicoba kena batas kuota. ' + quotaMsgs.join(' || '));
+  }
+  throw new Error('Semua model image generation Gemini di daftar sudah tidak tersedia (' + lastErr?.message + ').');
+}
+
+async function callClaude(promptText, imagePart, signal){
+  if(!claudeKey) throw new Error('API key Claude belum diisi. Isi lewat tombol 🔑 AI.');
+  const content = [];
+  if(imagePart){
+    const img = (typeof imagePart === 'object') ? imagePart : { base64: uploadedBase64, mediaType: uploadedMediaType };
+    if(img.base64) content.push({ type:"image", source:{ type:"base64", media_type: img.mediaType, data: img.base64 } });
+  }
+  content.push({ type:"text", text: promptText });
+  let response;
+  try{
+    response = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json", "x-api-key": claudeKey, "anthropic-version":"2023-06-01", "anthropic-dangerous-direct-browser-access":"true" },
+      body: JSON.stringify({ model:"claude-sonnet-5", max_tokens:1200, messages:[{ role:"user", content }] }),
+      signal
+    });
+  }catch(networkErr){
+    if(networkErr.name === 'AbortError') throw networkErr;
+    throw new Error(explainNetworkError(networkErr, 'Anthropic/Claude'));
+  }
+  if(!response.ok){
+    let errMsg = `HTTP ${response.status}`;
+    try{ const errJson = await response.json(); errMsg += ': ' + (errJson?.error?.message || JSON.stringify(errJson)).slice(0,220); }catch(e){}
+    if(response.status === 401) errMsg += ' — API key salah atau tidak valid.';
+    throw new Error(errMsg);
+  }
+  const data = await response.json();
+  const text = (data.content || []).map(b=>b.text||"").join("");
+  if(!text) throw new Error('Respons Claude kosong: ' + JSON.stringify(data).slice(0,200));
+  return text;
+}
+
+const detectionInstruction = `Lihat foto ini dengan sangat teliti sebagai seorang product/commercial photographer profesional. Balas HANYA dengan objek JSON mentah (tanpa markdown fences, tanpa kalimat pembuka), dalam Bahasa Indonesia, dengan field berikut. Jika suatu detail TIDAK terlihat jelas pada foto, isi dengan string kosong "" atau array kosong [] — JANGAN mengarang detail yang tidak terlihat.
+
+{
+  "product_type": "salah satu dari: 'tas','sepatu','sandal','kosmetik','baju','celana','aksesori','elektronik','lainnya' — pilih paling cocok, kosongkan jika foto bukan produk",
+  "elektronik_produk": "HANYA isi jika product_type='elektronik' — pilih salah satu dari: 'TWS Bluetooth','Earphone Bluetooth','Headset','Radio','Speaker Bluetooth','Smartwatch','Charger','Power Bank','Kabel & Adaptor','Aksesori HP','Mouse','Keyboard','Game Controller','Lampu LED','Kamera','Aksesori Komputer','Elektronik Rumah Tangga','Lainnya' — pilih paling cocok berdasarkan foto",
+  "garment_description": "frasa singkat warna + produk, misalnya 'tas kulit coklat'",
+  "product_material": "material/bahan produk yang terlihat, misalnya 'kulit sintetis', 'katun', 'plastik glossy'",
+  "product_color": "warna pasti produk yang terlihat",
+  "product_texture": "tekstur permukaan yang terlihat, misalnya 'bertekstur bintik', 'permukaan halus mengkilap'",
+  "product_logo": "logo/label/tulisan yang terlihat dan posisinya, kosongkan jika tidak ada",
+  "product_details": "1-2 kalimat rangkuman ciri khas produk yang harus dipertahankan persis (bentuk, jahitan, aksesoris, resleting/kancing/tali/sol jika ada)",
+  "subject_pose": "kalau ada orang/model di foto: pose dan posisi tubuhnya. Kosongkan jika tidak ada orang di foto",
+  "subject_expression": "kalau ada orang/model di foto dan wajah terlihat: ekspresi wajahnya. Kosongkan jika tidak ada orang atau wajah tidak terlihat",
+  "composition_notes": "framing, angle kamera, dan posisi subjek pada foto referensi ini (foreground/background jika terlihat)",
+  "lighting_notes": "jenis, arah, dan intensitas cahaya yang terlihat pada foto referensi ini",
+  "environment_notes": "lokasi/latar/suasana yang terlihat pada foto referensi ini",
+  "dominant_colors": ["array 2-4 warna dominan yang benar-benar terlihat pada foto, urutkan dari paling dominan"],
+  "suggested_style": "gaya fotografi/videografi paling sesuai untuk foto ini, misalnya 'commercial product photography' atau 'natural lifestyle photography'"
+}`;
+
+async function detectProduct(){
+  if(!uploadedBase64) return;
+  const btn = document.getElementById('detectBtn');
+  const status = document.getElementById('detectStatus');
+  btn.disabled = true;
+  status.className = 'detect-status';
+  status.textContent = `Menganalisis foto dengan ${activeProvider === 'gemini' ? 'Gemini' : 'Claude'}...`;
+  try{
+    let rawText = activeProvider === 'gemini' ? await callGemini(detectionInstruction, true) : await callClaude(detectionInstruction, true);
+    rawText = rawText.replace(/```json|```/g, "").trim();
+    let parsed;
+    try{ parsed = JSON.parse(rawText); }
+    catch(parseErr){ throw new Error('Gagal membaca hasil AI sebagai JSON: ' + rawText.slice(0,200)); }
+
+    const validCats = CATEGORIES.map(c=>c.id);
+    if(validCats.includes(parsed.product_type)){
+      selectedCategory = parsed.product_type;
+      document.getElementById('categoryCustomWrap').style.display = selectedCategory === 'custom' ? 'block' : 'none';
+      document.getElementById('elektronikProdukWrap').style.display = selectedCategory === 'elektronik' ? 'block' : 'none';
+      if(selectedCategory === 'elektronik'){
+        selectedElektronikProduk = ELEKTRONIK_PRODUCTS.includes(parsed.elektronik_produk) ? parsed.elektronik_produk : '';
+        renderElektronikProdukGrid();
+        const suggestedLokasi = ELEKTRONIK_LOKASI_MAP[selectedElektronikProduk];
+        if(suggestedLokasi){
+          lokasiMode = suggestedLokasi.mode;
+          document.getElementById('lokasiIndoorWrap').style.display = suggestedLokasi.mode==='indoor' ? 'block' : 'none';
+          document.getElementById('lokasiOutdoorWrap').style.display = suggestedLokasi.mode==='outdoor' ? 'block' : 'none';
+          if(suggestedLokasi.mode === 'indoor'){ selectedIndoor = suggestedLokasi.label; document.getElementById('indoorSelect').value = selectedIndoor; }
+          else { selectedOutdoor = suggestedLokasi.label; document.getElementById('outdoorSelect').value = selectedOutdoor; }
+          renderLokasiModeSeg(); refreshLightingOptions();
+        }
+      }
+      refreshGerakanOptions();
+      renderCategoryGrid();
+      if(fotoSubjek !== 'produk'){
+        fotoSubjek = 'produk';
+        document.getElementById('modelPhotoSection').style.display = 'none';
+        document.getElementById('sec-jenisproduk').style.display = 'block';
+        renderSubjekGrid();
+      }
+    }
+    if(parsed.garment_description){ garmentDescription = parsed.garment_description; }
+    if(parsed.product_details){ detectedProductDetails = parsed.product_details; }
+    detectedProductMaterial = parsed.product_material || "";
+    detectedProductColor = parsed.product_color || "";
+    detectedProductTexture = parsed.product_texture || "";
+    detectedProductLogo = parsed.product_logo || "";
+    detectedSubjectPose = parsed.subject_pose || "";
+    detectedSubjectExpression = parsed.subject_expression || "";
+    detectedComposition = parsed.composition_notes || "";
+    detectedLighting = parsed.lighting_notes || "";
+    detectedEnvironment = parsed.environment_notes || "";
+    detectedColors = Array.isArray(parsed.dominant_colors) ? parsed.dominant_colors.filter(Boolean) : [];
+    detectedStyle = parsed.suggested_style || "";
+
+    status.textContent = '✓ Terisi otomatis — jenis produk & detail sudah dikunci.';
+    status.className = 'detect-status ok';
+    updateSummaries();
+    render();
+  }catch(err){
+    console.error(err);
+    status.textContent = 'Deteksi gagal: ' + (err.message || 'kesalahan tidak diketahui') + '\nKamu tetap bisa pilih manual — hasil sama baiknya.';
+    status.className = 'detect-status err';
+    const actions = document.createElement('div');
+    actions.className = 'err-actions';
+    actions.innerHTML = `<button class="btn-mini" onclick="detectProduct()">Coba Lagi</button><button class="btn-mini" onclick="switchToOtherProvider()">Ganti Provider</button>`;
+    status.appendChild(actions);
+  }finally{ btn.disabled = false; }
+}
+function switchToOtherProvider(){
+  activeProvider = activeProvider === 'gemini' ? 'claude' : 'gemini';
+  openAiModal();
+  document.querySelectorAll('.ai-tab').forEach(t=>t.classList.toggle('active', t.dataset.provider===activeProvider));
+  renderAiProviderContent();
+}
+
+/* ================= COPY / EDIT / OUTPUT ================= */
+function showToast(msg){
+  const toast = document.getElementById('toast');
+  toast.textContent = msg; toast.classList.add('show');
+  setTimeout(()=>toast.classList.remove('show'), 1800);
+}
+function fallbackCopy(text){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.top = '-9999px';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.focus({preventScroll:true});
+  ta.select();
+  let ok = false;
+  try{ ok = document.execCommand('copy'); }catch(e){ ok = false; }
+  document.body.removeChild(ta);
+  return ok;
+}
+async function copyText(text, successMsg){
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(text);
+      showToast(successMsg || 'Berhasil disalin');
+      return true;
+    }
+  }catch(e){ /* fallback di bawah */ }
+  const ok = fallbackCopy(text);
+  showToast(ok ? (successMsg || 'Berhasil disalin') : 'Gagal menyalin');
+  return ok;
+}
+function flashCopyBtn(btnId){
+  const btn = document.getElementById(btnId);
+  if(!btn) return;
+  const original = btn.textContent;
+  btn.textContent = '✓ Tersalin';
+  btn.disabled = true;
+  setTimeout(()=>{ btn.textContent = original; btn.disabled = false; }, 1500);
+}
+async function copyHook(){
+  if(!autoHook){ showToast('Hook belum dibuat'); return; }
+  const ok = await copyText(autoHook, 'Hook berhasil disalin');
+  if(ok) flashCopyBtn('hookCopyBtn');
+}
+async function copyStorytelling(){
+  if(!autoStorytelling){ showToast('Storytelling belum dibuat'); return; }
+  const ok = await copyText(autoStorytelling, 'Storytelling berhasil disalin');
+  if(ok) flashCopyBtn('storyCopyBtn');
+}
+async function copyCTA(){
+  if(!autoCta){ showToast('CTA belum dibuat'); return; }
+  const ok = await copyText(autoCta, 'CTA berhasil disalin');
+  if(ok) flashCopyBtn('ctaCopyBtn');
+}
+
+function escapeHtml(str){
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function syntaxHighlight(json){
+  const safe = escapeHtml(json);
+  return safe.replace(/"([^"]+)":/g, '<span class="key">"$1"</span>:').replace(/: "([^"]*)"/g, ': <span class="str">"$1"</span>');
+}
+
+/* ================= RENDER PROMPT FINAL ================= */
+/* ================= UPGRADE: NEGATIVE PROMPT, TITLE, STYLE, DLL (LOKAL, TANPA AI, INSTAN) ================= */
+function buildNegativePrompt(){
+  const base = ['blurry','low quality','distorted object','duplicate object','incorrect logo','unreadable text','oversaturated','unnatural lighting','artifacts','watermark','extra text overlay','jpeg artifacts','stiff movement','robotic motion','jerky animation','frozen mid-action','unnatural hand movement','awkward object pickup','hesitant motion', ...NEGATIVE_PROMPT_BASE_EXTRA];
+  if(fotoSubjek === 'model'){
+    base.push('malformed hands','extra fingers','missing fingers','extra hands','deformed face','asymmetrical face','extra limbs','unnatural pose','bad anatomy');
+  }
+  if(fotoSubjek === 'produk'){
+    base.push('different product','warped product','product shape changed','changed product color','wrong product color','floating product','product clipping through hand','melted product edges','product morphing', ...NEGATIVE_PROMPT_PRODUCT_EXTRA);
+  }
+  return [...new Set(base)].join(', ');
+}
+
+function buildTitle(subjekLabel, lokasiLabel, gerakanLabel){
+  const t = `${subjekLabel} — ${gerakanLabel || 'Video Produk'} di ${lokasiLabel}`;
+  return t.length > 90 ? t.slice(0,87) + '...' : t;
+}
+
+function buildStyleText(){
+  const platform = document.getElementById('platformSelect')?.value || 'Generic / Lainnya';
+  const cinematicPlatforms = ['Runway Gen-3','Luma Dream Machine'];
+  const base = fotoSubjek === 'model'
+    ? 'natural lifestyle photography, authentic dan tidak berlebihan'
+    : 'professional commercial product photography, bersih dan fokus pada produk';
+  const platformNote = cinematicPlatforms.includes(platform)
+    ? ', cinematic film-look, shallow depth of field'
+    : ', tampilan tajam dan jelas untuk media sosial';
+  return (detectedStyle ? detectedStyle + '. ' : '') + base + platformNote + ` (dioptimalkan untuk ${platform}).`;
+}
+
+function buildAspectRatioText(){
+  const platform = document.getElementById('platformSelect')?.value || 'Generic / Lainnya';
+  return `9:16 vertical — dioptimalkan untuk TikTok/Instagram Reels/Shorts, kompatibel dengan ${platform}.`;
+}
+
+function buildQualityText(){
+  return 'highly detailed, realistic texture, natural lighting, realistic shadow, sharp focus pada subjek utama, professional photography, clean composition, high resolution, tanpa artifact.';
+}
+
+function buildCompositionText(camText, lokasiLabel){
+  const subjekWord = fotoSubjek === 'model' ? 'model' : 'produk';
+  const base = `Framing mengikuti posisi kamera (${camText}). ${subjekWord.charAt(0).toUpperCase()+subjekWord.slice(1)} diposisikan jelas sebagai focal point dengan ruang negatif natural di sekitarnya; latar (${lokasiLabel}) berfungsi sebagai pendukung tanpa mengalihkan perhatian dari ${subjekWord}.`;
+  return detectedComposition ? `${detectedComposition} ${base}` : base;
+}
+
+// Dipakai oleh render() (data baru) DAN renderFromJSON() (data dari kotak JSON, sesuai bagian F: RENDER wajib
+// memakai product/subject/composition/lighting/camera/style/prompt yang ada di JSON, bukan membuat data baru).
+function formatFullPrompt(data){
+  const proj = data.project || {};
+  const cam = data.camera || {};
+  const light = data.lighting || {};
+  const comp = data.composition || {};
+  const sty = data.style || {};
+  const out = data.output || {};
+  const prm = data.prompt || {};
+
+  const title = proj.name || 'Video Produk';
+  const mainBody = (typeof prm.main === 'string' && prm.main) ? prm.main : '(main prompt kosong)';
+  const negative = (typeof prm.negative === 'string' && prm.negative) ? prm.negative : '-';
+
+  const cameraLine = [cam.shot_type, cam.lens, cam.focal_length, cam.aperture, cam.depth_of_field, cam.focus].filter(Boolean).join(', ') || (comp.camera_angle || '-');
+  const lightingLine = [light.type, light.direction, light.intensity, light.shadow, light.highlight].filter(Boolean).join(', ') || '-';
+  const compositionLine = [comp.framing, comp.camera_angle, comp.perspective, comp.subject_position, comp.negative_space].filter(Boolean).join(', ') || '-';
+  const styleLine = [sty.visual_style, sty.photography_style, sty.realism].filter(Boolean).join(', ') || '-';
+  const aspectLine = [out.aspect_ratio, out.resolution].filter(Boolean).join(', ') || '-';
+  const qualityLine = out.quality || '-';
+
+  return `TITLE: ${title}
+
+MAIN PROMPT:
+${mainBody}
+
+NEGATIVE PROMPT: ${negative}
+
+CAMERA: ${cameraLine}
+LIGHTING: ${lightingLine}
+COMPOSITION: ${compositionLine}
+STYLE: ${styleLine}
+ASPECT RATIO: ${aspectLine}
+QUALITY: ${qualityLine}`;
+}
+
+function render(){
+  const catObj = CATEGORIES.find(c=>c.id===selectedCategory) || CATEGORIES[0];
+  const catLabel = resolveCategoryLabel(catObj);
+  const promptType = PROMPT_TYPES.find(p=>p.id===selectedPromptType) || PROMPT_TYPES[0];
+
+  const subjekText = fotoSubjek === 'model' ? 'Model / manusia' : `Produk (${catLabel})`;
+
+  // gerakan utama
+  let gerakanText;
+  if(gerakanUtama === 'Custom'){
+    gerakanText = document.getElementById('gerakanCustomText').value.trim() || 'gerakan custom (belum diisi)';
+  } else if(gerakanUtama === 'Review Produk'){
+    gerakanText = 'produk dipegang stabil lalu direview sesuai detail di bawah';
+  } else {
+    gerakanText = gerakanUtama || 'diam natural';
+  }
+
+  // review produk (jika dipilih)
+  let reviewBlock = '';
+  if(gerakanUtama === 'Review Produk'){
+    const luarRaw = Array.from(selectedReviewLuar).filter(x=>x!=='Custom');
+    const luarCustom = selectedReviewLuar.has('Custom') ? document.getElementById('reviewLuarCustomText').value.trim() : '';
+    const dalamRaw = Array.from(selectedReviewDalam).filter(x=>x!=='Custom');
+    const dalamCustom = selectedReviewDalam.has('Custom') ? document.getElementById('reviewDalamCustomText').value.trim() : '';
+    const isMemutar = luarRaw.includes('Memutar Produk Perlahan');
+    const putaranDeg = putaranSudut === 'Custom' ? (document.getElementById('putaranCustomText').value.trim() || '90 derajat') : putaranSudut.replace('°',' derajat');
+
+    let luarSteps = [];
+    if(luarRaw.length || luarCustom){
+      luarSteps.push('produk dipegang stabil dengan satu/kedua tangan');
+      const nonRotate = luarRaw.filter(x=>x!=='Memutar Produk Perlahan');
+      if(nonRotate.length) luarSteps.push(nonRotate.join(', ').toLowerCase() + ', dilakukan berurutan satu per satu');
+      if(isMemutar) luarSteps.push(`produk diputar perlahan sekitar ${putaranDeg}, terkontrol, bukan putaran penuh 360°, orientasi dan skala tetap konsisten`);
+      if(luarCustom) luarSteps.push(luarCustom);
+      luarSteps.push('diakhiri produk kembali ke posisi stabil');
+    }
+    let dalamSteps = [];
+    if(dalamRaw.length || dalamCustom){
+      if(CATEGORY_HAS_INTERIOR[selectedCategory]){
+        if(dalamRaw.length) dalamSteps.push(dalamRaw.join(', ').toLowerCase());
+        if(dalamCustom) dalamSteps.push(dalamCustom);
+        dalamSteps.push('menutup kembali produk secara natural jika sempat dibuka');
+      } else {
+        dalamSteps.push('HANYA jika foto referensi benar-benar menunjukkan bagian dalam produk — jika tidak terlihat jelas pada referensi, JANGAN mengarang atau mengklaim detail interior, cukup pertahankan sudut yang terlihat');
+      }
+    }
+    if(luarSteps.length) reviewBlock += ` Review bagian luar: ${luarSteps.join('; ')}.`;
+    if(dalamSteps.length) reviewBlock += ` Review bagian dalam: ${dalamSteps.join('; ')}.`;
+  }
+
+  // model (jika subjek = model)
+  let modelBlock = '';
+  if(fotoSubjek === 'model'){
+    const modelSourceText = (modelSource === 'upload' && modelBase64)
+      ? 'menggunakan foto model yang diunggah sebagai acuan wajah, rambut, dan bentuk tubuh — pertahankan karakter ini konsisten sepanjang hasil'
+      : `model AI gender ${modelGender}, gaya ${modelStyle.toLowerCase()}`;
+    modelBlock = ` Model (${modelSourceText}).`;
+  }
+
+  const lokasiArr = resolveLokasiList();
+  const lokasi = lokasiArr[0];
+  let lokasiNote = '';
+  if(lokasiMode === 'upload' && locBgBase64 && lokasiArr.length === 1){
+    lokasiNote = ' Foto lokasi yang diunggah adalah acuan utama — jangan diganti lokasi lain.';
+  }
+  const lokasiLine = lokasiArr.length > 1
+    ? lokasiArr.map((l,i)=>`Lokasi ${i+1}${i===0?' (awal video)':i===lokasiArr.length-1?' (akhir video)':' (tengah video)'}: ${l.label}`).join('. ') + '. Perpindahan antar lokasi mengikuti pergantian frame/scene, dilakukan sebagai transisi natural (bukan potongan kasar).'
+    : `${lokasi.label}.${lokasiNote}`;
+
+  const camObj = CAM_POS_OPTIONS.find(c=>c.id===selectedCamPos) || CAM_POS_OPTIONS[0];
+  const camText = selectedCamPos === 'custom' ? (document.getElementById('camPosCustomText').value.trim() || 'posisi kamera custom (belum diisi)') : camObj.phrase;
+
+  let lightingText;
+  if(selectedLighting === 'Auto'){
+    lightingText = lokasi.isOutdoor ? 'cahaya natural outdoor yang lembut, disesuaikan suasana lokasi' : 'pencahayaan indoor natural yang lembut dan merata';
+  } else if(selectedLighting === 'Custom'){
+    lightingText = document.getElementById('lightingCustomText').value.trim() || 'pencahayaan custom (belum diisi)';
+  } else {
+    lightingText = selectedLighting;
+  }
+
+  // ===== PRODUCT CONSISTENCY LOCK (ringkas — foto referensi sudah jadi sumber visual utama,
+  // tidak perlu menulis ulang semua detail fisik produk secara panjang di sini) =====
+  const preservasi = `REFERENCE IMAGE PRIORITY: Reference image has priority over generated assumptions — use the uploaded photo as the primary visual source for the subject/product/outfit/environment, do not invent visual details that are not visible in it.
+${PRESERVE_ORIGINAL_TEXT}${fotoSubjek === 'produk' ? ' ' + PRESERVE_ORIGINAL_PRODUCT_TEXT : ''}${fotoSubjek === 'produk' ? ` PRODUCT CONSISTENCY LOCK: produk (${garmentDescription}) harus tetap identik dengan foto referensi sepanjang video — bentuk, proporsi, ukuran visual, warna, logo, tulisan, motif, material, tekstur, desain, tombol/port/aksesori, dan semua detail lain yang terlihat di foto. Jangan membuat versi produk yang berbeda, jangan mengganti desain, jangan mengubah warna, jangan menambahkan detail baru, jangan menghilangkan detail yang terlihat. Kalau produk diputar/berganti sisi, hanya perlihatkan sisi yang secara logis memang bagian dari produk tersebut.` : ''} Gerakan tangan harus realistis, natural, dan tidak kaku (posisi stabil, jangan menembus produk, jangan berpindah tangan tiba-tiba, jangan ada gerakan patah-patah/robotik terutama saat mengambil atau memegang produk).${fotoSubjek === 'produk' ? ' ' + ACCURACY_RULES_TEXT : ''}`;
+
+  // ===== MODEL/FACE CONSISTENCY LOCK + NATURAL HUMAN MOTION — hanya kalau subjek = model/manusia =====
+  const humanConsistency = fotoSubjek === 'model' ? `
+
+MODEL/FACE CONSISTENCY LOCK: Maintain the exact same person throughout the entire video — wajah, identitas, struktur wajah, bentuk mata, bentuk hidung, bentuk bibir, bentuk rahang, dan proporsi wajah harus tetap konsisten sepanjang video. Gaya rambut, warna rambut, karakter visual, dan proporsi tubuh tetap konsisten. Outfit tetap konsisten jika outfit berasal dari foto referensi. DILARANG: mengganti wajah, membuat wajah baru, face morphing, perubahan identitas, perubahan bentuk wajah antar-frame, perubahan rambut/outfit/proporsi tubuh yang tidak diminta. Ekspresi wajah boleh berubah natural mengikuti adegan, tapi identitas orangnya harus tetap sama.
+
+NATURAL HUMAN MOTION: gerakan tangan, kepala, dan tubuh natural seperti manusia sungguhan, perpindahan berat badan realistis, gerakan mata dan ekspresi natural, kecepatan gerakan realistis (tidak terlalu cepat). Hindari gerakan robot/patah-patah, gerakan tangan berlebihan, gerakan tubuh yang tidak masuk akal, perubahan bentuk tangan/jari tambahan, dan gerakan tiba-tiba. Jangan membuat model terlalu banyak bergerak hanya supaya video terlihat hidup — natural lebih penting daripada kompleks.` : '';
+
+  const ctaText = (autoCta || '').trim() || DEFAULT_CTA_FALLBACK;
+  const hookSection = autoHook ? `\nHOOK: ${autoHook}` : '';
+  const storySection = autoStorytelling ? `\nSTORYTELLING: ${autoStorytelling}` : '';
+  const subjectExtra = fotoSubjek === 'model'
+    ? [detectedSubjectPose, detectedSubjectExpression].filter(Boolean).map(t=>' ' + t).join('')
+    : '';
+
+  // Ini narasi inti video (tetap semua detail lama: subjek, lokasi, gerakan, transisi, interaksi produk, cta, ending, hook/story, konsistensi produk)
+  const mainPromptBody = `SUBJECT: ${subjekText}.${modelBlock}${subjectExtra ? ' Detail dari foto:' + subjectExtra : ''}
+LOCATION: ${lokasiLine}${detectedEnvironment ? ' Detail lingkungan dari foto: ' + detectedEnvironment + '.' : ''}
+STARTING POSITION: ${fotoSubjek === 'model' ? 'model dalam posisi santai natural, siap memulai gerakan' : 'produk dalam posisi awal yang stabil dan jelas terlihat kamera'}.
+MAIN ACTION: ${gerakanText}, dilakukan halus, satu aksi utama, tidak terburu-buru. Gerakan mengalir seperti orang sungguhan bergerak refleks natural — bukan gerakan robotik/kaku/dijeda-jeda per frame.
+NATURAL TRANSITION: perpindahan antar gerakan dilakukan halus dan berkesinambungan, hindari perubahan pose atau posisi yang ekstrem/tiba-tiba, hindari jeda kaku di antara gerakan.
+HAND-PRODUCT INTERACTION: saat tangan mengambil, memegang, atau meletakkan produk, gerakan harus terlihat natural dan meyakinkan — jari-jari menyesuaikan bentuk produk secara wajar, tidak kaku seperti menahan beban imajiner, tidak menembus/melayang di atas permukaan produk, dan tidak ada jeda aneh sesaat sebelum/sesudah kontak dengan produk. Momen "mengambil produk" harus terlihat seperti gerakan refleks sehari-hari, bukan gerakan yang dipaksakan atau terlihat seperti animasi patah-patah.
+CAMERA: ${camText}. Hindari orbit ekstrem, zoom tiba-tiba, camera shake berlebihan, perpindahan kamera yang tidak masuk akal, atau gerakan kamera terlalu cepat.
+SCENE CONSISTENCY: gerakan, kamera, dan pencahayaan harus cocok dan realistis untuk lokasi yang dipilih — satu video terasa seperti satu adegan yang konsisten, jangan berpindah suasana/lokasi secara tiba-tiba di tengah video.
+PRODUCT INTERACTION: ${reviewBlock ? reviewBlock.trim() : 'produk ditampilkan konsisten mengikuti gerakan utama tanpa interaksi tambahan yang rumit'}${hookSection}${storySection}
+CTA: ${ctaText}
+ENDING: kembali ke posisi stabil dan natural, produk tetap jelas terlihat di frame terakhir.
+CREATIVE DIRECTION (${promptType.name}): ${promptType.strategy}
+
+${preservasi}${humanConsistency}`;
+
+  // ===== Field baru: negative prompt, title, style, aspect ratio, quality, composition — semua lokal & instan, tanpa AI =====
+  const negativePrompt = buildNegativePrompt();
+  const title = buildTitle(subjekText, lokasi.label, gerakanText);
+  const styleText = buildStyleText();
+  const aspectRatioText = buildAspectRatioText();
+  const qualityText = buildQualityText();
+  const compositionText = buildCompositionText(camText, lokasi.label);
+
+  // ===== Struktur JSON baru (sesuai skema yang diminta) + field lama tetap dipertahankan agar fitur lain tidak rusak =====
+  const data = {
+    project: {
+      name: title,
+      type: fotoSubjek === 'model' ? 'video model/lifestyle' : 'video produk',
+      purpose: 'konten video produk untuk media sosial'
+    },
+    subject: {
+      main_subject: subjekText,
+      description: fotoSubjek === 'model' ? (garmentDescription !== 'produk' ? garmentDescription : 'model tampil natural sesuai foto referensi') : garmentDescription,
+      position: fotoSubjek === 'model' ? 'mengikuti pose pada foto referensi, gerakan halus dan natural' : 'diposisikan stabil sesuai gerakan utama yang dipilih',
+      pose: detectedSubjectPose || '',
+      expression: detectedSubjectExpression || ''
+    },
+    product: {
+      is_product: fotoSubjek === 'produk',
+      category: fotoSubjek === 'produk' ? catLabel : '',
+      name: garmentDescription || '',
+      material: detectedProductMaterial || '',
+      color: detectedProductColor || '',
+      texture: detectedProductTexture || '',
+      details: detectedProductDetails || '',
+      logo: detectedProductLogo || '',
+      preserve_original_design: true
+    },
+    environment: {
+      location: lokasi.label,
+      location_sequence: lokasiArr.length > 1 ? lokasiArr.map((l,i)=>({ urutan: i+1, label: l.label, tipe: l.isOutdoor ? 'outdoor' : 'indoor' })) : null,
+      background: detectedEnvironment || lokasi.label,
+      foreground: fotoSubjek === 'model' ? 'model/subjek utama' : 'produk utama',
+      atmosphere: detectedEnvironment || (lokasi.isOutdoor ? 'suasana outdoor natural' : 'suasana indoor natural')
+    },
+    composition: {
+      framing: camText,
+      camera_angle: camText,
+      perspective: detectedComposition || 'eye-level natural, fokus pada subjek utama',
+      subject_position: fotoSubjek === 'model' ? 'tengah frame, ruang kepala natural' : 'tengah frame, produk sebagai focal point',
+      negative_space: 'ruang natural di sekitar subjek, tidak terlalu padat'
+    },
+    lighting: {
+      type: lightingText,
+      direction: detectedLighting || (lokasi.isOutdoor ? 'mengikuti arah cahaya matahari/lokasi' : 'cahaya merata dari depan/samping'),
+      intensity: 'sedang, natural, tidak berlebihan',
+      shadow: 'bayangan lembut dan natural',
+      highlight: 'highlight halus pada subjek utama, tidak overexposed'
+    },
+    camera: {
+      shot_type: 'medium shot',
+      lens: '35mm - 50mm (setara)',
+      focal_length: 'normal, tidak wide distortif',
+      aperture: fotoSubjek === 'produk' ? 'f/2.8 - f/4 (produk tetap tajam menyeluruh)' : 'f/2.0 - f/2.8 (subjek tajam, background sedikit lembut)',
+      depth_of_field: fotoSubjek === 'produk' ? 'dangkal-sedang, produk tetap tajam menyeluruh' : 'dangkal, subjek tajam dan terpisah dari background',
+      focus: `fokus utama pada ${fotoSubjek === 'model' ? 'model' : 'produk'}, tidak berpindah fokus tiba-tiba`
+    },
+    color: {
+      dominant_colors: detectedColors,
+      tone: 'natural, warm-neutral',
+      contrast: 'sedang, tidak over-contrast',
+      color_grading: 'natural commercial look, warna tetap akurat sesuai referensi'
+    },
+    style: {
+      visual_style: styleText,
+      photography_style: fotoSubjek === 'model' ? 'lifestyle commercial' : 'product commercial',
+      realism: 'photorealistic, tidak berlebihan/tidak seperti ilustrasi'
+    },
+    prompt: {
+      main: mainPromptBody,
+      negative: negativePrompt
+    },
+    prompt_type: {
+      id: promptType.id,
+      name: promptType.name,
+      objective: promptType.objective,
+      strategy: promptType.strategy
+    },
+    fidelity: {
+      preserve_original: true,
+      preserve_identity: true,
+      preserve_product: true,
+      preserve_colors: true,
+      preserve_clothing: true,
+      preserve_logo: true,
+      preserve_text: true
+    },
+    output: {
+      aspect_ratio: '9:16',
+      resolution: '1080x1920 (Full HD vertical)',
+      quality: qualityText
+    },
+
+    // Field tambahan (spesifik video) — tetap dipertahankan supaya fitur Hook/Storytelling, CTA, dan review produk tidak hilang
+    gerakan: gerakanText,
+    review_produk: gerakanUtama === 'Review Produk' ? (reviewBlock || 'belum diisi') : null,
+    dialog_language: (BAHASA_MODEL_MAP[selectedBahasaModel] || BAHASA_MODEL_MAP.id).label,
+    hook: autoHook || "belum dibuat — tap Generate Prompt",
+    storytelling: autoStorytelling || "belum dibuat — tap Generate Prompt",
+    cta: ctaText,
+    ai_provider: activeProvider === 'gemini' ? 'Google Gemini' : 'Anthropic Claude',
+    platform_target: document.getElementById('platformSelect')?.value || 'Generic / Lainnya'
+  };
+
+  // ===== Suara (voice) — konsisten di seluruh video, usia tetap 20 tahun, mengikuti pilihan gender & Bahasa Model =====
+  const voiceScript = [autoHook, autoStorytelling, ctaText].filter(Boolean).join(' / ') || 'Teks Hook, Storytelling, dan CTA';
+  Object.assign(data, buildVoiceCharacterBlock(voiceScript));
+
+  // ===== Skema JSON khusus untuk Jenis Prompt "VIDEO PRODUK" =====
+  if(promptType.id === 'video_produk'){
+    data.video_produk_schema = {
+      reference: {
+        frame_start: fotoSubjek === 'produk' ? 'Sesuai foto referensi produk yang diunggah, posisi awal stabil dan jelas terlihat.' : 'Sesuai foto referensi yang diunggah, pose awal natural.',
+        instruction: 'Gunakan foto referensi sebagai acuan visual utama tanpa mengubah bentuk, warna, atau detail apa pun.'
+      },
+      preserve_original: {
+        enabled: true,
+        instruction: PRESERVE_ORIGINAL_TEXT + (fotoSubjek === 'produk' ? ' ' + PRESERVE_ORIGINAL_PRODUCT_TEXT + ' ' + ACCURACY_RULES_TEXT : '')
+      },
+      motion: {
+        character: fotoSubjek === 'model' ? 'model bergerak natural sesuai foto referensi, tidak kaku/robotik' : 'tangan/model pendukung bergerak halus dan natural tanpa mengubah produk',
+        action: gerakanText,
+        hand_product_interaction: 'saat mengambil/memegang/meletakkan produk, gerakan tangan natural dan meyakinkan, jari menyesuaikan bentuk produk secara wajar, tidak kaku/patah-patah, tidak menembus/melayang di atas produk',
+        camera: camText,
+        movement_speed: 'halus, sedang, tidak terburu-buru, mengalir seperti gerakan refleks natural bukan animasi patah-patah',
+        product_focus: fotoSubjek === 'produk' ? 'produk selalu jelas terlihat dan menjadi focal point' : 'natural, mengikuti subjek utama'
+      },
+      content: {
+        hook: autoHook || '',
+        storytelling: autoStorytelling || '',
+        cta: ctaText
+      },
+      duration: { seconds: 8 },
+      sound: {
+        ambient: lokasi.isOutdoor ? 'suara ambient outdoor natural (angin/lalu lintas halus)' : 'suara ambient indoor natural (ruang tenang)',
+        voice_over: true,
+        ...buildVoiceCharacterBlock(voiceScript)
+      },
+      output: {
+        style: 'photorealistic',
+        resolution: '4K',
+        fps: 24,
+        lighting: lightingText,
+        post_processing: 'minimal',
+        realistic_motion: true
+      },
+      negative_prompt: negativePrompt.split(', ')
+    };
+  }
+
+  // Card "HASIL PROMPT" sudah dihapus dari tampilan, tapi sistem tetap membuat
+  // prompt & JSON final secara internal (disimpan di variabel global untuk
+  // dipakai fitur lain / debugging), sesuai permintaan: Generate Prompt tetap
+  // harus bekerja walau tidak ditampilkan sebagai card besar.
+  window.lastGeneratedPromptData = data;
+  window.lastGeneratedPromptText = formatFullPrompt(data);
+}
+
+async function onGenerateTap(){
+  if(mainGenerating) return; // cegah request ganda kalau tombol sempat tertekan lagi
+  mainGenerating = true;
+
+  const btn = document.getElementById('mainGenBtn');
+  if(btn){ btn.disabled = true; btn.textContent = '⏳ Generating Prompt...'; }
+
+  let timeoutId = null;
+  let timedOut = false;
+  const controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+
+  try{
+    if(geminiKey || claudeKey){
+      if(controller){
+        timeoutId = setTimeout(() => { timedOut = true; controller.abort(); }, GENERATE_TIMEOUT_MS);
+      }
+      await generateHookStory(false, controller ? controller.signal : undefined);
+    }
+    // Fetch di atas cuma dipanggil sekali per tap; mainGenerating + tombol disabled
+    // mencegah tap kedua memicu request baru selagi ini masih berjalan.
+    render();
+    // Jangan paksa halaman scroll ke output. Pengguna tetap di posisi terakhir.
+    showToast('Prompt siap!');
+    const inner = document.getElementById('stickyBarInner');
+    inner.innerHTML = `
+      <button class="gen-btn" id="mainGenBtn" onclick="onGenerateTap()">🔄 Generate Ulang</button>
+    `;
+  }catch(err){
+    console.error(err);
+    // Hook/storytelling gagal atau timeout — prompt utama tetap dibuat dari data yang ada,
+    // supaya fitur Copy/Edit/JSON tidak ikut macet.
+    render();
+    const message = timedOut ? 'Proses terlalu lama. Silakan coba lagi.' : ('Gagal membuat prompt: ' + (err.message || 'kesalahan tidak diketahui'));
+    showToast(message);
+    const inner = document.getElementById('stickyBarInner');
+    inner.innerHTML = `
+      <button class="gen-btn" id="mainGenBtn" onclick="onGenerateTap()">🔁 Coba Lagi</button>
+    `;
+  }finally{
+    if(timeoutId) clearTimeout(timeoutId);
+    mainGenerating = false;
+    if(btn){ btn.disabled = false; btn.textContent = '✨ Generate Prompt'; }
+  }
+}
+
+function switchMainTab(tab){
+  ['foto','panduan'].forEach(t=>{
+    document.getElementById('tabContent-'+t).style.display = (t===tab) ? 'block' : 'none';
+  });
+  document.querySelectorAll('.main-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  document.querySelector('.sticky-bar').style.display = (tab==='panduan') ? 'none' : 'flex';
+}
+
+/* ================= INIT ================= */
+/* Dibungkus try/catch: kalau ada error tak terduga saat startup, halaman tetap
+   ditampilkan (bukan macet/blank) dan pengguna dikasih pesan sederhana + tombol
+   Coba Lagi — bukan loading yang menyala selamanya. */
+try{
+  updateMainAiButton();
+  fpRenderConceptGrid();
+  fpRenderBackgroundGrid();
+}catch(startupErr){
+  console.error('Startup error:', startupErr);
+  const banner = document.createElement('div');
+  banner.style.cssText = 'position:fixed;left:12px;right:12px;bottom:90px;z-index:500;background:#3a1620;border:1px solid #ff6b8a;color:#fff;padding:12px 14px;border-radius:12px;font-family:Space Grotesk,sans-serif;font-size:12.5px;';
+  banner.innerHTML = 'Terjadi masalah saat memuat sebagian tampilan. Silakan coba lagi. <button style="margin-top:8px;display:block;width:100%;padding:8px;border-radius:8px;border:none;background:#ff6b8a;color:#1a0a0e;font-weight:700;cursor:pointer;" onclick="location.reload()">Coba Lagi</button>';
+  document.body.appendChild(banner);
+}
+</script>
+
+<script>
+/* ===== NATIVE-LIKE INTERACTION PROTECTION ===== */
+(function(){
+  const editable = el => !!el && (el.matches('input, textarea, select, [contenteditable="true"]') || el.closest('input, textarea, select, [contenteditable="true"]'));
+  ['contextmenu','selectstart','dragstart','copy','cut'].forEach(type => {
+    document.addEventListener(type, function(e){
+      if(!editable(e.target)) e.preventDefault();
+    }, {capture:true});
+  });
+  document.addEventListener('gesturestart', e => e.preventDefault(), {passive:false});
+  document.addEventListener('gesturechange', e => e.preventDefault(), {passive:false});
+  document.addEventListener('gestureend', e => e.preventDefault(), {passive:false});
+  let lastTouchEnd=0;
+  document.addEventListener('touchend', function(e){
+    const now=Date.now();
+    if(now-lastTouchEnd<=300 && !editable(e.target)) e.preventDefault();
+    lastTouchEnd=now;
+  }, {passive:false});
+  document.addEventListener('touchmove', function(e){
+    if(e.touches && e.touches.length>1) e.preventDefault();
+  }, {passive:false});
+
+  // Cegah Pull-to-Refresh browser SECARA PRESISI: preventDefault cuma dipicu
+  // kalau kondisinya PERSIS gesture PTR (1 jari, halaman sudah di paling atas,
+  // dan sedang ditarik ke bawah) — scroll/swipe dari posisi manapun lainnya
+  // (atas, tengah, bawah, samping) tetap normal karena tidak pernah masuk kondisi ini.
+  let ptrTouchStartY = 0;
+  let ptrScroller = null; // kontainer scroll terdekat (mis. .vg-body, modal) tempat sentuhan dimulai
+  function findScroller(el){
+    while(el && el !== document.body && el !== document.documentElement){
+      if(el.scrollHeight > el.clientHeight + 1){
+        const oy = getComputedStyle(el).overflowY;
+        if(oy === 'auto' || oy === 'scroll') return el;
+      }
+      el = el.parentElement;
+    }
+    return null;
+  }
+  document.addEventListener('touchstart', function(e){
+    if(e.touches.length === 1){
+      ptrTouchStartY = e.touches[0].clientY;
+      ptrScroller = findScroller(e.target);
+    }
+  }, {passive:true});
+  document.addEventListener('touchmove', function(e){
+    if(e.touches.length !== 1) return;
+    // Sedang menggulir isi kontainer yang belum di paling atas: biarkan scroll normal.
+    if(ptrScroller && ptrScroller.scrollTop > 0) return;
+    const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
+    const draggingDown = e.touches[0].clientY > ptrTouchStartY;
+    if(scrollTop <= 0 && draggingDown) e.preventDefault();
+  }, {passive:false});
+})();
+
+/* ===== PWA SERVICE WORKER ===== */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+}
+</script>
+
+<!-- ===== VIDEO GENERATOR — wizard 5 step, terpisah dari alur generate produk ===== -->
+<div class="vg-modal" id="vgModal" role="dialog" aria-modal="true">
+  <div class="vg-head">
+    <span class="vg-title">🎬 Video Generator</span>
+    <button class="vg-close" onclick="closeVideoGen()">✕</button>
+  </div>
+  <div class="vg-progress-track"><div class="vg-progress-bar" id="vgProgressBar" style="width:20%;"></div></div>
+  <div class="vg-stepline"><span>Step <b id="vgStepNum" style="color:var(--ink);">1</b> dari 5</span><span id="vgStepLabel">Mode Referensi Foto</span></div>
+  <div id="vgStepDots" style="display:flex; gap:6px; justify-content:center; padding:8px 16px; flex-shrink:0; border-bottom:1px solid var(--line);"></div>
+  <div class="vg-body" id="vgBody"></div>
+</div>
+
+<script>
+/* ================= VIDEO GENERATOR (wizard 5 step → 3 JSON: Hook/Cerita/CTA) =================
+   Fitur terpisah total dari alur generate produk yang sudah ada — tidak menyentuh
+   variabel/fungsi lain di file ini. */
+const VG_REF_MODES = [
+  { id:'mode1', label:'Mode 1 — 1 foto untuk semua', desc:'Satu foto dipakai sebagai referensi visual untuk seluruh scene (Hook, Cerita, CTA). Konsisten tapi lebih sederhana.' },
+  { id:'mode2', label:'Mode 2 — Aset frame awal', desc:'Foto yang dilampirkan jadi frame awal SETIAP pergantian scene, scene wajib 100% sama dengan foto (kalau di foto tidak ada wajah, jangan dimunculkan wajah), dan urutan scene wajib berurutan sesuai foto yang dilampirkan.' },
+  { id:'mode3', label:'Mode 3 — Karakter + Produk + Lokasi', desc:'Karakter, produk, dan lokasi masing-masing punya foto referensi terpisah, digabung jadi satu scene yang konsisten.' }
+];
+const VG_AGE_PRESETS = [
+  { id:'anak', label:'Anak-anak', sub:'5–10 th' },
+  { id:'remaja', label:'Remaja', sub:'15–20 th' },
+  { id:'dewasa_muda', label:'Dewasa Muda', sub:'20–30 th' },
+  { id:'dewasa', label:'Dewasa', sub:'30–45 th' },
+  { id:'paruh_baya', label:'Paruh Baya', sub:'45–60 th' }
+];
+const VG_TONE_PRESETS = ['Ceria','Tenang','Serius','Lembut','Bersemangat','Misterius'];
+const VG_ACCENT_PRESETS = ['Netral','Formal','Santai'];
+
+let vgStep = 1;
+let vgVisitedSteps = new Set([1]);
+let vgState = {
+  refMode: 'mode2',
+  gender: '',
+  agePreset: '',
+  ageCustom: '',
+  tone: '',
+  toneCustom: '',
+  bahasaReview: 'id', // Bahasa Review khusus Video Generator — default Indonesia
+  accent: '',
+  accentCustom: '',
+  subMode: 'ai', // 'ai' | 'manual' | 'multi'
+  productName: '',
+  productPhotoBase64: null,
+  targetAudience: '',
+  manualHook: '',
+  manualCerita: '',
+  manualCta: '',
+  multiNames: '',
+  multiCount: 3,
+  multiCountConfirmed: false,
+  multiProducts: [], // {name, keunggulan, photoBase64, photoThumb, photoKey} — tidak dihancurkan saat jumlah dikurangi lalu dinaikkan lagi
+  background: '',       // id latar belakang (lihat VG_BACKGROUNDS), '' = belum dipilih
+  backgroundCustom: '', // teks bebas saat memilih "Tulis Sendiri"
+  productPhotoThumb: null,
+  productPhotoKey: ''
+};
+const VG_BACKGROUNDS = [
+  { id:'kamar', label:'Kamar', desc:'a cozy bedroom, tidy home interior' },
+  { id:'ruang_tamu', label:'Ruang Tamu', desc:'a clean living room, warm home interior' },
+  { id:'ruang_kerja', label:'Ruang Kerja', desc:'a tidy home office or work desk area' },
+  { id:'toko', label:'Toko', desc:'a retail shop interior with shelves' },
+  { id:'kafe', label:'Kafe', desc:'a warm cafe interior' },
+  { id:'studio', label:'Studio', desc:'a clean photo/video studio with a simple backdrop' },
+  { id:'jalan_kota', label:'Jalan Kota', desc:'a city street, natural daylight' },
+  { id:'mobil', label:'Di Dalam Mobil', desc:'inside a parked car, natural light through the windows' },
+  { id:'outdoor', label:'Outdoor', desc:'an outdoor setting in natural daylight' },
+  { id:'custom', label:'Tulis Sendiri', desc:'' }
+];
+// Teks latar belakang untuk JSON/prompt. Custom diutamakan kalau diisi; kalau belum dipilih -> netral & aman.
+function vgGetBackgroundText(){
+  const custom = (vgState.backgroundCustom || '').trim();
+  if(custom) return custom;
+  const b = VG_BACKGROUNDS.find(x => x.id === vgState.background);
+  if(b && b.id !== 'custom') return b.label + ' (' + b.desc + ')';
+  return 'neutral clean background that suits the product';
+}
+function vgHasBackgroundChoice(){
+  return !!((vgState.backgroundCustom || '').trim() || (vgState.background && vgState.background !== 'custom'));
+}
+let vgBgRefreshTimer = null;
+function vgScheduleResultRefresh(delay){
+  clearTimeout(vgBgRefreshTimer);
+  vgBgRefreshTimer = setTimeout(vgRefreshResult, delay);
+}
+function vgSetBackground(id){
+  vgState.background = id;
+  if(id !== 'custom') vgState.backgroundCustom = '';
+  document.querySelectorAll('#vgBgGrid .vg-pill').forEach(el => el.classList.toggle('selected', el.dataset.id === id));
+  const wrap = document.getElementById('vgBgCustomWrap');
+  if(wrap) wrap.style.display = id === 'custom' ? 'block' : 'none';
+  const inp = document.getElementById('vgBgCustomInput');
+  if(inp && id !== 'custom') inp.value = '';
+  vgScheduleResultRefresh(0);
+}
+function vgOnBackgroundCustomInput(el){
+  vgState.backgroundCustom = el.value;
+  const cnt = document.getElementById('vgBgCustomCount');
+  if(cnt) cnt.textContent = el.value.length + ' / 120';
+  vgScheduleResultRefresh(350); // jangan render ulang tiap karakter
+}
+function vgRefreshResult(){
+  const wrap = document.getElementById('vgResultWrap');
+  if(wrap) wrap.innerHTML = vgResult ? vgRenderResult() : '';
+}
+let vgResultVersion = 0;
+let vgResultCache = { key:'', html:'' };
+function vgSetResult(arr){ vgResult = arr; vgResultVersion++; }
+let vgResult = null; // { hook, cerita, cta } setelah generate
+let vgGenerating = false;
+
+function openVideoGen(){
+  // Ringan: hanya membuka modal dan menampilkan step aktif (pilihan & hasil sebelumnya tetap tersimpan).
+  document.getElementById('vgModal').classList.add('open');
+  renderVgStep();
+}
+function closeVideoGen(){
+  document.getElementById('vgModal').classList.remove('open');
+}
+function vgGoToStep(n){
+  vgStep = n;
+  vgVisitedSteps.add(n);
+  renderVgStep();
+  // Tidak ada scrollTo/scrollIntoView — konten modal sendiri yang scroll (overflow-y pada .vg-body),
+  // dan setiap ganti step, .vg-body di-reset ke atas secara lokal (bukan halaman utama).
+  const body = document.getElementById('vgBody');
+  if(body) body.scrollTop = 0;
+}
+
+function renderVgStepDots(){
+  const wrap = document.getElementById('vgStepDots');
+  if(!wrap) return;
+  wrap.innerHTML = [1,2,3,4,5].map(n => {
+    const visited = vgVisitedSteps.has(n);
+    const active = n === vgStep;
+    const clickable = visited && !active;
+    const style = `width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;font-family:'JetBrains Mono',monospace;` +
+      (active ? `background:var(--grad);color:#0c0c12;` : visited ? `background:var(--bg-input);color:var(--ink);border:1px solid var(--accent2);cursor:pointer;` : `background:var(--bg-input);color:var(--ink-dim);border:1px solid var(--line);`);
+    return `<div style="${style}" ${clickable ? `onclick="vgGoToStep(${n})"` : ''}>${n}</div>`;
+  }).join('<div style="width:10px;height:1px;align-self:center;background:var(--line);"></div>');
+}
+
+function renderVgStep(){
+  const labels = ['Mode Referensi Foto','Jenis Kelamin & Usia','Nada Bicara','Aksen','Script / Dialog'];
+  document.getElementById('vgStepNum').textContent = vgStep;
+  document.getElementById('vgStepLabel').textContent = labels[vgStep-1];
+  document.getElementById('vgProgressBar').style.width = (vgStep/5*100) + '%';
+  renderVgStepDots();
+  const body = document.getElementById('vgBody');
+  if(vgStep === 1) body.innerHTML = vgRenderStep1();
+  else if(vgStep === 2) body.innerHTML = vgRenderStep2();
+  else if(vgStep === 3) body.innerHTML = vgRenderStep3();
+  else if(vgStep === 4) body.innerHTML = vgRenderStep4();
+  else body.innerHTML = vgRenderStep5();
+}
+
+function vgRenderStep1(){
+  const modeCards = VG_REF_MODES.map(m => `
+    <div class="vg-pill block ${vgState.refMode===m.id?'selected':''}" onclick="vgState.refMode='${m.id}'; renderVgStep();">${m.label}</div>
+  `).join('');
+  const activeMode = VG_REF_MODES.find(m=>m.id===vgState.refMode);
+  return `
+    <span class="vg-step-badge">1</span>
+    <div class="vg-h2">Mode Referensi Foto</div>
+    <div class="vg-desc">Foto referensinya di-upload langsung di Google Flow/Veo saat kamu pakai prompt ini — bukan di sini. Pilihan di bawah cuma menentukan strategi/instruksi di dalam JSON.</div>
+    <div class="vg-pill-grid" style="flex-direction:column;">${modeCards}</div>
+    <div class="vg-pill-note">${activeMode.desc}</div>
+    <button class="vg-btn-primary" onclick="vgGoToStep(2)">Lanjut →</button>
+  `;
+}
+
+function vgRenderStep2(){
+  const genderPills = ['Laki-laki','Perempuan'].map(g => `<div class="vg-pill ${vgState.gender===g?'selected':''}" onclick="vgState.gender='${g}'; renderVgStep();">${g}</div>`).join('');
+  const agePills = VG_AGE_PRESETS.map(a => `<div class="vg-pill ${vgState.agePreset===a.id?'selected':''}" onclick="vgState.agePreset='${a.id}'; vgState.ageCustom=''; renderVgStep();">${a.label} <span class="sub">${a.sub}</span></div>`).join('');
+  const canNext = vgState.gender && (vgState.agePreset || vgState.ageCustom.trim());
+  return `
+    <span class="vg-step-badge">2</span>
+    <div class="vg-h2">Jenis Kelamin &amp; Usia</div>
+    <label class="vg-field-label">Jenis Kelamin <span class="vg-required">*wajib</span></label>
+    <div class="vg-pill-grid">${genderPills}</div>
+    <label class="vg-field-label">Usia Karakter <span class="vg-required">*wajib</span></label>
+    <div class="vg-pill-grid">${agePills}</div>
+    <label class="vg-field-label">Atau tulis usia sendiri</label>
+    <input class="vg-input" maxlength="120" placeholder="Contoh: elderly woman, around 65 years old" value="${vgState.ageCustom.replace(/"/g,'&quot;')}" oninput="vgState.ageCustom=this.value; if(this.value.trim()) vgState.agePreset=''; vgUpdateNextBtn2();">
+    <div class="vg-count">${vgState.ageCustom.length} / 120</div>
+    <div style="display:flex; gap:8px;">
+      ${vgBackBtn(1)}
+      <button class="vg-btn-primary" style="flex:2;" id="vgNextBtn2" ${canNext?'':'disabled'} onclick="vgGoToStep(3)">Konfirmasi →</button>
+    </div>
+  `;
+}
+function vgUpdateNextBtn2(){
+  const btn = document.getElementById('vgNextBtn2');
+  if(btn) btn.disabled = !(vgState.gender && (vgState.agePreset || vgState.ageCustom.trim()));
+}
+
+function vgRenderStep3(){
+  const tonePills = VG_TONE_PRESETS.map(t => `<div class="vg-pill ${vgState.tone===t?'selected':''}" onclick="vgState.tone='${t}'; vgState.toneCustom=''; renderVgStep();">${t}</div>`).join('');
+  return `
+    <span class="vg-step-badge">3</span>
+    <div class="vg-h2">Nada Bicara</div>
+    <div class="vg-desc">Emosi/energi karakter saat ngomong — apakah terdengar semangat, kalem, atau misterius.</div>
+    <div class="vg-pill-grid">${tonePills}</div>
+    <label class="vg-field-label">🌐 Bahasa Review</label>
+    <select class="vg-input" id="vgBahasaReviewSelect" onchange="vgState.bahasaReview=this.value;">
+      <option value="id" ${vgState.bahasaReview==='id'?'selected':''}>🇮🇩 Indonesia</option>
+      <option value="ace" ${vgState.bahasaReview==='ace'?'selected':''}>🟢 Aceh</option>
+      <option value="su" ${vgState.bahasaReview==='su'?'selected':''}>🟠 Sunda</option>
+      <option value="jv" ${vgState.bahasaReview==='jv'?'selected':''}>🔵 Jawa</option>
+      <option value="en" ${vgState.bahasaReview==='en'?'selected':''}>🇬🇧 Inggris</option>
+    </select>
+    <div class="vg-desc" style="margin-top:4px;">Bahasa yang dipakai model saat review produk (Hook, Storytelling, CTA, voice) — bukan bahasa tampilan aplikasi.</div>
+    <label class="vg-field-label" style="margin-top:10px;">Atau tulis sendiri</label>
+    <input class="vg-input" maxlength="80" placeholder="Contoh: lelah tapi tetap ramah" value="${vgState.toneCustom.replace(/"/g,'&quot;')}" oninput="vgState.toneCustom=this.value; if(this.value.trim()) vgState.tone=''; vgUpdateNextBtn3();">
+    <div class="vg-count">${vgState.toneCustom.length} / 80</div>
+    <div style="display:flex; gap:8px;">
+      ${vgBackBtn(2)}
+      <button class="vg-btn-primary" style="flex:2;" id="vgNextBtn3" ${(vgState.tone||vgState.toneCustom.trim())?'':'disabled'} onclick="vgGoToStep(4)">Konfirmasi →</button>
+    </div>
+  `;
+}
+function vgUpdateNextBtn3(){
+  const btn = document.getElementById('vgNextBtn3');
+  if(btn) btn.disabled = !(vgState.tone || vgState.toneCustom.trim());
+}
+
+function vgRenderStep4(){
+  const accentPills = VG_ACCENT_PRESETS.map(a => `<div class="vg-pill ${vgState.accent===a?'selected':''}" onclick="vgState.accent='${a}'; vgState.accentCustom=''; renderVgStep();">${a}</div>`).join('');
+  return `
+    <span class="vg-step-badge">4</span>
+    <div class="vg-h2">Aksen</div>
+    <div class="vg-desc">Seberapa baku atau santai bahasanya — bukan logat daerah (logat Jawa/Sunda/dll tidak tersedia).</div>
+    <div class="vg-pill-grid">${accentPills}</div>
+    <label class="vg-field-label">Atau tulis sendiri</label>
+    <input class="vg-input" maxlength="120" placeholder="Contoh: nada santai dan ramah" value="${vgState.accentCustom.replace(/"/g,'&quot;')}" oninput="vgState.accentCustom=this.value; if(this.value.trim()) vgState.accent=''; vgUpdateNextBtn4();">
+    <div class="vg-count">${vgState.accentCustom.length} / 120</div>
+    <div class="vg-desc" style="margin-top:10px;">Semua pilihan otomatis digabung dengan "Natural Indonesian intonation".</div>
+    <div style="display:flex; gap:8px;">
+      ${vgBackBtn(3)}
+      <button class="vg-btn-primary" style="flex:2;" id="vgNextBtn4" ${(vgState.accent||vgState.accentCustom.trim())?'':'disabled'} onclick="vgGoToStep(5)">Konfirmasi →</button>
+    </div>
+  `;
+}
+function vgUpdateNextBtn4(){
+  const btn = document.getElementById('vgNextBtn4');
+  if(btn) btn.disabled = !(vgState.accent || vgState.accentCustom.trim());
+}
+
+function vgRenderStep5(){
+  const tabs = [['ai','Skrip dibantu AI'],['manual','Tulis Manual Sendiri'],['multi','Banyak Produk Sekaligus (maks 30)']]
+    .map(([id,label]) => `<div class="vg-submode-tab ${vgState.subMode===id?'selected':''}" onclick="vgState.subMode='${id}'; renderVgStep();">${label}</div>`).join('');
+
+  let body = '';
+  if(vgState.subMode === 'ai'){
+    const photoImg = vgState.productPhotoThumb ? `<img src="${vgState.productPhotoThumb}">` : '📷';
+    const canGen = vgState.productName.trim() && vgState.targetAudience.trim() && !vgGenerating;
+    body = `
+      <label class="vg-field-label">Nama Produk <span class="vg-required">*wajib</span></label>
+      <div class="vg-photo-row">
+        <input class="vg-input" style="flex:1;" id="vgProductName" placeholder="Contoh: Serum Wajah Glow Aura" value="${escapeHtml(vgState.productName)}" oninput="vgState.productName=this.value; vgUpdateGenBtn();">
+        <div class="vg-photo-box" id="vgPhotoBox" onclick="document.getElementById('vgPhotoInput').click();">${photoImg}</div>
+        <input type="file" id="vgPhotoInput" accept="image/*" style="display:none;" onchange="vgOnPhotoSelect(this)">
+      </div>
+      <div class="vg-desc">Foto produk bantu AI biar script lebih sesuai produk asli — opsional.</div>
+      <label class="vg-field-label">Target Audience <span class="vg-required">*wajib</span></label>
+      <textarea class="vg-textarea" id="vgTargetAudience" placeholder="Contoh: perempuan usia 20-30 tahun yang peduli perawatan kulit" oninput="vgState.targetAudience=this.value; vgUpdateGenBtn();">${escapeHtml(vgState.targetAudience)}</textarea>
+      <button class="vg-btn-primary" id="vgGenBtn" ${canGen?'':'disabled'} onclick="vgGenerateWithAI()">${vgGenerating?'⏳ Memproses...':'✨ Buatkan 3 Script + JSON dengan AI'}</button>
+      ${vgErrBoxHtml()}
+      <div class="vg-desc" style="margin-top:8px;">AI otomatis buat 3 script sekaligus (Hook, Cerita Produk, CTA) — masing-masing ±25 kata, langsung jadi 3 prompt JSON siap pakai.</div>
+    `;
+  } else if(vgState.subMode === 'manual'){
+    body = `
+      <label class="vg-field-label">🪝 Hook — pembuka penasaran</label>
+      <textarea class="vg-textarea" oninput="vgState.manualHook=this.value; vgUpdateWordCounts();" placeholder="Contoh: Kalian yang masih bingung pilih skincare buat kulit berminyak, coba deh merhatiin ini bentar...">${escapeHtml(vgState.manualHook)}</textarea>
+      <div class="vg-count" id="vgCountHook">0 kata</div>
+      <label class="vg-field-label" style="margin-top:10px;">📖 Cerita Produk</label>
+      <textarea class="vg-textarea" oninput="vgState.manualCerita=this.value; vgUpdateWordCounts();" placeholder="Contoh: Bayangin tiap pagi wajah kalian kerasa lebih segar, minyak berkurang, dan pede tanpa perlu banyak makeup lagi...">${escapeHtml(vgState.manualCerita)}</textarea>
+      <div class="vg-count" id="vgCountCerita">0 kata</div>
+      <label class="vg-field-label" style="margin-top:10px;">🎯 CTA — ajak cek keranjang bawah</label>
+      <textarea class="vg-textarea" oninput="vgState.manualCta=this.value; vgUpdateWordCounts();" placeholder="Contoh: Jangan kelamaan mikir, langsung aja cek keranjang di bawah sebelum kehabisan stoknya ya...">${escapeHtml(vgState.manualCta)}</textarea>
+      <div class="vg-count" id="vgCountCta">0 kata</div>
+      <div class="vg-desc">Idealnya masing-masing sekitar 25 kata, natural kayak orang ngomong beneran — bukan bahasa iklan formal.</div>
+      <button class="vg-btn-primary" id="vgManualBtn" onclick="vgBuildFromManual()">Buat 3 JSON dari Script Ini →</button>
+    `;
+  } else {
+    body = vgRenderMultiMode();
+  }
+
+  const resultHtml = vgResult ? vgRenderResult() : '';
+  const bgPills = VG_BACKGROUNDS.map(b => `<div class="vg-pill ${vgState.background===b.id?'selected':''}" data-id="${b.id}" onclick="vgSetBackground('${b.id}')">${b.label}</div>`).join('');
+
+  return `
+    <span class="vg-step-badge">5</span>
+    <div class="vg-h2">Script / Dialog</div>
+    <label class="vg-field-label">🏞️ Latar Belakang</label>
+    <div class="vg-pill-grid" id="vgBgGrid" style="margin-bottom:8px;">${bgPills}</div>
+    <div id="vgBgCustomWrap" style="display:${vgState.background==='custom'?'block':'none'};">
+      <input class="vg-input" id="vgBgCustomInput" maxlength="120" placeholder="Contoh: teras rumah dengan tanaman hijau" value="${escapeHtml(vgState.backgroundCustom)}" oninput="vgOnBackgroundCustomInput(this)">
+      <div class="vg-count" id="vgBgCustomCount">${vgState.backgroundCustom.length} / 120</div>
+    </div>
+    <div class="vg-desc">Latar belakang hanya mengatur lingkungan scene. Produk dan model tetap sama dengan foto referensi.</div>
+    <div class="vg-desc">Mau bikin script gimana?</div>
+    <div class="vg-submode-tabs">${tabs}</div>
+    ${body}
+    ${vgState.subMode !== 'multi' ? `<div style="display:flex; gap:8px; margin-top:10px;">${vgBackBtn(4)}</div>` : ''}
+    <div id="vgResultWrap">${resultHtml}</div>
+  `;
+}
+
+function vgRenderMultiMode(){
+  if(!vgState.multiCountConfirmed){
+    return `
+      <label class="vg-field-label">Mau generate berapa produk?</label>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <input class="vg-input" type="number" min="1" max="30" style="flex:1;" id="vgMultiCountInput" value="${vgState.multiCount}"
+          oninput="let v=parseInt(this.value)||1; if(v<1)v=1; if(v>30)v=30; vgState.multiCount=v; this.value=v;">
+        <button class="vg-btn-primary" style="flex:1; margin-top:0;" onclick="vgConfirmMultiCount()">Tentukan Jumlah →</button>
+      </div>
+      <div class="vg-desc" style="margin-top:8px;">Minimum 1, maksimum 30 produk sekaligus.</div>
+      <div style="display:flex; gap:8px; margin-top:14px;">${vgBackBtn(4)}</div>
+    `;
+  }
+
+  const cards = [];
+  for(let i=0;i<vgState.multiCount;i++){
+    const p = vgState.multiProducts[i] || { name:'', keunggulan:'', photoBase64:null };
+    vgState.multiProducts[i] = p;
+    const photoImg = p.photoThumb ? `<img src="${p.photoThumb}">` : '📷';
+    cards.push(`
+      <div class="vg-scene-card" style="margin-bottom:10px;">
+        <span class="vg-scene-tag">PRODUK ${i+1}</span>
+        <div class="vg-photo-row">
+          <input class="vg-input" style="flex:1;" placeholder="Nama Produk *wajib" value="${escapeHtml(p.name)}" oninput="vgState.multiProducts[${i}].name=this.value;">
+          <div class="vg-photo-box" id="vgMultiPhotoBox${i}" onclick="document.getElementById('vgMultiPhotoInput${i}').click();">${photoImg}</div>
+          <input type="file" id="vgMultiPhotoInput${i}" accept="image/*" style="display:none;" onchange="vgOnMultiPhotoSelect(this, ${i})">
+        </div>
+        <input class="vg-input" style="margin-top:8px;" placeholder="Keunggulan (opsional)" value="${escapeHtml(p.keunggulan||'')}" oninput="vgState.multiProducts[${i}].keunggulan=this.value;">
+      </div>
+    `);
+  }
+
+  return `
+    <div style="font-size:12px; color:var(--ink-dim); margin-bottom:10px; cursor:pointer;" onclick="vgState.multiCountConfirmed=false; renderVgStep();">← Ubah jumlah produk (${vgState.multiCount})</div>
+    ${cards.join('')}
+    <label class="vg-field-label" style="margin-top:6px;">Target Audience <span class="vg-required">*wajib</span></label>
+    <textarea class="vg-textarea" oninput="vgState.targetAudience=this.value;" placeholder="Contoh: perempuan usia 20-30 tahun">${escapeHtml(vgState.targetAudience)}</textarea>
+    <div style="display:flex; gap:8px; margin-top:10px;">
+      ${vgBackBtn(4)}
+      <button class="vg-btn-primary" style="flex:2; margin-top:0;" id="vgMultiBtn" onclick="vgGenerateMulti()" ${vgGenerating?'disabled':''}>${vgGenerating?'⏳ Memproses...':'✨ Generate Semua Produk'}</button>
+    </div>
+    ${vgErrBoxHtml()}
+  `;
+}
+function vgConfirmMultiCount(){
+  vgState.multiCountConfirmed = true;
+  renderVgStep();
+}
+/* Foto referensi untuk AI: diproses sekali (decode lewat Blob URL, resize 1024px, thumbnail kecil untuk tampilan).
+   Hasil disimpan di state & dipakai ulang; foto yang sama tidak diproses lagi. */
+function vgProcessPhotoFile(file){
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    const done = () => { try{ URL.revokeObjectURL(url); }catch(e){} };
+    img.onload = function(){
+      try{
+        const draw = (maxDim, q) => {
+          let w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+          const r = Math.min(1, maxDim / Math.max(w, h));
+          w = Math.max(1, Math.round(w * r)); h = Math.max(1, Math.round(h * r));
+          const c = document.createElement('canvas'); c.width = w; c.height = h;
+          c.getContext('2d').drawImage(img, 0, 0, w, h);
+          const out = c.toDataURL('image/jpeg', q);
+          c.width = 0; c.height = 0;
+          return out;
+        };
+        const main = draw(1024, 0.82).split(',')[1];
+        const thumb = draw(96, 0.7);
+        done(); resolve({ base64: main, thumb: thumb });
+      }catch(e){ done(); reject(e); }
+    };
+    img.onerror = function(){ done(); reject(new Error('Foto tidak bisa dibaca')); };
+    img.src = url;
+  });
+}
+function vgPhotoKey(file){ return file.name + '|' + file.size + '|' + file.lastModified; }
+function vgSetPhotoBox(id, thumb){
+  const box = document.getElementById(id);
+  if(!box) return; // step sudah berganti, state tetap tersimpan
+  box.innerHTML = '';
+  if(thumb){ const im = document.createElement('img'); im.src = thumb; box.appendChild(im); }
+  else box.textContent = '📷';
+}
+async function vgOnMultiPhotoSelect(input, idx){
+  const file = input.files[0]; if(!file) return;
+  const p = vgState.multiProducts[idx]; if(!p){ input.value = ''; return; }
+  const key = vgPhotoKey(file);
+  input.value = '';
+  if(p.photoKey === key && p.photoBase64) return; // sudah diproses
+  try{
+    const r = await vgProcessPhotoFile(file);
+    p.photoBase64 = r.base64; p.photoThumb = r.thumb; p.photoKey = key;
+    vgSetPhotoBox('vgMultiPhotoBox' + idx, r.thumb);
+  }catch(err){ console.error(err); showToast('Foto tidak bisa dibaca, coba foto lain'); }
+}
+
+function vgUpdateGenBtn(){
+  const btn = document.getElementById('vgGenBtn');
+  if(btn) btn.disabled = !(vgState.productName.trim() && vgState.targetAudience.trim()) || vgGenerating;
+}
+function vgUpdateWordCounts(){
+  const wc = (s) => (s.trim() ? s.trim().split(/\s+/).length : 0);
+  const h = document.getElementById('vgCountHook'); if(h) h.textContent = wc(vgState.manualHook) + ' kata';
+  const c = document.getElementById('vgCountCerita'); if(c) c.textContent = wc(vgState.manualCerita) + ' kata';
+  const t = document.getElementById('vgCountCta'); if(t) t.textContent = wc(vgState.manualCta) + ' kata';
+}
+
+async function vgOnPhotoSelect(input){
+  const file = input.files[0]; if(!file) return;
+  const key = vgPhotoKey(file);
+  input.value = '';
+  if(vgState.productPhotoKey === key && vgState.productPhotoBase64) return; // sudah diproses
+  try{
+    const r = await vgProcessPhotoFile(file);
+    vgState.productPhotoBase64 = r.base64; vgState.productPhotoThumb = r.thumb; vgState.productPhotoKey = key;
+    vgSetPhotoBox('vgPhotoBox', r.thumb);
+  }catch(err){ console.error(err); showToast('Foto tidak bisa dibaca, coba foto lain'); }
+}
+
+function vgGetAgeText(){ return vgState.ageCustom.trim() || (VG_AGE_PRESETS.find(a=>a.id===vgState.agePreset)||{}).label + ' (' + (VG_AGE_PRESETS.find(a=>a.id===vgState.agePreset)||{}).sub + ')'; }
+function vgGetToneText(){ return vgState.toneCustom.trim() || vgState.tone; }
+function vgGetAccentText(){ return vgState.accentCustom.trim() || vgState.accent; }
+
+function vgBackBtn(toStep){
+  return `<button class="btn-outline" style="flex:1;" onclick="vgGoToStep(${toStep})">← Kembali</button>`;
+}
+
+function vgParseAIJson(rawText){
+  const raw = (rawText || '').trim();
+  // 1) Parse langsung (kasus paling umum, paling murah)
+  try{ return JSON.parse(raw); }catch(e){ /* lanjut fallback */ }
+  // 2) Buang markdown fence
+  const text = raw.replace(/^```json\s*|^```\s*|```$/gi, '').trim();
+  try{ return JSON.parse(text); }catch(e){ /* lanjut fallback */ }
+  // 3) Ambil blok {...} pertama sampai terakhir (tanpa regex mahal)
+  const i = text.indexOf('{'), j = text.lastIndexOf('}');
+  if(i !== -1 && j > i){
+    try{ return JSON.parse(text.slice(i, j + 1)); }catch(e2){ /* tetap gagal, lempar error di bawah */ }
+  }
+  throw new Error('AI tidak mengembalikan format JSON yang valid. Coba tap generate lagi.');
+}
+
+function vgBuildCharacterContext(){
+  const bahasa = BAHASA_MODEL_MAP[vgState.bahasaReview] || BAHASA_MODEL_MAP.id;
+  return `Karakter di video: ${vgState.gender}, usia ${vgGetAgeText()}. Nada bicara: ${vgGetToneText()}. Gaya bahasa/aksen penyampaian: ${vgGetAccentText()}.
+BAHASA DIALOG WAJIB: ${bahasa.label}. ${bahasa.instruction} DILARANG KERAS memakai ${bahasa.forbidden} sebagai bahasa utama dialog.`;
+}
+
+function vgBuildScriptInstruction(productName){
+  const bahasa = BAHASA_MODEL_MAP[vgState.bahasaReview] || BAHASA_MODEL_MAP.id;
+  return `Kamu adalah copywriter + video strategist konten pendek (TikTok/Reels/Shorts) untuk produk marketplace. Tujuan utama: STOP-SCROLL dalam 0-2 detik pertama dan bikin penonton tertarik ke produk — penonton sering skip di 1-2 detik pertama kalau pembukaannya lemah.
+
+${vgBuildCharacterContext()}
+Produk: ${productName}
+Target Audience: ${vgState.targetAudience || 'Gen Z perempuan (default, jangan disebut eksplisit di dialog)'}${vgHasBackgroundChoice() ? `\nLatar belakang/lokasi video: ${vgGetBackgroundText()}. Aksi visual harus masuk akal di lokasi ini. Latar belakang hanya mengatur lingkungan, JANGAN mengubah produk atau model.` : ''}
+
+=== ATURAN HOOK (0-2 DETIK, PRIORITAS TERTINGGI) ===
+JANGAN buka dengan: sapaan panjang, "Hai guys"/"Halo semuanya", perkenalan panjang, penjelasan produk dulu, model diam saja, kamera lama-lama nyari objek, atau produk baru muncul setelah beberapa detik.
+Dalam 2 detik pertama HARUS sudah ada pemicu perhatian: aksi produk, perubahan visual, close-up menarik, ekspresi natural, gerakan tangan, penggunaan produk, hasil penggunaan, situasi relatable, pertanyaan menggugah penasaran, atau pernyataan yang bikin penonton ingin tahu lanjutannya.
+Pilih SATU tipe hook yang paling cocok untuk produk ini dari: Curiosity Hook, Problem Hook, Result Hook, Relatable Hook, Unexpected Hook, Visual Hook, Comparison Hook, Discovery Hook, Product Interaction Hook, Mini Story Hook. Jangan selalu pakai pola sama ("Kalau kamu...", "Guys...", "Ini dia...", "Jangan sampai...", "Siapa yang...") — variasikan sesuai produk.
+Hook BUKAN cuma dialog — tentukan juga aksi visual 0-2 detik yang sesuai jenis produk (contoh acuan, jangan dipakai selalu sama: pakaian → langsung tampilkan bagian menarik pakaian; tas → langsung tunjukkan cara pakai; sepatu → langsung perlihatkan saat dipakai; kosmetik → langsung perlihatkan pemakaian; elektronik → langsung perlihatkan produk dipakai; aksesori → langsung perlihatkan saat dikenakan). Harus realistis, bukan gerakan berlebihan.
+
+=== CURIOSITY & STORYTELLING ===
+Setelah hook, kasih alasan buat terus nonton: pertanyaan, masalah umum, perbandingan, kejutan kecil, manfaat yang belum langsung dijelaskan. Jangan clickbait palsu, jangan klaim yang tidak berasal dari info produk.
+Storytelling harus terasa seperti orang berbagi pengalaman/menemukan sesuatu menarik — BUKAN membaca katalog. Gaya casual, conversational, relatable, boleh sedikit humor kalau pas, jangan formal, jangan seperti announcer. HINDARI kalimat "Produk ini memiliki...", "Produk ini sangat bagus...", "Produk ini wajib Anda miliki..." kecuali benar-benar perlu.
+Tunjukkan manfaat produk lewat ADEGAN/aksi (product demonstration), bukan cuma disebutkan — kalau produk bisa dipakai, tunjukkan pemakaiannya; kalau tidak cocok didemonstrasikan, pakai close-up/handling/showcase natural.
+
+=== CTA ===
+Natural, singkat, tidak memaksa, TANPA urgency palsu ("stok terbatas", "buruan", "sebelum kehabisan"). Inti CTA: ajak cek keranjang di bawah — boleh divariasikan kalimatnya asal maksud tetap sama.
+
+=== ATURAN KESESUAIAN PRODUK (WAJIB, TikTok Shop) ===
+Dialog dan aksi visual HARUS sesuai produk sebenarnya. Jangan melebih-lebihkan dan jangan membuat klaim, fitur, fungsi, bahan, ukuran, varian, aksesori, garansi, ketentuan retur/pengembalian dana, diskon, atau hasil yang tidak terlihat di foto referensi atau tidak ada di deskripsi produk. Hindari kata "paling", "nomor 1", "terbaik", "100% ampuh", "pasti", "dijamin", "instan", perbandingan sebelum-sesudah, testimoni palsu, angka penjualan, dan klaim viral. Gerakan produk harus realistis (tidak melayang, menyala, atau berubah bentuk). Kalau suatu detail tidak terlihat atau tidak diketahui, jangan disebutkan.
+
+=== ATURAN PANJANG & FORMAT (WAJIB) ===
+Hook = tepat 25 kata. Cerita Produk = tepat 25 kata. CTA = tepat 25 kata. Hitung kata dengan benar sebelum menjawab.
+JANGAN gunakan tanda em dash "—" di mana pun dalam dialog.
+VISUAL, GERAKAN, KAMERA, dan DIALOG harus saling mendukung satu sama lain — bukan cuma dialog yang menarik tapi visualnya asal.
+
+Balas HANYA dengan objek JSON mentah (tanpa markdown fences, tanpa penjelasan), dengan struktur persis ini:
+{
+  "hook_type": "salah satu dari 10 tipe hook di atas",
+  "hook": "dialog hook, tepat 25 kata",
+  "hook_visual_action": "aksi visual spesifik di 0-2 detik, sesuai jenis produk",
+  "hook_camera": "framing kamera untuk hook (mis. close-up, medium shot)",
+  "cerita": "dialog storytelling, tepat 25 kata",
+  "cerita_visual_action": "aksi/interaksi dengan produk yang mendukung storytelling",
+  "cerita_emotion": "emosi/nuansa yang dibangun di bagian ini",
+  "cta": "dialog CTA, tepat 25 kata",
+  "cta_visual_action": "aksi visual penutup, biasanya fokus bersih ke produk"
+}`;
+}
+
+const VG_AI_TIMEOUT_MS = 60000;
+function vgSetGenUI(label){
+  // Update ringan: hanya tombol Generate, tanpa render ulang seluruh step.
+  [['vgGenBtn', '⏳ Memproses...'], ['vgMultiBtn', '⏳ Memproses...']].forEach(([id, def]) => {
+    const btn = document.getElementById(id);
+    if(btn){ btn.disabled = true; btn.textContent = label || def; }
+  });
+}
+let vgLastError = ''; // pesan error terakhir, ditampilkan permanen di bawah tombol Generate (toast terlalu singkat)
+function vgErrText(err){
+  if(err && err.name === 'AbortError') return 'Waktu habis (60 detik). Periksa koneksi lalu coba lagi.';
+  const m = (err && err.message) || 'kesalahan tidak diketahui';
+  if(/\b50[0234]\b|high demand|UNAVAILABLE|overloaded/i.test(m)){
+    return 'Server AI sedang sibuk (kelebihan permintaan, bersifat sementara). Sudah dicoba ulang otomatis tapi belum berhasil. Tunggu 1 sampai 2 menit lalu tekan tombol Generate lagi. Detail: ' + m.slice(0, 160);
+  }
+  if(/429|RESOURCE_EXHAUSTED|exceeded your current quota/i.test(m)){
+    return 'Kuota/batas permintaan AI sedang habis (HTTP 429). Tunggu beberapa menit lalu coba lagi, atau cek kuota dan billing API key di Google AI Studio. Detail: ' + m.slice(0, 180);
+  }
+  return m;
+}
+function vgErrBoxHtml(){
+  return vgLastError ? `<div class="hint" id="vgGenError" style="color:#ff6b8a; margin-top:8px; line-height:1.55;">⚠️ ${escapeHtml(vgLastError)}</div>` : '';
+}
+// SATU request AI per produk: Hook, Cerita, CTA datang dalam satu respons JSON.
+const VG_TRANSIENT_RE = /\b50[0234]\b|high demand|UNAVAILABLE|overloaded/i;
+function vgSleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+async function vgRequestScriptOnce(productName, photoBase64){
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), VG_AI_TIMEOUT_MS);
+  try{
+    const instruction = vgBuildScriptInstruction(productName);
+    const img = photoBase64 ? { base64: photoBase64, mediaType: 'image/jpeg' } : false;
+    const rawText = activeProvider === 'gemini' ? await callGemini(instruction, img, ctrl.signal) : await callClaude(instruction, img, ctrl.signal);
+    const parsed = vgParseAIJson(rawText);
+    return {
+      hook: parsed.hook || '', cerita: parsed.cerita || '', cta: parsed.cta || '',
+      hookType: parsed.hook_type || '', hookVisualAction: parsed.hook_visual_action || '', hookCamera: parsed.hook_camera || '',
+      ceritaVisualAction: parsed.cerita_visual_action || '', ceritaEmotion: parsed.cerita_emotion || '',
+      ctaVisualAction: parsed.cta_visual_action || ''
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+// SATU request AI per produk (Hook, Cerita, CTA dalam satu respons JSON).
+// Kalau server AI sibuk (5xx), diulang maksimal 2x dengan jeda bertahap 4 dan 8 detik, tidak lebih.
+async function vgRequestScript(productName, photoBase64){
+  for(let attempt = 0; ; attempt++){
+    try{
+      return await vgRequestScriptOnce(productName, photoBase64);
+    }catch(err){
+      const transient = err && err.name !== 'AbortError' && VG_TRANSIENT_RE.test(err.message || '');
+      if(!transient || attempt >= 2) throw err;
+      const single = document.getElementById('vgGenBtn');
+      if(single) single.textContent = '⏳ Server sibuk, mencoba lagi (' + (attempt + 1) + '/2)...';
+      await vgSleep(4000 * (attempt + 1));
+    }
+  }
+}
+
+async function vgGenerateWithAI(){
+  if(vgGenerating) return; // lock: klik berulang tidak membuat request tambahan
+  vgGenerating = true; vgLastError = ''; vgSetGenUI();
+  const oldErr = document.getElementById('vgGenError'); if(oldErr) oldErr.remove();
+  try{
+    const r = await vgRequestScript(vgState.productName, vgState.productPhotoBase64);
+    vgSetResult([Object.assign({ productName: vgState.productName }, r)]);
+    showToast('Script & JSON siap!');
+  }catch(err){
+    console.error(err);
+    vgLastError = 'Gagal membuat script: ' + vgErrText(err);
+    showToast('Gagal membuat script');
+  }finally{
+    vgGenerating = false; renderVgStep();
+  }
+}
+
+function vgBuildFromManual(){
+  if(!vgState.manualHook.trim() && !vgState.manualCerita.trim() && !vgState.manualCta.trim()){
+    showToast('Isi minimal salah satu bagian dulu (Hook/Cerita/CTA)');
+    return;
+  }
+  vgSetResult([{
+    productName: vgState.productName || '(manual)',
+    hook: vgState.manualHook, cerita: vgState.manualCerita, cta: vgState.manualCta
+  }]);
+  renderVgStep();
+  showToast('3 JSON dibuat dari script manual!');
+}
+
+const VG_MULTI_CONCURRENCY = 3; // maksimal 3 request aktif sekaligus
+async function vgGenerateMulti(){
+  if(vgGenerating) return;
+  const products = vgState.multiProducts.slice(0, vgState.multiCount).filter(p => p && p.name && p.name.trim());
+  if(!products.length){ showToast('Isi minimal 1 Nama Produk'); return; }
+  if(!vgState.targetAudience.trim()){ showToast('Target Audience wajib diisi'); return; }
+  vgGenerating = true; vgLastError = '';
+  const total = products.length;
+  const slots = new Array(total).fill(null);   // hasil per produk, urutan tetap
+  const failed = [];
+  let next = 0, finished = 0, slow = false, rateFails = 0, stopped = false;
+  vgSetGenUI('⏳ Memproses... (0/' + total + ')');
+
+  const runOne = async (p) => {
+    const namaLengkap = p.keunggulan && p.keunggulan.trim() ? `${p.name.trim()} (keunggulan: ${p.keunggulan.trim()})` : p.name.trim();
+    const r = await vgRequestScript(namaLengkap, p.photoBase64);
+    return Object.assign({ productName: p.name.trim() }, r);
+  };
+  const worker = async (wid) => {
+    while(true){
+      if(stopped) return;
+      if(slow && wid > 0) return; // kena rate limit: lanjut sebagai antrean biasa (1 request)
+      const i = next++;
+      if(i >= total) return;
+      try{
+        slots[i] = await runOne(products[i]);
+        rateFails = 0;
+      }catch(err){
+        console.error(err);
+        const msg = vgErrText(err);
+        failed.push(products[i].name.trim() + ': ' + msg);
+        if(/429|RESOURCE_EXHAUSTED|quota|kuota/i.test(msg)){
+          slow = true; rateFails++;
+          if(rateFails >= 2) stopped = true; // kuota habis: jangan menembak sisa produk
+        }
+      }
+      finished++;
+      vgSetGenUI('⏳ Memproses... (' + finished + '/' + total + ')');
+    }
+  };
+  try{
+    const n = Math.min(VG_MULTI_CONCURRENCY, total);
+    await Promise.all(Array.from({ length: n }, (_, w) => worker(w)));
+    const ok = slots.filter(Boolean);
+    if(ok.length) vgSetResult(ok);
+    if(!ok.length){ vgLastError = 'Gagal: ' + (failed[0] || 'tidak ada hasil'); showToast('Gagal membuat script'); }
+    else if(failed.length || stopped){ vgLastError = ok.length + ' dari ' + total + ' produk selesai. Gagal: ' + (failed[0] || 'dihentikan karena batas kuota'); showToast(ok.length + ' dari ' + total + ' produk selesai'); }
+    else showToast(`${ok.length} set script & JSON siap!`);
+  }catch(err){
+    console.error(err);
+    vgLastError = 'Gagal di tengah proses: ' + vgErrText(err);
+    showToast('Gagal membuat script');
+  }finally{
+    vgGenerating = false; renderVgStep();
+  }
+}
+
+function vgBuildSceneJSON(item, sceneKey, dialogText){
+  const refMode = VG_REF_MODES.find(m=>m.id===vgState.refMode);
+  const sceneNames = { hook:'HOOK', cerita:'CERITA_PRODUK', cta:'CTA' };
+  const bahasa = BAHASA_MODEL_MAP[vgState.bahasaReview] || BAHASA_MODEL_MAP.id;
+  const data = {
+    video_strategy: {
+      goal: 'stop_scroll_and_create_product_interest',
+      hook_priority: 'very_high',
+      style: 'natural_social_media_product_content'
+    },
+    scene: sceneNames[sceneKey],
+    product_name: item.productName,
+    reference_mode: { id: refMode.id, label: refMode.label, instruction: refMode.desc },
+    character: {
+      gender: vgState.gender,
+      age: vgGetAgeText(),
+      tone: vgGetToneText(),
+      accent: vgGetAccentText() + ` (${bahasa.label})`
+    },
+    target_audience: vgState.targetAudience || 'Gen Z perempuan (default)',
+    dialog: dialogText,
+    timing: sceneKey === 'hook' ? '0-2s' : (sceneKey === 'cta' ? 'final seconds' : 'pertengahan video'),
+    duration_seconds: 8,
+    environment: {
+      background: vgGetBackgroundText(),
+      instruction: 'Set this scene in the background/environment above. The background only controls the environment: it must NOT change the product (shape, color, size, logo, text, pattern, material, texture, accessories, quantity) or the model (face, identity, clothing).'
+    },
+    preserve_original: {
+      enabled: true,
+      instruction: PRESERVE_ORIGINAL_TEXT + ' ' + PRESERVE_ORIGINAL_PRODUCT_TEXT + ' ' + ACCURACY_RULES_TEXT
+    },
+    product_consistency: {
+      preserve_reference_exactly: true,
+      no_product_modification: true,
+      no_new_product_details: true
+    },
+    voice: buildVoiceCharacterBlock(dialogText, vgState.bahasaReview).dialogue.voice_character,
+    negative_prompt: ['different product','product redesign','changed product shape','changed product color','changed logo','changed text','changed branding','altered proportions','deformed product','product morphing','warped product','duplicate product','different person','face distortion','identity change','deformed hands','extra fingers','extra hands','stiff movement','robotic motion','jerky animation','product altered by background','model altered by background','exaggerated claims','false product claims','added features not in product','before and after comparison','fake testimonial','floating product','glowing product']
+  };
+
+  if(sceneKey === 'hook'){
+    data.hook_type = item.hookType || 'AI-selected berdasarkan produk';
+    data.visual_hook = {
+      action: item.hookVisualAction || 'aksi produk yang langsung menarik perhatian di 0-2 detik pertama',
+      camera: item.hookCamera || 'close-up',
+      movement: 'smooth and natural',
+      timing: 'immediate'
+    };
+  } else if(sceneKey === 'cerita'){
+    data.product_action = item.ceritaVisualAction || 'demonstrasi/interaksi produk yang mendukung cerita';
+    data.emotion = item.ceritaEmotion || 'natural dan relatable';
+  } else if(sceneKey === 'cta'){
+    data.visual_action = item.ctaVisualAction || 'clean_product_focus';
+  }
+
+  return data;
+}
+
+function vgRenderResult(){
+  // Cache: JSON hanya dibuat ulang kalau hasil/pilihan yang memengaruhi JSON berubah.
+  const key = JSON.stringify([vgResultVersion, vgState.refMode, vgState.gender, vgState.agePreset, vgState.ageCustom,
+    vgState.tone, vgState.toneCustom, vgState.accent, vgState.accentCustom, vgState.bahasaReview, vgState.targetAudience, vgGetBackgroundText()]);
+  if(vgResultCache.key === key) return vgResultCache.html;
+  const preStyle = 'display:block; background:var(--bg-input); border:1px solid var(--line); border-radius:8px; padding:10px; font-size:10px; white-space:pre-wrap; word-break:break-word; max-height:220px; overflow-y:auto; color:#d5f5ef;';
+  const jsonOf = (item, scene, dialog) => escapeHtml(JSON.stringify(vgBuildSceneJSON(item, scene, dialog), null, 2));
+  const html = vgResult.map((item, idx) => `
+    <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--line);">
+      ${vgResult.length > 1 ? `<div class="vg-h2" style="font-size:14px;">📦 ${escapeHtml(item.productName || '')}</div>` : ''}
+      <div class="vg-scene-card">
+        <span class="vg-scene-tag">🪝 SCENE 1 — HOOK</span>
+        <pre id="vgJsonHook${idx}" style="${preStyle}">${jsonOf(item,'hook',item.hook)}</pre>
+        <button class="btn-outline" style="margin-top:8px;" onclick="vgCopyScene(${idx}, 'Hook')">📋 Copy JSON Hook</button>
+      </div>
+      <div class="vg-scene-card">
+        <span class="vg-scene-tag">📖 SCENE 2 — CERITA PRODUK</span>
+        <pre id="vgJsonCerita${idx}" style="${preStyle}">${jsonOf(item,'cerita',item.cerita)}</pre>
+        <button class="btn-outline" style="margin-top:8px;" onclick="vgCopyScene(${idx}, 'Cerita')">📋 Copy JSON Cerita</button>
+      </div>
+      <div class="vg-scene-card">
+        <span class="vg-scene-tag">🎯 SCENE 3 — CTA</span>
+        <pre id="vgJsonCta${idx}" style="${preStyle}">${jsonOf(item,'cta',item.cta)}</pre>
+        <button class="btn-outline" style="margin-top:8px;" onclick="vgCopyScene(${idx}, 'Cta')">📋 Copy JSON CTA</button>
+      </div>
+    </div>
+  `).join('');
+  vgResultCache = { key: key, html: html };
+  return html;
+}
+
+async function vgCopyScene(idx, which){
+  const el = document.getElementById('vgJson' + which + idx);
+  if(!el) return;
+  const ok = await copyText(el.textContent);
+  if(ok) showToast('JSON ' + which + ' disalin!');
+}
+</script>
+
+<script>
+(function(){
+  const splash=document.getElementById('wiranzaSplash');
+  if(!splash) return;
+  document.documentElement.classList.add('wz-loading');
+  const closeSplash=()=>{
+    splash.classList.add('hide');
+    document.documentElement.classList.remove('wz-loading');
+    setTimeout(()=>splash.remove(),650);
+  };
+  window.addEventListener('load',()=>setTimeout(closeSplash,1900),{once:true});
+  // Fallback agar splash tidak pernah mengunci aplikasi bila ada resource lambat.
+  setTimeout(closeSplash,4000);
+})();
+</script>
+
+</body>
+</html>
